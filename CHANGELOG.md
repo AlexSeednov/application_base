@@ -1,6 +1,12 @@
+## 0.1.3
+
+* Updates minimum supported SDK version to Flutter 3.35.4/Dart 3.9.2
+* Updates all packages to actual versions
+
 ## 0.1.2
 
 * **RequestPostFile** added to uploading file as binary data using octet-stream
+(tested only for Android and iOS for now)
 
 ## 0.1.1
 
@@ -15,8 +21,6 @@ Breaking changes:
 * Some unified widgets added
   * EmptyButton
   * UnfocusingTap
-* Updates minimum supported SDK version to Flutter 3.32.5/Dart 3.8.1
-* Updates all packages to actual versions
 
 ## 0.0.9
 
