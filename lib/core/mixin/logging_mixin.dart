@@ -11,6 +11,10 @@ base mixin LoggingMixin {
       logInfo(info: logName, additional: info);
 
   ///
+  void logNamedImportant({required String info}) =>
+      logImportant(info: logName, additional: info);
+
+  ///
   void logNamedError({required String error}) =>
       logError(error: logName, additional: error);
 }

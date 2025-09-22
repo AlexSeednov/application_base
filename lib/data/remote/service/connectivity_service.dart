@@ -63,8 +63,8 @@ final class ConnectivityService {
 
   ///
   Future<void> getConnectivity() async {
-    final List<ConnectivityResult> actualConnectivityList =
-        await Connectivity().checkConnectivity();
+    final List<ConnectivityResult> actualConnectivityList = await Connectivity()
+        .checkConnectivity();
 
     _connectivityList
       ..clear()

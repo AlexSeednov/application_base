@@ -13,7 +13,8 @@ set flavor(FlavorType newFlavor) => _flavor = newFlavor;
 FlavorType get flavor {
   if (_flavor == null) {
     logError(
-      error: 'Flavor is null. Do you forgot to set it via '
+      error:
+          'Flavor is null. Do you forgot to set it via '
           'ApplicationBase.prepare?',
     );
     flavor = FlavorProduction();

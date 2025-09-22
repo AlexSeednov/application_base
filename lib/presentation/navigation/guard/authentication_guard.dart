@@ -19,9 +19,7 @@ class AuthenticationGuard implements AutoRouteGuard {
       resolver.next();
     } else {
       /// Need to sign in or sign up before
-      logInfo(
-        info: 'Try to open ${resolver.routeName} without access',
-      );
+      logInfo(info: 'Try to open ${resolver.routeName} without access');
       await pushScreen(route: authorizationRoute);
       resolver.next(getIt<AccessVM>().isGranted);
     }

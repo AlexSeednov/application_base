@@ -59,6 +59,5 @@ final class LifecycleService {
   ///
   StreamSubscription<AppLifecycleState> listen(
     void Function(AppLifecycleState) onData,
-  ) =>
-      _lifecycleSubject.listen(onData);
+  ) => _lifecycleSubject.listen(onData);
 }
