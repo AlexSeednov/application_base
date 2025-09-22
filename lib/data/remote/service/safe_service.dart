@@ -6,7 +6,8 @@ import 'package:application_base/data/remote/service/network_logger_service.dart
 /// Methods for safe work with entities
 abstract final class SafeService {
   /// Safe parse JSON with list from string
-  static List<Type> parseList(
+  // ignore: avoid_types_as_parameter_names
+  static List<Type> parseList<Type>(
     ResponseEntity data,
     Type Function(Map<String, dynamic> json) parseFunction,
   ) {
@@ -33,7 +34,8 @@ abstract final class SafeService {
   }
 
   /// Safe parse JSON from string
-  static Type? parse(
+  // ignore: avoid_types_as_parameter_names
+  static Type? parse<Type>(
     ResponseEntity data,
     Type Function(Map<String, dynamic> json) parseFunction,
   ) {
