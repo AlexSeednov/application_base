@@ -1,23 +1,25 @@
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
   # Flutter SDK supported versions
-  flutter: '>=3.32.5'  
+  # Pinned packages
+  # https://github.com/flutter/flutter/blob/3.35.4/packages/flutter/pubspec.yaml
+  flutter: '>=3.35.4'  
 
   # Dart SDK supported versions
   # https://docs.flutter.dev/release/archive
-  sdk: '>=3.8.1'
+  sdk: '>=3.9.2'
 
-# Last update - 05.07.2025
+# Last update - 22.09.2025
 dependencies:
   # All platform supported
-  auto_route: 10.1.0+1
+  auto_route: 10.1.2
 
   # All platform supported
-  connectivity_plus: ^6.1.4
+  connectivity_plus: ^7.0.0
 
   # All platform supported
   cross_file: ^0.3.4+2
@@ -30,33 +32,33 @@ dependencies:
   flutter_secure_storage: ^9.2.4
 
   # All platform supported
-  get_it: ^8.0.3
+  get_it: ^8.2.0
 
   # All platform supported
-  hive_ce: ^2.11.3
+  hive_ce: ^2.13.2
 
   # All platform supported
-  hive_ce_flutter: ^2.3.1
+  hive_ce_flutter: ^2.3.2
 
   # All platform supported
-  http: ^1.4.0
+  http: ^1.5.0
   
   # All platform supported
-  logger: ^2.6.0
+  logger: ^2.6.1
 
   # All platform supported
-  # New Flutter version required
-  # meta: ^1.17.0
-  meta: 1.16.0
+  # Pinned by Flutter
+  #meta: ^1.17.0
+  meta: ^1.16.0
 
   # All platform supported
   rxdart: ^0.28.0
   
   # All platform supported
-  share_plus: 11.0.0
+  share_plus: ^12.0.0
 
   # All platform supported
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.2
 
 #
 dev_dependencies:

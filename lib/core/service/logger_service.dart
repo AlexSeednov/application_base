@@ -29,10 +29,7 @@ final Logger _localPureLogger = Logger(
 );
 
 /// Logging some information
-void logInfo({
-  required String info,
-  String? additional,
-}) {
+void logInfo({required String info, String? additional}) {
   /// Prepare full error message
   String message = info;
   if (additional != null) message += ': $additional';
@@ -50,11 +47,12 @@ void logInfo({
   }
 }
 
+/// For greater clarity
+void logImportant({required String info, String? additional}) =>
+    logInfo(info: '⚡️⚡️⚡️ $info', additional: additional);
+
 /// Logging some error
-void logError({
-  required String error,
-  String? additional,
-}) {
+void logError({required String error, String? additional}) {
   /// Prepare full error message
   String message = error;
   if (additional != null) message += ': $additional';
