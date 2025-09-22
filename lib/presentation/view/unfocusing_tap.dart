@@ -11,8 +11,8 @@ final class UnfocusingTap extends StatelessWidget {
   ///
   @override
   Widget build(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: unfocus,
-        child: child,
-      );
+    behavior: HitTestBehavior.translucent,
+    onTap: unfocus,
+    child: child,
+  );
 }

@@ -25,18 +25,15 @@ final class NetworkSubject {
   }
 
   ///
-  StreamSubscription<NetworkEvent> listen(
-    void Function(NetworkEvent) onData,
-  ) =>
+  StreamSubscription<NetworkEvent> listen(void Function(NetworkEvent) onData) =>
       _networkSubject.listen(onData);
 
   ///
   StreamSubscription<NetworkEvent> listenConnectionRestore(
     void Function() onData,
-  ) =>
-      _networkSubject
-          .where((type) => type is NetworkRestore)
-          .listen((_) => onData());
+  ) => _networkSubject
+      .where((type) => type is NetworkRestore)
+      .listen((_) => onData());
 
   ///
   void add(NetworkEvent entity) => _networkSubject.add(entity);

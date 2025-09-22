@@ -43,8 +43,9 @@ abstract final class UrlLauncher {
     required String body,
   }) async {
     /// Fix body - replace \n by %0D%0A and ' ' by %20
-    final String fixedBody =
-        body.replaceAll('\n', '%0D%0A').replaceAll(' ', '%20');
+    final String fixedBody = body
+        .replaceAll('\n', '%0D%0A')
+        .replaceAll(' ', '%20');
     final String link = 'mailto:$to?subject=$title&body=$fixedBody';
     return launchLink(link);
   }

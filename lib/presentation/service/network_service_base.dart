@@ -105,16 +105,16 @@ abstract base class NetworkServiceBase {
   @mustBeOverridden
   @mustCallSuper
   void onUpdate(NetworkEvent event) => switch (event) {
-        /// Success
-        NetworkSuccess() => _onlineMode(),
+    /// Success
+    NetworkSuccess() => _onlineMode(),
 
-        /// Connection
-        NetworkRestore() => _deactivateOfflineMode(),
-        NetworkConnectionLost() => _activateOfflineMode(),
+    /// Connection
+    NetworkRestore() => _deactivateOfflineMode(),
+    NetworkConnectionLost() => _activateOfflineMode(),
 
-        /// All other doesn't metter here, will be handled in overriden function
-        _ => {},
-      };
+    /// All other doesn't metter here, will be handled in overriden function
+    _ => {},
+  };
 
   ///
   bool get isWiFi => getIt<ConnectivityService>().isWiFi;

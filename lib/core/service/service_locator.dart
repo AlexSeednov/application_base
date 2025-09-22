@@ -12,7 +12,6 @@ abstract final class ServiceLocatorBase {
   /// Setup service locator
   static void prepare() {
     getIt
-
       /// Data layer
       ..registerLazySingleton<ConnectivityService>(
         ConnectivityService.singleton,
@@ -22,17 +21,12 @@ abstract final class ServiceLocatorBase {
         NetworkSubject.singleton,
         dispose: (service) => service.dispose(),
       )
-      ..registerLazySingleton<StorageService>(
-        StorageService.singleton,
-      )
-
+      ..registerLazySingleton<StorageService>(StorageService.singleton)
       /// Presentation layer
       ..registerLazySingleton<LifecycleService>(
         LifecycleService.singleton,
         dispose: (service) => service.dispose(),
       )
-      ..registerLazySingleton<AccessVM>(
-        AccessVM.singleton,
-      );
+      ..registerLazySingleton<AccessVM>(AccessVM.singleton);
   }
 }

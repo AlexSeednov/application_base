@@ -12,8 +12,8 @@ abstract final class RequestTimeoutService {
 
   ///
   static Duration timeout(RequestDurationType type) => switch (type) {
-        RequestDurationType.short => _short,
-        RequestDurationType.normal => _normal,
-        RequestDurationType.long => _long,
-      };
+    RequestDurationType.short => _short,
+    RequestDurationType.normal => _normal,
+    RequestDurationType.long => _long,
+  };
 }

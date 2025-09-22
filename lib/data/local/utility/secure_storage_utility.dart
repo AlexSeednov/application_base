@@ -30,9 +30,7 @@ abstract final class SecureStorageUtility {
   ///
   /// If cipher key is not exists it will be generated
   static Future<Uint8List> _readCipherKey({required String key}) async {
-    const secureStorage = FlutterSecureStorage(
-      aOptions: _secureStorageOptions,
-    );
+    const secureStorage = FlutterSecureStorage(aOptions: _secureStorageOptions);
 
     String? encryptedKey = await secureStorage.read(key: key);
     if (encryptedKey == null) {

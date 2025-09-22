@@ -23,10 +23,8 @@ final class AccessVM with ChangeNotifier {
   void grantAccess() => _changeGrantedState(isAccessGranted: true);
 
   ///
-  void revokeAccess({required bool needNotify}) => _changeGrantedState(
-        isAccessGranted: false,
-        needNotify: needNotify,
-      );
+  void revokeAccess({required bool needNotify}) =>
+      _changeGrantedState(isAccessGranted: false, needNotify: needNotify);
 
   /// Auto route to authorization screen on **needNotify** is true,
   /// auto return to current route after success authorization
