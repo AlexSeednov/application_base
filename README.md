@@ -45,7 +45,7 @@ Based on minimum requirements from all usage packages.
 
 Flutter & dart versions compatibility 
 [information](https://docs.flutter.dev/release/archive)
-test
+test2
 * Flutter >=3.35.4
 * Dart >=3.9.2
 * iOS >=12.0 - connectivity_plus ^5.0.0
