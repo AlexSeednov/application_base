@@ -8,8 +8,11 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// Key for navigation without requiring context
 GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
 
-/// Main application router
+/// Actual application router
 StackRouter? get actualRouter => actualContext?.router;
+
+///
+String? get currentRouteName => actualRouter?.current.name;
 
 /// Current context getter
 ///
