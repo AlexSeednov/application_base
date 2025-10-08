@@ -222,7 +222,7 @@ final class SomeService with LoggingMixin {
 Based on [AutoRoute](https://pub.dev/packages/auto_route)
 
 On application preparing `RootStackRouter` based on `navigatorKey` must be 
-created and set as `router`:
+created:
 
 1. Create router instance
 
@@ -239,25 +239,7 @@ final routerInstance = RouterPro(
 );
 ```
 
-2. Set created instance as `router`
-
-Somewhere on application launching
-
-```dart
-import 'package:application_base/presentation/navigation/navigation_service.dart';
-
-router = routerInstance;
-```
-
-Or set it directrly on package prepare flow
-
-```dart
-import 'package:application_base/application_base.dart';
-
-ApplicationBase.prepare(routerInstance: routerInstance);
-```
-
-3. Also you can create `routerConfig` with existing `Access checker` and 
+2. Also you can create `routerConfig` with existing `Access checker` and 
 `Observer`:
 
 ```dart
@@ -322,7 +304,7 @@ and router:
 
 ```dart
 /// Router for direct usage of full auto_route functionality
-RootStackRouter router;
+StackRouter? actualRouter;
 
 /// Actual context for everywhere accessibility
 BuildContext? actualContext;

@@ -1,3 +1,11 @@
+## 0.1.4
+
+* Navigate functions fixes - root router changed to actual context router to provide right behaviour
+
+Breaking changes:
+* **router** changed to **actualRouter**
+* **router** removed from **ApplicationBase -> prepare**
+
 ## 0.1.3
 
 * Updates minimum supported SDK version to Flutter 3.35.4/Dart 3.9.2
