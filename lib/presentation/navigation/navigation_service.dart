@@ -25,11 +25,6 @@ BuildContext? get actualContext {
 /// Removes the focus on this node by moving the primary focus to another node
 void unfocus() => FocusManager.instance.primaryFocus?.unfocus();
 
-/// Pop all routes and push default '/' route
-void openDefaultScreen() => actualRouter!
-  ..popUntilRoot()
-  ..replacePath('/');
-
 /// Adds a new entry to the screens stack
 /// Can not return some value because of Future<smth> doesn't work with await...
 Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>

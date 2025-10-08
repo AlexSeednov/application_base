@@ -12,15 +12,14 @@ class AuthenticationGuard implements AutoRouteGuard {
 
   ///
   @override
-  Future<void> onNavigation(NavigationResolver resolver, _) async {
+  void onNavigation(NavigationResolver resolver, _) {
     if (getIt<AccessVM>().isGranted) {
       /// Account exist, continue navigation
       resolver.next();
     } else {
       /// Need to sign in or sign up before
       logInfo(info: 'Try to open ${resolver.routeName} without access');
-      await resolver.redirectUntil(authorizationRoute);
-      resolver.next(getIt<AccessVM>().isGranted);
+      resolver.redirectUntil(authorizationRoute);
     }
   }
 }
