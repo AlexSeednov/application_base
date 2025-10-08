@@ -365,9 +365,9 @@ void login(){
 
     /// Now grant an access
     getIt<AccessVM>().grantAccess();
-
-    /// And pop for making magic
-    popScreenForced();
+    
+    /// And that's all, navigator will close authorization route automatically
+    /// and return to necessary screen
 }
 
 ///
@@ -382,9 +382,6 @@ void logout(){
 
     /// If you don't need to return to previously screen, you can do next:    
     getIt<AccessVM>().revokeAccess(needNotify: false);
-
-    /// In that case navigator will open default screen on successfully access 
-    /// restore
 }
 ```
 
