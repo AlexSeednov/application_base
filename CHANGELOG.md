@@ -1,6 +1,7 @@
 ## 0.1.5
 
 * **currentRouteName** added
+* **navigatePath** added
 
 ## 0.1.4
 
