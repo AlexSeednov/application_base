@@ -46,6 +46,9 @@ Future<void> pushNamed({required String routeName}) =>
 // Optimize(Alex): пометить как awaitNotRequired с выходом meta 1.17
 Future<void> popScreen({bool? result}) => actualRouter!.maybePop(result);
 
+/// Calls pop on the controller with the top-most visible page
+void popTopScreen({bool? result}) => actualRouter!.popTop(result);
+
 /// Pop current route regardless if it's the last route in stack
 /// or the result of it's
 void popScreenForced({bool? result}) => actualRouter!.pop(result);
@@ -58,14 +61,15 @@ void popUntilScreenWithName({required String routeName}) =>
 /// else adds it to the stack (good for web Apps).
 /// Better to use for cross-sector navigation.
 /// Use [pushScreen] for in-sector navigation.
-void navigateScreen({required PageRouteInfo<dynamic> route}) =>
+Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.navigate(route);
 
 /// Pops until given [path], if it already exists in stack
 /// otherwise adds it to the stack.
 /// Better to use for cross-sector navigation.
 /// Use [pushNamed] for in-sector navigation.
-void navigatePath({required String path}) => actualRouter!.navigatePath(path);
+Future<void> navigatePath({required String path}) =>
+    actualRouter!.navigatePath(path);
 
 /// Removes last entry in stack and pushes provided [route].
 /// if last entry == provided route screen will just be updated
@@ -75,5 +79,5 @@ Future<void> replaceScreen({required PageRouteInfo<dynamic> route}) =>
 /// This's like providing a completely new stack as it rebuilds the stack
 /// with the passed [route].
 /// Entry might just update if already exist
-void replaceAllScreen({required PageRouteInfo<dynamic> route}) =>
+Future<void> replaceAllScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.replaceAll([route]);
