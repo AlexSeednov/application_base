@@ -2,6 +2,7 @@
 
 * **currentRouteName** added
 * **navigatePath** added
+* **popTopScreen** added
 
 ## 0.1.4
 
