@@ -29,6 +29,7 @@ BuildContext? get actualContext {
 void unfocus() => FocusManager.instance.primaryFocus?.unfocus();
 
 /// Adds a new entry to the screens stack.
+///
 /// Better to use for in-sector navigation.
 /// Use [navigateScreen] for cross-sector navigation.
 // Information(Alex): Can not return some value because of Future<smth>
@@ -37,6 +38,7 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.push(route);
 
 /// Adds a new entry to the screens stack by using [routeName].
+///
 /// Better to use for in-sector navigation.
 /// Use [navigatePath] for cross-sector navigation.
 Future<void> pushNamed({required String routeName}) =>
@@ -47,7 +49,7 @@ Future<void> pushNamed({required String routeName}) =>
 Future<void> popScreen({bool? result}) => actualRouter!.maybePop(result);
 
 /// Calls pop on the controller with the top-most visible page
-void popTopScreen({bool? result}) => actualRouter!.popTop(result);
+void popTopScreen({bool? result}) => actualRouter!.maybePopTop(result);
 
 /// Pop current route regardless if it's the last route in stack
 /// or the result of it's
@@ -59,6 +61,7 @@ void popUntilScreenWithName({required String routeName}) =>
 
 /// Pops until provided [route], if it already exists in stack
 /// else adds it to the stack (good for web Apps).
+///
 /// Better to use for cross-sector navigation.
 /// Use [pushScreen] for in-sector navigation.
 Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
@@ -66,6 +69,10 @@ Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
 
 /// Pops until given [path], if it already exists in stack
 /// otherwise adds it to the stack.
+///
+/// Wrong path will be redirected if redirection rull is set in router or
+/// exception "Can not navigate to $path" will be thrown
+///
 /// Better to use for cross-sector navigation.
 /// Use [pushNamed] for in-sector navigation.
 Future<void> navigatePath({required String path}) =>
