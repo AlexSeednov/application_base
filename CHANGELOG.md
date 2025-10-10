@@ -1,3 +1,9 @@
+## 0.1.5
+
+* **currentRouteName** added
+* **navigatePath** added
+* **popTopScreen** added
+
 ## 0.1.4
 
 * Navigate functions fixes and improvements

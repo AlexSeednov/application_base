@@ -8,8 +8,11 @@ final _navigatorKey = GlobalKey<NavigatorState>();
 /// Key for navigation without requiring context
 GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
 
-/// Main application router
+/// Actual application router
 StackRouter? get actualRouter => actualContext?.router;
+
+///
+String? get currentRouteName => actualRouter?.current.name;
 
 /// Current context getter
 ///
@@ -25,12 +28,19 @@ BuildContext? get actualContext {
 /// Removes the focus on this node by moving the primary focus to another node
 void unfocus() => FocusManager.instance.primaryFocus?.unfocus();
 
-/// Adds a new entry to the screens stack
-/// Can not return some value because of Future<smth> doesn't work with await...
+/// Adds a new entry to the screens stack.
+///
+/// Better to use for in-sector navigation.
+/// Use [navigateScreen] for cross-sector navigation.
+// Information(Alex): Can not return some value because of Future<smth>
+// doesn't work with await...
 Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.push(route);
 
-/// Adds a new entry to the screens stack by using path
+/// Adds a new entry to the screens stack by using [routeName].
+///
+/// Better to use for in-sector navigation.
+/// Use [navigatePath] for cross-sector navigation.
 Future<void> pushNamed({required String routeName}) =>
     actualRouter!.pushPath(routeName);
 
@@ -38,26 +48,43 @@ Future<void> pushNamed({required String routeName}) =>
 // Optimize(Alex): пометить как awaitNotRequired с выходом meta 1.17
 Future<void> popScreen({bool? result}) => actualRouter!.maybePop(result);
 
+/// Calls pop on the controller with the top-most visible page
+void popTopScreen({bool? result}) => actualRouter!.maybePopTop(result);
+
 /// Pop current route regardless if it's the last route in stack
 /// or the result of it's
 void popScreenForced({bool? result}) => actualRouter!.pop(result);
 
-/// Keeps popping routes until route with provided path is found
+/// Keeps popping routes until route with provided [routeName] is found
 void popUntilScreenWithName({required String routeName}) =>
     actualRouter!.popUntilRouteWithName(routeName);
 
-/// Pops until provided route, if it already exists in stack
-/// else adds it to the stack (good for web Apps)
-void navigateScreen({required PageRouteInfo<dynamic> route}) =>
+/// Pops until provided [route], if it already exists in stack
+/// else adds it to the stack (good for web Apps).
+///
+/// Better to use for cross-sector navigation.
+/// Use [pushScreen] for in-sector navigation.
+Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.navigate(route);
 
-/// Removes last entry in stack and pushes provided route.
+/// Pops until given [path], if it already exists in stack
+/// otherwise adds it to the stack.
+///
+/// Wrong path will be redirected if redirection rull is set in router or
+/// exception "Can not navigate to $path" will be thrown
+///
+/// Better to use for cross-sector navigation.
+/// Use [pushNamed] for in-sector navigation.
+Future<void> navigatePath({required String path}) =>
+    actualRouter!.navigatePath(path);
+
+/// Removes last entry in stack and pushes provided [route].
 /// if last entry == provided route screen will just be updated
 Future<void> replaceScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.replace(route);
 
 /// This's like providing a completely new stack as it rebuilds the stack
-/// with the passed route.
+/// with the passed [route].
 /// Entry might just update if already exist
-void replaceAllScreen({required PageRouteInfo<dynamic> route}) =>
+Future<void> replaceAllScreen({required PageRouteInfo<dynamic> route}) =>
     actualRouter!.replaceAll([route]);

@@ -19,21 +19,21 @@ final class AccessVM with ChangeNotifier {
   bool get isGranted => _isGranted;
 
   ///
-  void grantAccess() => _changeGrantedState(isAccessGranted: true);
+  void grantAccess({bool needNotify = true}) =>
+      _changeGrantedState(isAccessGranted: true, needNotify: needNotify);
 
   ///
-  void revokeAccess({required bool needNotify}) =>
-      _changeGrantedState(isAccessGranted: false);
+  void revokeAccess({bool needNotify = true}) =>
+      _changeGrantedState(isAccessGranted: false, needNotify: needNotify);
 
-  /// Auto route to authorization screen on **needNotify** is true,
-  /// auto return to current route after success authorization
-  ///
-  /// Overwise replace all screens to default so it will trigger authorization
-  /// screen opening as on notifing but will be opened main route after success
-  /// authorization
-  void _changeGrantedState({required bool isAccessGranted}) {
+  /// Auto route to authorization screen and auto return to current route
+  /// after success authorization on [needNotify] is true
+  void _changeGrantedState({
+    required bool isAccessGranted,
+    required bool needNotify,
+  }) {
     _isGranted = isAccessGranted;
-    notifyListeners();
+    if (needNotify) notifyListeners();
 
     logInfo(info: 'Access state: $_isGranted');
   }
