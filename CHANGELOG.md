@@ -1,3 +1,7 @@
+## 0.1.6
+
+* **catchRedirect** added
+
 ## 0.1.5
 
 * **currentRouteName** added

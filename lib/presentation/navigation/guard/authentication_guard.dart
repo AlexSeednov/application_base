@@ -3,7 +3,8 @@ import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/presentation/view_model/access_vm.dart';
 import 'package:auto_route/auto_route.dart';
 
-class AuthenticationGuard implements AutoRouteGuard {
+///
+final class AuthenticationGuard implements AutoRouteGuard {
   ///
   AuthenticationGuard({required this.authorizationRoute});
 
