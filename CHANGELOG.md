@@ -1,6 +1,7 @@
 ## 0.1.6
 
 * **catchRedirect** added
+* **sendEmail** improved
 
 ## 0.1.5
 
