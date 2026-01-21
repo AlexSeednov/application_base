@@ -2,6 +2,8 @@
 
 * **catchRedirect** added
 * **sendEmail** improved
+* **OpacityPro** added
+* **EnabledPro** added
 
 ## 0.1.5
 

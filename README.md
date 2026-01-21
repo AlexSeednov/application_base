@@ -476,3 +476,19 @@ EmptyButton(
 ```dart
 UnfocusingTap(child: child),
 ```
+
+```dart
+OpacityPro(
+  isFullyOpaque: isEnabled,
+  minOpacity: 0,
+  child: child,
+),
+```
+
+```dart
+EnabledPro(
+  isEnabled: isAvailable,
+  disabledOpacity: 0,
+  child: child,
+),
+```
