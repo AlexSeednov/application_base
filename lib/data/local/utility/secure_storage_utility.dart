@@ -6,17 +6,6 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 
 ///
 abstract final class SecureStorageUtility {
-  /// Here options fix
-  /// https://github.com/mogol/flutter_secure_storage/issues/380#issuecomment-1236577186
-  /// https://github.com/mogol/flutter_secure_storage/issues/380#issuecomment-1250501286
-  static const AndroidOptions _secureStorageOptions = AndroidOptions(
-    encryptedSharedPreferences: true,
-    resetOnError: true,
-    keyCipherAlgorithm:
-        KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
-    storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
-  );
-
   ///
   static Future<HiveAesCipher> getCipher({required String key}) async {
     /// Get cipher key from local secure storage
@@ -30,7 +19,7 @@ abstract final class SecureStorageUtility {
   ///
   /// If cipher key is not exists it will be generated
   static Future<Uint8List> _readCipherKey({required String key}) async {
-    const secureStorage = FlutterSecureStorage(aOptions: _secureStorageOptions);
+    const secureStorage = FlutterSecureStorage();
 
     String? encryptedKey = await secureStorage.read(key: key);
     if (encryptedKey == null) {

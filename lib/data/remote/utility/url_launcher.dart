@@ -1,4 +1,5 @@
 import 'package:application_base/core/service/logger_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 ///
@@ -41,14 +42,16 @@ abstract final class UrlLauncher {
     required String to,
     required String title,
     required String body,
-  }) async {
-    /// Fix body - replace \n by %0D%0A and ' ' by %20
-    final String fixedBody = body
-        .replaceAll('\n', '%0D%0A')
-        .replaceAll(' ', '%20');
-    final String link = 'mailto:$to?subject=$title&body=$fixedBody';
-    return launchLink(link);
-  }
+  }) async => launchUrl(
+    Uri(
+      scheme: 'mailto',
+      path: to,
+      query: encodeQueryParameters(<String, String>{
+        'subject': title,
+        'body': body,
+      }),
+    ),
+  );
 
   /// Try to make a call via phone application.
   /// Return **true** on success
@@ -57,4 +60,13 @@ abstract final class UrlLauncher {
   /// Try to send an sms via message application.
   /// Return **true** on success
   static Future<bool> sendSms(String text) => launchLink('sms:?body=$text');
+
+  ///
+  static String? encodeQueryParameters(Map<String, String> params) => params
+      .entries
+      .map(
+        (MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+      )
+      .join('&');
 }

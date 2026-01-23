@@ -67,12 +67,12 @@ abstract base class RequestServiceBase {
           body: request.body,
         ),
         RequestPostFormData() => _sendPostFormData(
-          uri,
+          uri: uri,
           headers: headers,
           requestData: request,
         ),
         RequestPostFile() => _sendPostFile(
-          uri,
+          uri: uri,
           headers: headers,
           requestData: request,
         ),
@@ -179,13 +179,13 @@ abstract base class RequestServiceBase {
   }
 
   ///
-  Future<Response> _sendPostFormData(
-    Uri url, {
+  Future<Response> _sendPostFormData({
+    required Uri uri,
     required Map<String, String> headers,
     required RequestPostFormData requestData,
   }) async {
     /// Prepearing request
-    final request = MultipartRequest('POST', url);
+    final request = MultipartRequest('POST', uri);
 
     /// Add body data
     if (requestData.body != null) {
@@ -236,8 +236,8 @@ abstract base class RequestServiceBase {
   }
 
   // TODO(SH): Tested on mobile devices only, need to test on other platforms
-  Future<Response> _sendPostFile(
-    Uri url, {
+  Future<Response> _sendPostFile({
+    required Uri uri,
     required Map<String, String> headers,
     required RequestPostFile requestData,
   }) async {
@@ -245,7 +245,7 @@ abstract base class RequestServiceBase {
     final XFile file = requestData.file;
 
     /// Prepearing request
-    final request = StreamedRequest('POST', url);
+    final request = StreamedRequest('POST', uri);
 
     /// Add headers
     request.headers.addAll(headers);
@@ -260,5 +260,20 @@ abstract base class RequestServiceBase {
 
     /// Sending request
     return Response.fromStream(await request.send());
+  }
+
+  /// **null** on error
+  Future<String?> catchRedirect({
+    required Uri uri,
+    required Map<String, String> headers,
+  }) async {
+    final request = Request('GET', uri)
+      ..followRedirects = false
+      ..maxRedirects = 0
+      ..headers.addAll(headers);
+
+    final response = await _client.send(request);
+
+    return response.isRedirect ? response.headers['location'] : null;
   }
 }
