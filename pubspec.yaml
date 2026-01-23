@@ -6,56 +6,58 @@ homepage: https://github.com/AlexSeednov/application_base
 environment:
   # Flutter SDK supported versions
   # Pinned packages
-  # https://github.com/flutter/flutter/blob/3.35.4/packages/flutter/pubspec.yaml
-  flutter: '>=3.35.4'  
+  # https://github.com/flutter/flutter/blob/3.38.7/packages/flutter/pubspec.yaml
+  # https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
+  flutter: '>=3.38.7'  
 
   # Dart SDK supported versions
   # https://docs.flutter.dev/release/archive
-  sdk: '>=3.9.2'
+  # https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
+  sdk: '>=3.10.7'
 
-# Last update - 22.09.2025
+# Last update - 23.01.2026
 dependencies:
   # All platform supported
-  auto_route: 10.1.2
+  auto_route: 11.1.0
 
   # All platform supported
   connectivity_plus: ^7.0.0
 
   # All platform supported
-  cross_file: ^0.3.4+2
+  cross_file: ^0.3.5+1
 
   # Base SDK
   flutter:
     sdk: flutter
 
   # All platform supported
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^10.0.0
 
   # All platform supported
-  get_it: ^8.2.0
+  get_it: ^9.2.0
 
   # All platform supported
-  hive_ce: ^2.13.2
+  hive_ce: ^2.19.1
 
   # All platform supported
-  hive_ce_flutter: ^2.3.2
+  hive_ce_flutter: ^2.3.4
 
   # All platform supported
-  http: ^1.5.0
+  http: ^1.6.0
   
   # All platform supported
-  logger: ^2.6.1
+  logger: ^2.6.2
 
   # All platform supported
   # Pinned by Flutter
-  #meta: ^1.17.0
-  meta: ^1.16.0
+  # meta: ^1.18.0
+  meta: ^1.17.0
 
   # All platform supported
   rxdart: ^0.28.0
   
   # All platform supported
-  share_plus: ^12.0.0
+  share_plus: ^12.0.1
 
   # All platform supported
   url_launcher: ^6.3.2

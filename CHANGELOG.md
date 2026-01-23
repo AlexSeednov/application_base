@@ -1,9 +1,12 @@
 ## 0.1.6
 
+* Updates minimum supported SDK version to Flutter 3.38.7/Dart 3.10.7
+* Updates all packages to actual versions
 * **catchRedirect** added
 * **sendEmail** improved
 * **OpacityPro** added
 * **EnabledPro** added
+* **StringExtension** added with two functions: **asUri** and **capitalized**
 
 ## 0.1.5
 
