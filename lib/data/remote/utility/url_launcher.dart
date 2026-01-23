@@ -42,17 +42,16 @@ abstract final class UrlLauncher {
     required String to,
     required String title,
     required String body,
-  }) async {
-    final Uri emailLaunchUri = Uri(
+  }) async => launchUrl(
+    Uri(
       scheme: 'mailto',
       path: to,
       query: encodeQueryParameters(<String, String>{
         'subject': title,
         'body': body,
       }),
-    );
-    return launchUrl(emailLaunchUri);
-  }
+    ),
+  );
 
   /// Try to make a call via phone application.
   /// Return **true** on success
@@ -63,12 +62,11 @@ abstract final class UrlLauncher {
   static Future<bool> sendSms(String text) => launchLink('sms:?body=$text');
 
   ///
-  static String? encodeQueryParameters(Map<String, String> params) {
-    return params.entries
-        .map(
-          (MapEntry<String, String> e) =>
-              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
-        )
-        .join('&');
-  }
+  static String? encodeQueryParameters(Map<String, String> params) => params
+      .entries
+      .map(
+        (MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+      )
+      .join('&');
 }

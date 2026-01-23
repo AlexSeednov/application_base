@@ -20,7 +20,7 @@ final class OpacityPro extends StatelessWidget {
   ///
   final bool isFullyOpaque;
 
-  /// Минимальное значение непрозрачности - когда [isFullyOpaque] is true
+  /// Minimum opacity value ([isFullyOpaque] is true)
   final double minOpacity;
 
   ///

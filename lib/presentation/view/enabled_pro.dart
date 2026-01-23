@@ -14,7 +14,7 @@ final class EnabledPro extends StatelessWidget {
   ///
   final bool isEnabled;
 
-  /// Значение непрозрачности в недоступном состоянии
+  /// Opacity value in disabled state ([isEnabled] is false)
   final double disabledOpacity;
 
   ///
