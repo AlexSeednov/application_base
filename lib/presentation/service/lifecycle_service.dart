@@ -33,6 +33,12 @@ final class LifecycleService {
   AppLifecycleState get actualState => _actualState;
 
   ///
+  AppLifecycleState _previousState = AppLifecycleState.inactive;
+
+  ///
+  AppLifecycleState get previousState => _previousState;
+
+  ///
   void prepare() {
     if (_listener != null) return;
     _listener = AppLifecycleListener(onStateChange: _onUpdate);
@@ -47,6 +53,7 @@ final class LifecycleService {
   ///
   void _onUpdate(AppLifecycleState state) {
     logInfo(info: 'App state changed from $actualState to $state');
+    _previousState = _actualState;
     _actualState = state;
 
     if (state == AppLifecycleState.resumed) {
