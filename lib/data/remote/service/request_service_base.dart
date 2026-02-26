@@ -96,7 +96,7 @@ abstract base class RequestServiceBase {
 
       /// Get response
       final response = ResponseEntity(
-        request: 'Request ${request.type} $uri',
+        request: '${request.type} $uri',
         body: httpResponse.body,
         statusCode: httpResponse.statusCode,
       );

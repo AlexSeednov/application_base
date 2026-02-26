@@ -1,3 +1,8 @@
+## 0.1.7
+
+* **previousState** added to **LifecycleService**
+* Double "Request" in network logger fixed
+
 ## 0.1.6
 
 * Updates minimum supported SDK version to Flutter 3.38.7/Dart 3.10.7
