@@ -128,7 +128,8 @@ abstract base class NetworkServiceBase {
     /// short ping and switch to offline mode if it fails.
     NetworkRequestTimeout() => _checkReachabilityAfterTimeout(),
 
-    /// All other doesn't metter here, will be handled in overriden function
+    /// All others don't matter here; they will be handled in the overridden
+    /// function.
     _ => {},
   };
 
