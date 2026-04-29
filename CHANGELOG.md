@@ -1,5 +1,8 @@
 ## 0.1.8
 
+* `RequestServiceBase`: request timeouts (`shortTimeout`, `normalTimeout`,
+  `longTimeout`) are now overridable getters on the base class itself.
+  `RequestTimeoutService` removed — subclasses can tune timeouts directly.
 * `RequestServiceBase`: any `SocketException` (including DNS lookup failures
   while Wi-Fi reports as connected) now emits `NetworkConnectionLost` so the
   offline mode is activated automatically.
