@@ -1,3 +1,14 @@
+## 0.1.8
+
+* `RequestServiceBase`: any `SocketException` (including DNS lookup failures
+  while Wi-Fi reports as connected) now emits `NetworkConnectionLost` so the
+  offline mode is activated automatically.
+* `NetworkServiceBase`: on `NetworkRequestTimeout` performs a short reachability
+  ping and activates the offline mode if it fails — covers iOS where blocked
+  DNS surfaces as a timeout instead of a socket exception.
+* `NetworkServiceBase`: background ping period is now configurable via the
+  overridable `pingPeriod` getter. Default value bumped to 30 seconds.
+
 ## 0.1.7
 
 * **previousState** added to **LifecycleService**

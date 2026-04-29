@@ -142,21 +142,18 @@ abstract base class RequestServiceBase {
       logRequestInfo(request: request, info: 'Timeout exception');
       notify(NetworkRequestTimeout(), silence: request.silence);
     } on SocketException catch (error) {
-      if (error.message.contains('Failed host lookup')) {
-        /// Only on Android, iOS send timeout exception
-        logRequestInfo(request: request, info: 'No connection');
-        // Information(Alex): По факту здесь должно быть noConnection, но его
-        // используем только для включения офлайн режима,
-        // тогда как здесь этого делать не нужно
-        notify(NetworkRequestTimeout(), silence: request.silence);
-      } else {
-        ///
-        logRequestError(
-          request: request,
-          error: 'Socket exception ${error.message}',
-        );
-        notify(NetworkUnexpectedError(), silence: request.silence);
-      }
+      /// SocketException means we could not even establish a socket
+      /// (DNS lookup failure, route unreachable, connection refused, etc.).
+      /// This is the typical signal of a connection problem when, for example,
+      /// Wi-Fi reports as "available" but the upstream router blocks Internet
+      /// or DNS resolution. Activate offline mode regardless of the silence
+      /// flag — connection state is global and must not be hidden by silenced
+      /// requests (e.g. ping).
+      logRequestInfo(
+        request: request,
+        info: 'No connection (${error.message})',
+      );
+      notify(NetworkConnectionLost());
     } on HandshakeException catch (error) {
       /// SSL problem on backend side, need to activate offline mode
       logRequestError(request: request, error: error.message);
