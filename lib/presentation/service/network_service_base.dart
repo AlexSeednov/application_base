@@ -9,8 +9,15 @@ import 'package:meta/meta.dart';
 
 /// Extended class should be a singleton
 abstract base class NetworkServiceBase {
-  ///
-  static const _pingPeriod = Duration(seconds: 60);
+  /// Default period between background reachability pings while in offline
+  /// mode. Subclasses may override [pingPeriod] to tune this for the concrete
+  /// application (e.g. shorter for media-heavy apps that need a quick switch
+  /// back to online).
+  static const defaultPingPeriod = Duration(seconds: 30);
+
+  /// Period between background reachability pings while in offline mode.
+  /// Override in a subclass to customize.
+  Duration get pingPeriod => defaultPingPeriod;
 
   ///
   final _connectivityService = getIt<ConnectivityService>();
@@ -32,6 +39,9 @@ abstract base class NetworkServiceBase {
 
   /// Timer for background connection restore checker
   Timer? _timer;
+
+  /// Guard against concurrent timeout-triggered ping checks
+  bool _timeoutCheckInProgress = false;
 
   ///
   Future<void> prepare() async {
@@ -61,7 +71,7 @@ abstract base class NetworkServiceBase {
     /// Turn the offline mode on
     isOnlineNotifier.value = false;
 
-    _timer ??= Timer.periodic(_pingPeriod, (_) => ping());
+    _timer ??= Timer.periodic(pingPeriod, (_) => ping());
 
     logInfo(info: 'Offline mode activated');
   }
@@ -112,9 +122,31 @@ abstract base class NetworkServiceBase {
     NetworkRestore() => _deactivateOfflineMode(),
     NetworkConnectionLost() => _activateOfflineMode(),
 
-    /// All other doesn't metter here, will be handled in overriden function
+    /// Timeout may indicate either a slow backend or a silently dropped
+    /// connection (e.g. iOS does not surface DNS failures as SocketException —
+    /// it reports them as TimeoutException). Confirm reachability with a
+    /// short ping and switch to offline mode if it fails.
+    NetworkRequestTimeout() => _checkReachabilityAfterTimeout(),
+
+    /// All others don't matter here; they will be handled in the overridden
+    /// function.
     _ => {},
   };
+
+  /// Performs a single ping when a request times out. If the backend remains
+  /// unreachable, activates offline mode. Skipped while already offline (the
+  /// periodic timer handles that case) or if a check is already running.
+  Future<void> _checkReachabilityAfterTimeout() async {
+    if (isOffline) return;
+    if (_timeoutCheckInProgress) return;
+    _timeoutCheckInProgress = true;
+    try {
+      final bool result = await sendPingRequest();
+      if (!result && isOnline) _activateOfflineMode();
+    } finally {
+      _timeoutCheckInProgress = false;
+    }
+  }
 
   ///
   bool get isWiFi => getIt<ConnectivityService>().isWiFi;

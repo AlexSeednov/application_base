@@ -5,22 +5,35 @@ import 'dart:typed_data';
 
 import 'package:application_base/core/service/platform_service.dart';
 import 'package:application_base/core/service/service_locator.dart';
+import 'package:application_base/data/remote/const/request_duration_type.dart';
 import 'package:application_base/data/remote/const/request_type.dart';
 import 'package:application_base/data/remote/entity/response_entity.dart';
 import 'package:application_base/data/remote/service/network_logger_service.dart';
-import 'package:application_base/data/remote/service/request_timeout_service.dart';
 import 'package:application_base/domain/subject/network_subject.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:http/http.dart';
 import 'package:meta/meta.dart';
 
-// TODO(Alex): временные константы из RequestTimeoutService и
-// NetworkServiceBase перенести в этот класс - тогда при создании наследника
-// этого класса можно будет просто переопределить константы при необходимости,
-// а без переопределения будут использоваться дефолтные, как сейчас
-///
 /// Extended class should be a singleton
 abstract base class RequestServiceBase {
+  /// Timeout for super fast requests (e.g. ping). Override to customize.
+  Duration get shortTimeout => const Duration(seconds: 3);
+
+  /// Timeout for most requests. Override to customize.
+  Duration get normalTimeout => const Duration(seconds: 20);
+
+  /// Timeout for probably heavy requests (e.g. uploading a photo).
+  /// Override to customize.
+  Duration get longTimeout => const Duration(seconds: 30);
+
+  /// Returns the timeout for the given [RequestDurationType] using the
+  /// values from [shortTimeout], [normalTimeout] and [longTimeout].
+  Duration timeoutFor(RequestDurationType type) => switch (type) {
+    RequestDurationType.short => shortTimeout,
+    RequestDurationType.normal => normalTimeout,
+    RequestDurationType.long => longTimeout,
+  };
+
   // Optimize(Alex): попробовать заменить на RetryClient для автоматического
   // перезапроса в случае ошибок https://pub.dev/packages/http#retrying-requests
   // Настроить обработку ошибок - как минимум исключить 401.
@@ -91,7 +104,7 @@ abstract base class RequestServiceBase {
 
       /// Send request
       final Response httpResponse = await futureResponse.timeout(
-        RequestTimeoutService.timeout(request.durationType),
+        timeoutFor(request.durationType),
       );
 
       /// Get response
@@ -142,21 +155,18 @@ abstract base class RequestServiceBase {
       logRequestInfo(request: request, info: 'Timeout exception');
       notify(NetworkRequestTimeout(), silence: request.silence);
     } on SocketException catch (error) {
-      if (error.message.contains('Failed host lookup')) {
-        /// Only on Android, iOS send timeout exception
-        logRequestInfo(request: request, info: 'No connection');
-        // Information(Alex): По факту здесь должно быть noConnection, но его
-        // используем только для включения офлайн режима,
-        // тогда как здесь этого делать не нужно
-        notify(NetworkRequestTimeout(), silence: request.silence);
-      } else {
-        ///
-        logRequestError(
-          request: request,
-          error: 'Socket exception ${error.message}',
-        );
-        notify(NetworkUnexpectedError(), silence: request.silence);
-      }
+      /// SocketException means we could not even establish a socket
+      /// (DNS lookup failure, route unreachable, connection refused, etc.).
+      /// This is the typical signal of a connection problem when, for example,
+      /// Wi-Fi reports as "available" but the upstream router blocks Internet
+      /// or DNS resolution. Activate offline mode regardless of the silence
+      /// flag — connection state is global and must not be hidden by silenced
+      /// requests (e.g. ping).
+      logRequestInfo(
+        request: request,
+        info: 'No connection (${error.message})',
+      );
+      notify(NetworkConnectionLost());
     } on HandshakeException catch (error) {
       /// SSL problem on backend side, need to activate offline mode
       logRequestError(request: request, error: error.message);
