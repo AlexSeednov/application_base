@@ -151,9 +151,12 @@ abstract base class RequestServiceBase {
       notify(NetworkSuccess(), silence: request.silence);
       return response;
     } on TimeoutException {
-      /// Time is out
+      /// Request didn't complete in time — treat it the same way as a lost
+      /// connection: backend is effectively unreachable from the user's
+      /// perspective, so switch to offline mode. Bypass the `silence` flag
+      /// because connection state is global.
       logRequestInfo(request: request, info: 'Timeout exception');
-      notify(NetworkRequestTimeout(), silence: request.silence);
+      _networkSubject.add(NetworkConnectionLost());
     } on SocketException catch (error) {
       /// SocketException means we could not even establish a socket
       /// (DNS lookup failure, route unreachable, connection refused, etc.).

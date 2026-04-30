@@ -19,16 +19,12 @@ final class NetworkRestore extends NetworkEvent {
   NetworkRestore({super.data});
 }
 
-/// There is no internet connection or backend is down
+/// There is no internet connection or backend is down. Also emitted on
+/// request timeouts — a timeout from the backend is treated as a temporary
+/// loss of connection and triggers the offline mode.
 final class NetworkConnectionLost extends NetworkEvent {
   ///
   NetworkConnectionLost({super.data});
-}
-
-/// Request cancelled by timeout
-final class NetworkRequestTimeout extends NetworkEvent {
-  ///
-  NetworkRequestTimeout({super.data});
 }
 
 /// Got 401 HTTP status

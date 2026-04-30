@@ -40,9 +40,6 @@ abstract base class NetworkServiceBase {
   /// Timer for background connection restore checker
   Timer? _timer;
 
-  /// Guard against concurrent timeout-triggered ping checks
-  bool _timeoutCheckInProgress = false;
-
   ///
   Future<void> prepare() async {
     if (_subscription != null) return;
@@ -124,31 +121,10 @@ abstract base class NetworkServiceBase {
     NetworkRestore() => _deactivateOfflineMode(),
     NetworkConnectionLost() => _activateOfflineMode(),
 
-    /// Timeout may indicate either a slow backend or a silently dropped
-    /// connection (e.g. iOS does not surface DNS failures as SocketException —
-    /// it reports them as TimeoutException). Confirm reachability with a
-    /// short ping and switch to offline mode if it fails.
-    NetworkRequestTimeout() => _checkReachabilityAfterTimeout(),
-
     /// All others don't matter here; they will be handled in the overridden
     /// function.
     _ => {},
   };
-
-  /// Performs a single ping when a request times out. If the backend remains
-  /// unreachable, activates offline mode. Skipped while already offline (the
-  /// periodic timer handles that case) or if a check is already running.
-  Future<void> _checkReachabilityAfterTimeout() async {
-    if (isOffline) return;
-    if (_timeoutCheckInProgress) return;
-    _timeoutCheckInProgress = true;
-    try {
-      final bool result = await sendPingRequest();
-      if (!result && isOnline) _activateOfflineMode();
-    } finally {
-      _timeoutCheckInProgress = false;
-    }
-  }
 
   ///
   bool get isWiFi => getIt<ConnectivityService>().isWiFi;
