@@ -68,6 +68,8 @@ abstract base class NetworkServiceBase {
 
   ///
   void _activateOfflineMode() {
+    if (isOffline) return;
+
     /// Turn the offline mode on
     isOnlineNotifier.value = false;
 
