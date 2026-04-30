@@ -1,3 +1,12 @@
+## 0.1.9
+
+* `NetworkRequestTimeout` removed — request timeouts are now treated as a
+  loss of connection and emit `NetworkConnectionLost` directly. This lets
+  the offline mode activate even for silent/background requests without an
+  extra reachability check.
+* `NetworkServiceBase`: removed timeout-triggered ping fallback that became
+  redundant after the change above.
+
 ## 0.1.8
 
 * `RequestServiceBase`: request timeouts (`shortTimeout`, `normalTimeout`,
