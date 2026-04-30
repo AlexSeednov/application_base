@@ -156,7 +156,7 @@ abstract base class RequestServiceBase {
       /// perspective, so switch to offline mode. Bypass the `silence` flag
       /// because connection state is global.
       logRequestInfo(request: request, info: 'Timeout exception');
-      _networkSubject.add(NetworkConnectionLost());
+      notify(NetworkConnectionLost());
     } on SocketException catch (error) {
       /// SocketException means we could not even establish a socket
       /// (DNS lookup failure, route unreachable, connection refused, etc.).
