@@ -77,7 +77,7 @@ final class ConnectivityService {
   void _check() {
     if (isConnectivityAvailable) {
       logInfo(info: 'Connectivity available');
-      _connectionSubject.add(NetworkSuccess());
+      _connectionSubject.add(NetworkConnectionAvailable());
     } else {
       logInfo(info: 'Connectivity not available');
       _connectionSubject.add(NetworkConnectionLost());

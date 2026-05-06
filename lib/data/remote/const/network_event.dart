@@ -19,6 +19,12 @@ final class NetworkRestore extends NetworkEvent {
   NetworkRestore({super.data});
 }
 
+/// Network interface is available, but backend availability is not confirmed.
+final class NetworkConnectionAvailable extends NetworkEvent {
+  ///
+  NetworkConnectionAvailable({super.data});
+}
+
 /// There is no internet connection or backend is down. Also emitted on
 /// request timeouts — a timeout from the backend is treated as a temporary
 /// loss of connection and triggers the offline mode.

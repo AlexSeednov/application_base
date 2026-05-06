@@ -1,6 +1,6 @@
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.1.9
+version: 0.2.0
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:

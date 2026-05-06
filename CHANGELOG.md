@@ -1,3 +1,10 @@
+## 0.2.0
+
+* Offline mode now confirms backend reachability before switching back online
+  after connectivity returns, with serialized ping checks and restore logs.
+* New `NetworkConnectionAvailable` network event added - network interface 
+  is available, but backend availability is not confirmed.
+
 ## 0.1.9
 
 * `NetworkRequestTimeout` removed — request timeouts are now treated as a
