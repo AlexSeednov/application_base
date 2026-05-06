@@ -41,6 +41,9 @@ abstract base class NetworkServiceBase {
   Timer? _timer;
 
   ///
+  bool _isPingInProgress = false;
+
+  ///
   Future<void> prepare() async {
     if (_subscription != null) return;
     _subscription = _networkSubject.listen(onUpdate);
@@ -49,8 +52,8 @@ abstract base class NetworkServiceBase {
     if (!_connectivityService.isConnectivityAvailable) return;
 
     ///
-    final bool result = await sendPingRequest();
-    if (!result) _activateOfflineMode();
+    final bool? result = await _checkBackendAvailability();
+    if (result == false) _activateOfflineMode();
   }
 
   ///
@@ -101,13 +104,45 @@ abstract base class NetworkServiceBase {
 
   ///
   Future<void> ping() async {
-    ///
-    final bool result = await sendPingRequest();
-    if (result) {
-      /// Send connection restore event to provide information about it for
-      /// all listeners, include this one
-      _networkSubject.add(NetworkRestore());
+    final bool? result = await _checkBackendAvailability();
+    if (result == null) return;
+
+    if (!result) {
+      logInfo(info: 'Ping failed');
+      _activateOfflineMode();
+      return;
     }
+
+    /// Send connection restore event to provide information about it for
+    /// all listeners, include this one
+    _networkSubject.add(NetworkRestore());
+  }
+
+  /// Return
+  ///   * `null` if ping is already in progress
+  ///   * `true` if backend is available
+  ///   * `false` otherwise.
+  Future<bool?> _checkBackendAvailability() async {
+    if (_isPingInProgress) return null;
+
+    _isPingInProgress = true;
+
+    /// [sendPingRequest] implementation may be not safe, so we need to catch
+    /// all possible errors here to prevent crashes.
+    try {
+      return await sendPingRequest();
+    } catch (error) {
+      logError(error: 'Ping request failed', additional: error.toString());
+      return false;
+    } finally {
+      _isPingInProgress = false;
+    }
+  }
+
+  ///
+  void _confirmConnectionRestore() {
+    logInfo(info: 'Connectivity available in offline mode, pinging backend');
+    unawaited(ping());
   }
 
   ///
@@ -116,6 +151,9 @@ abstract base class NetworkServiceBase {
   void onUpdate(NetworkEvent event) => switch (event) {
     /// Success
     NetworkSuccess() => _onlineMode(),
+
+    /// Connectivity
+    NetworkConnectionAvailable() when isOffline => _confirmConnectionRestore(),
 
     /// Connection
     NetworkRestore() => _deactivateOfflineMode(),
