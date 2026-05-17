@@ -156,6 +156,48 @@ import 'package:application_base/core/service/service_locator.dart';
 getIt<AwesomeService>().makeMagic();
 ```
 
+3. Check for cyclic getIt dependencies — `getit_check`:
+
+`getit_check` is a static analyzer shipped as an executable with this package.
+It scans `lib/` of your project, finds classes registered via `injectable`
+annotations (`@lazySingleton`, `@singleton`, `@injectable` and their
+constructor forms `@LazySingleton(as: X)`, `@Singleton(as: X)`,
+`@Injectable(as: X)`), collects every `getIt<T>()` call inside them, builds
+a directed graph and reports cyclic dependencies ranked by severity.
+
+Run from your project root:
+
+```bash
+dart run application_base:getit_check
+dart run application_base:getit_check --verbose   # dump every registered class
+                                                  # and its outgoing edges
+```
+
+Edge classification:
+
+* **eager** — `getIt<X>()` is reached during construction (field initializer,
+  constructor body or constructor initializer list). A cycle with **at least
+  one eager edge** = guaranteed stack overflow the moment the first
+  participant is created.
+* **lazy** — `getIt<X>()` is reached only from a method/getter/setter body
+  (or from a static field initializer, which runs on first access). A cycle
+  made only of lazy edges is still suspicious, but it bites only when the
+  calls happen to overlap in time.
+
+The tool also flags duplicate registrations (multiple classes claiming the
+same `getIt` name) and reports parse errors per file. Exit code is `0` on a
+clean graph, `1` if cycles are found and `2` if `lib/` cannot be located —
+suitable as a CI guard:
+
+```bash
+dart run application_base:getit_check || exit 1
+```
+
+Limitations: `getIt<T>()` calls inside mixins are not attributed to the
+classes that include them via `with`; the analysis is purely static, so
+every `getIt<T>()` reached through the AST is counted as a potential
+dependency regardless of control flow.
+
 ## Logger
 
 Based on [Logger](https://pub.dev/packages/logger)
