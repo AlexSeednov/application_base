@@ -4,6 +4,8 @@
 //   dart run application_base:getit_check
 //   dart run application_base:getit_check --verbose   # dump every registered
 //                                                     # class and its edges
+//   dart run application_base:getit_check --no-color  # disable ANSI colors
+//   dart run application_base:getit_check --ascii     # use ASCII-only glyphs
 //
 // Scans lib/, finds classes registered in DI through injectable annotations
 // (@lazySingleton / @singleton / @injectable and the constructor forms
@@ -27,6 +29,7 @@
 //   dependency.
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
@@ -52,6 +55,43 @@ const _generatedSuffixes = [
 // large graphs can have exponentially many cycles; after this many we stop
 // and append a warning.
 const _maxCyclesPerScc = 1000;
+
+// Print a thin horizontal divider after every N cycles inside one severity
+// group to break up visual monotony of long lists.
+const _cycleGroupChunk = 5;
+
+// Total visible width of section headers and the summary box.
+const _bannerWidth = 64;
+
+// MARK: Output styling
+
+var _useColor = true;
+var _useUnicode = true;
+
+String _ansi(String text, String code) =>
+    _useColor ? '\x1B[${code}m$text\x1B[0m' : text;
+
+String _bold(String s) => _ansi(s, '1');
+String _dim(String s) => _ansi(s, '2');
+String _red(String s) => _ansi(s, '31');
+String _yellow(String s) => _ansi(s, '33');
+String _cyan(String s) => _ansi(s, '36');
+String _boldRed(String s) => _ansi(s, '1;31');
+String _boldYellow(String s) => _ansi(s, '1;33');
+String _boldGreen(String s) => _ansi(s, '1;32');
+String _boldCyan(String s) => _ansi(s, '1;36');
+
+String get _gArrowDown => _useUnicode ? '▼' : 'v';
+String get _gBar => _useUnicode ? '│' : '|';
+String get _gArrow => _useUnicode ? '→' : '->';
+String get _gHintMark => _useUnicode ? '▸' : '>';
+String get _gHLine => _useUnicode ? '─' : '-';
+String get _gBoxTL => _useUnicode ? '┌' : '+';
+String get _gBoxBL => _useUnicode ? '└' : '+';
+String get _gHeavy => _useUnicode ? '═' : '=';
+String get _gCheck => _useUnicode ? '✓' : 'OK';
+String get _gLoop => _useUnicode ? '↺' : '<-';
+String get _gWarn => _useUnicode ? '⚠' : '[!]';
 
 // MARK: Data
 
@@ -86,12 +126,17 @@ final class _ClassInfo {
 
 Future<void> main(List<String> args) async {
   final verbose = args.contains('--verbose') || args.contains('-v');
+  _useColor = stdout.supportsAnsiEscapes &&
+      !Platform.environment.containsKey('NO_COLOR') &&
+      !args.contains('--no-color');
+  _useUnicode = !args.contains('--ascii');
 
   final libDir = Directory(_libDir);
   if (!libDir.existsSync()) {
     stderr.writeln(
-      'Error: directory "$_libDir" not found. '
-      'Run from the project root.',
+      _boldRed(
+        'Error: directory "$_libDir" not found. Run from the project root.',
+      ),
     );
     exit(2);
   }
@@ -102,7 +147,10 @@ Future<void> main(List<String> args) async {
       .where(_isAnalyzable)
       .toList();
 
-  stdout.writeln('Scanning ${files.length} .dart files in $_libDir/ ...');
+  stdout.writeln(
+    'Scanning ${_bold('${files.length}')} .dart files in '
+    '${_cyan('$_libDir/')} ...',
+  );
 
   final classes = <_ClassInfo>[];
   var parseErrors = 0;
@@ -111,11 +159,8 @@ Future<void> main(List<String> args) async {
       classes.addAll(_analyzeFile(file));
     } catch (e) {
       parseErrors++;
-      stderr.writeln('Skipped ${file.path}: $e');
+      stderr.writeln(_yellow('Skipped ${file.path}: $e'));
     }
-  }
-  if (parseErrors > 0) {
-    stdout.writeln('Files skipped due to parse errors: $parseErrors');
   }
 
   final registry = <String, _ClassInfo>{};
@@ -160,30 +205,7 @@ Future<void> main(List<String> args) async {
     if (found.truncated) truncatedSccs++;
   }
 
-  final totalRefs = classes.fold<int>(0, (a, c) => a + c.refs.length);
-  stdout
-    ..writeln('Registered classes: ${registry.length}')
-    ..writeln('Counted getIt<T>() references inside them: $totalRefs');
-
-  if (verbose) _dumpGraph(registry, graph);
-
-  if (duplicates.isNotEmpty) {
-    stdout.writeln(
-      '\n[!] Multiple classes claim the same getIt name:',
-    );
-    duplicates.forEach((name, list) {
-      stdout.writeln('  $name:');
-      for (final c in list) {
-        stdout.writeln('    - ${c.className}  (${c.filePath}:${c.line})');
-      }
-    });
-  }
-
-  if (cycles.isEmpty) {
-    stdout.writeln('\nOK — no cyclic dependencies detected.');
-    exit(0);
-  }
-
+  // Stable ordering: severity desc, then by cycle length asc.
   cycles.sort((a, b) {
     final sa = _severity(a, graph);
     final sb = _severity(b, graph);
@@ -191,17 +213,249 @@ Future<void> main(List<String> args) async {
     return a.length.compareTo(b.length);
   });
 
-  stdout.writeln('\nCycles found: ${cycles.length}');
-  if (truncatedSccs > 0) {
-    stdout.writeln(
-      '[!] $truncatedSccs SCC(s) reached the $_maxCyclesPerScc cycles cap '
-      '— output is truncated, fix the ones above first and re-run.',
-    );
+  // Hot-spot map: how many cycles each class participates in.
+  final hotMap = <String, int>{};
+  for (final cycle in cycles) {
+    for (final node in cycle.toSet()) {
+      hotMap[node] = (hotMap[node] ?? 0) + 1;
+    }
   }
+
+  final totalRefs = classes.fold<int>(0, (a, c) => a + c.refs.length);
+  final highCycles =
+      cycles.where((c) => _severity(c, graph) == _Severity.high).toList();
+  final lowCycles =
+      cycles.where((c) => _severity(c, graph) == _Severity.low).toList();
+
+  if (verbose) _dumpGraph(registry, graph, hotMap);
+
+  if (duplicates.isNotEmpty) _printDuplicates(duplicates);
+
+  if (cycles.isNotEmpty) {
+    if (truncatedSccs > 0) {
+      stdout.writeln(
+        '\n${_yellow(_gWarn)} ${_yellow(
+          '$truncatedSccs SCC(s) reached the $_maxCyclesPerScc cycles cap '
+          '— output is truncated, fix the ones above first and re-run.',
+        )}',
+      );
+    }
+
+    if (highCycles.isNotEmpty) {
+      _printCycleGroup(highCycles, 1, _Severity.high, graph, registry, hotMap);
+    }
+    if (lowCycles.isNotEmpty) {
+      _printCycleGroup(
+        lowCycles,
+        highCycles.length + 1,
+        _Severity.low,
+        graph,
+        registry,
+        hotMap,
+      );
+    }
+  }
+
+  _printSummary(
+    filesScanned: files.length,
+    parseErrors: parseErrors,
+    registered: registry.length,
+    references: totalRefs,
+    duplicates: duplicates.length,
+    highCount: highCycles.length,
+    lowCount: lowCycles.length,
+  );
+
+  exit(cycles.isEmpty ? 0 : 1);
+}
+
+// MARK: Output helpers
+
+void _printSectionHeader(String label, int count, _Severity sev) {
+  final color = sev == _Severity.high ? _boldRed : _boldYellow;
+  final word = count == 1 ? 'cycle' : 'cycles';
+  final title = '$label severity — $count $word';
+  // visible width of the title in the banner (no ANSI)
+  final visibleTitleLen = title.length;
+  const leftLen = 3;
+  final rightLen = math.max(3, _bannerWidth - visibleTitleLen - 2 - leftLen);
+  final left = _gHeavy * leftLen;
+  final right = _gHeavy * rightLen;
+  stdout
+    ..writeln()
+    ..writeln('${color(left)} ${color(title)} ${color(right)}')
+    ..writeln();
+}
+
+void _printCycleGroup(
+  List<List<String>> cycles,
+  int startIdx,
+  _Severity sev,
+  Map<String, Map<String, _EdgeKind>> graph,
+  Map<String, _ClassInfo> registry,
+  Map<String, int> hotMap,
+) {
+  _printSectionHeader(
+    sev == _Severity.high ? 'HIGH' : 'LOW',
+    cycles.length,
+    sev,
+  );
   for (var i = 0; i < cycles.length; i++) {
-    _printCycle(i + 1, cycles[i], graph, registry);
+    if (i > 0 && i % _cycleGroupChunk == 0) {
+      stdout
+        ..writeln('  ${_dim(_gHLine * (_bannerWidth - 4))}')
+        ..writeln();
+    }
+    _printCycle(startIdx + i, cycles[i], graph, registry, hotMap, sev);
+    stdout.writeln();
   }
-  exit(1);
+}
+
+void _printCycle(
+  int idx,
+  List<String> cycle,
+  Map<String, Map<String, _EdgeKind>> graph,
+  Map<String, _ClassInfo> registry,
+  Map<String, int> hotMap,
+  _Severity sev,
+) {
+  final length = cycle.length - 1;
+
+  // Compute max visible name length (including hot tag) for path alignment.
+  var maxNameLen = 0;
+  for (var i = 0; i < length; i++) {
+    final n = cycle[i];
+    final hot = hotMap[n] ?? 0;
+    final visible = hot >= 2 ? '$n [hot: $hot cycles]' : n;
+    if (visible.length > maxNameLen) maxNameLen = visible.length;
+  }
+
+  stdout.writeln(
+    '  ${_bold('Cycle #$idx')}  ${_dim('(length $length)')}',
+  );
+  stdout.writeln();
+
+  final seenInCycle = <String>{};
+  for (var i = 0; i < length; i++) {
+    final from = cycle[i];
+    final to = cycle[i + 1];
+    final kind = graph[from]?[to];
+    final cls = registry[from];
+    final loc = cls != null ? '${cls.filePath}:${cls.line}' : '';
+
+    final hot = hotMap[from] ?? 0;
+    final showHot = hot >= 2 && !seenInCycle.contains(from);
+    seenInCycle.add(from);
+
+    final visibleName = showHot ? '$from [hot: $hot cycles]' : from;
+    final label = showHot
+        ? '${_bold(from)} ${_dim('[hot: $hot cycles]')}'
+        : _bold(from);
+    final padding = ' ' * (maxNameLen - visibleName.length + 2);
+
+    stdout.writeln('    $label$padding${_dim(loc)}');
+
+    final isEager = kind == _EdgeKind.eager;
+    final kindLabel = isEager ? _boldRed('eager') : _yellow('lazy');
+    final coloredArrow = isEager ? _red(_gArrowDown) : _yellow(_gArrowDown);
+
+    stdout
+      ..writeln('      ${_dim(_gBar)} $kindLabel')
+      ..writeln('      $coloredArrow');
+  }
+
+  // The loop-back node — same as cycle[0]. No path, just a short marker.
+  final back = cycle.last;
+  stdout.writeln('    ${_bold(back)}  ${_dim('$_gLoop loops back')}');
+
+  // Per-severity fix hint.
+  stdout.writeln();
+  if (sev == _Severity.high) {
+    stdout
+      ..writeln(
+        '    ${_cyan(_gHintMark)} ${_dim('Hint: break an eager edge — move the getIt<X>() call out of')}',
+      )
+      ..writeln(
+        '      ${_dim('a field initializer / constructor body into a method body.')}',
+      );
+  } else {
+    stdout
+      ..writeln(
+        '    ${_cyan(_gHintMark)} ${_dim('Hint: only lazy edges — safe at registration time, but verify')}',
+      )
+      ..writeln(
+        '      ${_dim("these methods can't call each other on overlapping paths.")}',
+      );
+  }
+}
+
+void _printDuplicates(Map<String, List<_ClassInfo>> duplicates) {
+  stdout
+    ..writeln()
+    ..writeln('${_yellow(_gWarn)} ${_boldYellow('Duplicate registrations:')}')
+    ..writeln();
+  duplicates.forEach((name, list) {
+    stdout.writeln('  ${_bold(name)}');
+    var maxLen = 0;
+    for (final c in list) {
+      if (c.className.length > maxLen) maxLen = c.className.length;
+    }
+    for (final c in list) {
+      final padding = ' ' * (maxLen - c.className.length + 2);
+      stdout.writeln(
+        '    ${_bold(c.className)}$padding${_dim('${c.filePath}:${c.line}')}',
+      );
+    }
+  });
+}
+
+void _printSummary({
+  required int filesScanned,
+  required int parseErrors,
+  required int registered,
+  required int references,
+  required int duplicates,
+  required int highCount,
+  required int lowCount,
+}) {
+  final cyclesTotal = highCount + lowCount;
+  final cyclesNote = cyclesTotal == 0
+      ? '${_boldGreen(_gCheck)} ${_boldGreen('clean')}'
+      : '${_dim('(')}${_boldRed('$highCount HIGH')}${_dim(', ')}'
+          '${_boldYellow('$lowCount LOW')}${_dim(')')}';
+
+  final entries = <List<String>>[
+    ['Files scanned', '$filesScanned'],
+    if (parseErrors > 0) ['Parse errors', _yellow('$parseErrors')],
+    ['Registered classes', '$registered'],
+    ['getIt<T> references', '$references'],
+    ['Cycles', '$cyclesTotal   $cyclesNote'],
+    ['Duplicates', duplicates == 0 ? '0' : _yellow('$duplicates')],
+  ];
+
+  const labelWidth = 22;
+  const titleText = ' Summary ';
+  final innerWidth = _bannerWidth - 2;
+  final topRight = _gHLine * (innerWidth - titleText.length - 2);
+  final top = _boldCyan(
+    '$_gBoxTL${_gHLine * 2}$titleText$topRight',
+  );
+  final bot = _boldCyan('$_gBoxBL${_gHLine * (innerWidth)}');
+
+  stdout
+    ..writeln()
+    ..writeln(top);
+  for (final entry in entries) {
+    final label = entry[0].padRight(labelWidth);
+    stdout.writeln('${_boldCyan(_gBar)}  $label ${_bold(entry[1])}');
+  }
+  stdout.writeln(bot);
+
+  if (cyclesTotal == 0) {
+    stdout
+      ..writeln()
+      ..writeln(_boldGreen('$_gCheck OK — no cyclic dependencies detected.'));
+  }
 }
 
 // MARK: Functions
@@ -376,50 +630,63 @@ _Severity _severity(
   return _Severity.low;
 }
 
-void _printCycle(
-  int idx,
-  List<String> cycle,
-  Map<String, Map<String, _EdgeKind>> graph,
-  Map<String, _ClassInfo> registry,
-) {
-  final sev = _severity(cycle, graph);
-  final tag = sev == _Severity.high ? '[!] HIGH' : '[ ] LOW ';
-  stdout.writeln('\n$tag  Cycle #$idx (length ${cycle.length - 1}):');
-  for (var i = 0; i < cycle.length - 1; i++) {
-    final from = cycle[i];
-    final to = cycle[i + 1];
-    final kind = graph[from]?[to];
-    final arrow = kind == _EdgeKind.eager ? '=eager=>' : '-lazy->';
-    final cls = registry[from];
-    final loc = cls != null ? '  (${cls.filePath}:${cls.line})' : '';
-    stdout
-      ..writeln('    $from$loc')
-      ..writeln('      $arrow $to');
-  }
-}
-
 void _dumpGraph(
   Map<String, _ClassInfo> registry,
   Map<String, Map<String, _EdgeKind>> graph,
+  Map<String, int> hotMap,
 ) {
   final names = registry.keys.toList()..sort();
-  stdout.writeln('\n--- Registered classes (verbose) ---');
+
+  // Width to align target arrows nicely across all entries.
+  var maxClassLen = 0;
+  for (final name in names) {
+    final cls = registry[name]!;
+    final asTag = cls.className == name ? '' : ' [as $name]';
+    final hot = hotMap[name] ?? 0;
+    final hotTag = hot >= 2 ? ' [hot: $hot cycles]' : '';
+    final visible = '${cls.className}$asTag$hotTag';
+    if (visible.length > maxClassLen) maxClassLen = visible.length;
+  }
+
+  stdout
+    ..writeln()
+    ..writeln(
+      _boldCyan(
+        '${_gHLine * 3} Registered classes (verbose) '
+        '${_gHLine * math.max(3, _bannerWidth - 33)}',
+      ),
+    )
+    ..writeln();
+
   for (final name in names) {
     final cls = registry[name]!;
     final adj = graph[name] ?? const <String, _EdgeKind>{};
-    final tag = cls.className == name ? '' : '  [as $name]';
-    stdout.writeln('${cls.className}$tag  (${cls.filePath}:${cls.line})');
+    final asTag = cls.className == name ? '' : ' [as $name]';
+    final hot = hotMap[name] ?? 0;
+    final hotTag = hot >= 2 ? ' [hot: $hot cycles]' : '';
+    final visible = '${cls.className}$asTag$hotTag';
+    final padding = ' ' * (maxClassLen - visible.length + 2);
+
+    final renderedClass = _bold(cls.className) +
+        (asTag.isEmpty ? '' : _dim(asTag)) +
+        (hotTag.isEmpty ? '' : ' ${_dim('[hot: $hot cycles]')}');
+
+    stdout.writeln(
+      '  $renderedClass$padding${_dim('${cls.filePath}:${cls.line}')}',
+    );
+
     if (adj.isEmpty) {
-      stdout.writeln('    (no registered dependencies)');
+      stdout.writeln('    ${_dim('(no registered dependencies)')}');
       continue;
     }
+
     final targets = adj.keys.toList()..sort();
     for (final t in targets) {
-      final kind = adj[t] == _EdgeKind.eager ? 'eager' : 'lazy ';
-      stdout.writeln('    $kind -> $t');
+      final isEager = adj[t] == _EdgeKind.eager;
+      final kindStr = isEager ? _boldRed('eager') : _yellow('lazy ');
+      stdout.writeln('    $kindStr ${_dim(_gArrow)} ${_bold(t)}');
     }
   }
-  stdout.writeln('--- end verbose ---');
 }
 
 // MARK: Visitor

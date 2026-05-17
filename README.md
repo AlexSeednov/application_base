@@ -171,7 +171,17 @@ Run from your project root:
 dart run application_base:getit_check
 dart run application_base:getit_check --verbose   # dump every registered class
                                                   # and its outgoing edges
+dart run application_base:getit_check --no-color  # disable ANSI colors
+dart run application_base:getit_check --ascii     # ASCII-only glyphs (for
+                                                  # terminals without UTF-8)
 ```
+
+The report is grouped by severity (HIGH first, then LOW), each cycle is drawn
+as a ladder with colored `eager` / `lazy` arrows, every cycle gets a one-line
+fix hint and classes that participate in two or more cycles are tagged with
+`[hot: N cycles]` so the worst offenders stand out. A summary box at the end
+gives the totals at a glance. Colors are auto-disabled when stdout is not a
+TTY and respect the `NO_COLOR` environment variable.
 
 Edge classification:
 
