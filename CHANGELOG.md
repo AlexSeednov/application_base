@@ -1,3 +1,13 @@
+## 0.2.1
+
+* `getit_check` executable added — static analyzer that scans `lib/` of the
+  consuming project, finds classes registered via `injectable` annotations
+  (`@lazySingleton` / `@singleton` / `@injectable` and their constructor forms
+  `@LazySingleton(as: X)`, ...), collects every `getIt<T>()` call inside them
+  and reports cyclic dependencies ranked by severity (eager vs lazy edges).
+  Run from your project root: `dart run application_base:getit_check`
+  (add `--verbose` to dump every registered class with its outgoing edges).
+
 ## 0.2.0
 
 * Offline mode now confirms backend reachability before switching back online

@@ -1,6 +1,6 @@
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -17,6 +17,9 @@ environment:
 
 # Last update - 23.01.2026
 dependencies:
+  #
+  analyzer: ^9.0.0
+
   # All platform supported
   auto_route: 11.1.0
 
@@ -67,6 +70,11 @@ dev_dependencies:
   #
   flutter_test:
     sdk: flutter
+
+# Executables exposed by the package — invoked via `dart run application_base:<name>`.
+executables:
+  # dart run application_base:getit_check
+  getit_check:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
