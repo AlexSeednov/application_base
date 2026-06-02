@@ -1,6 +1,6 @@
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.2.1
+version: 0.2.2
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -52,8 +52,6 @@ dependencies:
   logger: ^2.6.2
 
   # All platform supported
-  # Pinned by Flutter
-  # meta: ^1.18.0
   meta: ^1.17.0
 
   # All platform supported

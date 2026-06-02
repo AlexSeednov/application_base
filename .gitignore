@@ -73,4 +73,8 @@ devtools_options.yaml
 
 # Analyze files
 *.dot
+
+# AI instructions
 .github
+.claude
+CLAUDE.md

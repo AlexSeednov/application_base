@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:application_base/core/service/logger_service.dart';
 import 'package:application_base/core/service/platform_service.dart';
 import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/data/remote/const/request_duration_type.dart';
@@ -280,13 +281,30 @@ abstract base class RequestServiceBase {
     required Uri uri,
     required Map<String, String> headers,
   }) async {
-    final request = Request('GET', uri)
-      ..followRedirects = false
-      ..maxRedirects = 0
-      ..headers.addAll(headers);
+    try {
+      final request = Request('GET', uri)
+        ..followRedirects = false
+        ..maxRedirects = 0
+        ..headers.addAll(headers);
 
-    final response = await _client.send(request);
+      final response = await _client.send(request).timeout(normalTimeout);
 
-    return response.isRedirect ? response.headers['location'] : null;
+      return response.isRedirect ? response.headers['location'] : null;
+    } on TimeoutException {
+      logInfo(info: 'Catch redirect $uri\nTimeout exception');
+      notify(NetworkConnectionLost());
+      return null;
+    } on SocketException catch (error) {
+      logInfo(info: 'Catch redirect $uri\nNo connection (${error.message})');
+      notify(NetworkConnectionLost());
+      return null;
+    } on HandshakeException catch (error) {
+      logError(error: 'Catch redirect $uri\n${error.message}');
+      notify(NetworkConnectionLost());
+      return null;
+    } catch (error) {
+      logError(error: 'Catch redirect $uri\n$error');
+      return null;
+    }
   }
 }
