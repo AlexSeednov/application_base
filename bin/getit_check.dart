@@ -126,7 +126,8 @@ final class _ClassInfo {
 
 Future<void> main(List<String> args) async {
   final verbose = args.contains('--verbose') || args.contains('-v');
-  _useColor = stdout.supportsAnsiEscapes &&
+  _useColor =
+      stdout.supportsAnsiEscapes &&
       !Platform.environment.containsKey('NO_COLOR') &&
       !args.contains('--no-color');
   _useUnicode = !args.contains('--ascii');
@@ -222,10 +223,12 @@ Future<void> main(List<String> args) async {
   }
 
   final totalRefs = classes.fold<int>(0, (a, c) => a + c.refs.length);
-  final highCycles =
-      cycles.where((c) => _severity(c, graph) == _Severity.high).toList();
-  final lowCycles =
-      cycles.where((c) => _severity(c, graph) == _Severity.low).toList();
+  final highCycles = cycles
+      .where((c) => _severity(c, graph) == _Severity.high)
+      .toList();
+  final lowCycles = cycles
+      .where((c) => _severity(c, graph) == _Severity.low)
+      .toList();
 
   if (verbose) _dumpGraph(registry, graph, hotMap);
 
@@ -234,10 +237,9 @@ Future<void> main(List<String> args) async {
   if (cycles.isNotEmpty) {
     if (truncatedSccs > 0) {
       stdout.writeln(
-        '\n${_yellow(_gWarn)} ${_yellow(
-          '$truncatedSccs SCC(s) reached the $_maxCyclesPerScc cycles cap '
-          '— output is truncated, fix the ones above first and re-run.',
-        )}',
+        '\n${_yellow(_gWarn)} ${_yellow('$truncatedSccs SCC(s) '
+        'reached the $_maxCyclesPerScc cycles cap '
+        '— output is truncated, fix the ones above first and re-run.')}',
       );
     }
 
@@ -330,10 +332,9 @@ void _printCycle(
     if (visible.length > maxNameLen) maxNameLen = visible.length;
   }
 
-  stdout.writeln(
-    '  ${_bold('Cycle #$idx')}  ${_dim('(length $length)')}',
-  );
-  stdout.writeln();
+  stdout
+    ..writeln('  ${_bold('Cycle #$idx')}  ${_dim('(length $length)')}')
+    ..writeln();
 
   final seenInCycle = <String>{};
   for (var i = 0; i < length; i++) {
@@ -366,25 +367,30 @@ void _printCycle(
 
   // The loop-back node — same as cycle[0]. No path, just a short marker.
   final back = cycle.last;
-  stdout.writeln('    ${_bold(back)}  ${_dim('$_gLoop loops back')}');
+  stdout
+    ..writeln('    ${_bold(back)}  ${_dim('$_gLoop loops back')}')
+    ..writeln();
 
   // Per-severity fix hint.
-  stdout.writeln();
   if (sev == _Severity.high) {
     stdout
       ..writeln(
-        '    ${_cyan(_gHintMark)} ${_dim('Hint: break an eager edge — move the getIt<X>() call out of')}',
+        '    ${_cyan(_gHintMark)} ${_dim('Hint: '
+        'break an eager edge — move the getIt<X>() call out of')}',
       )
       ..writeln(
-        '      ${_dim('a field initializer / constructor body into a method body.')}',
+        '      ${_dim('a field initializer / constructor '
+        'body into a method body.')}',
       );
   } else {
     stdout
       ..writeln(
-        '    ${_cyan(_gHintMark)} ${_dim('Hint: only lazy edges — safe at registration time, but verify')}',
+        '    ${_cyan(_gHintMark)} ${_dim('Hint: only lazy edges — '
+        'safe at registration time, but verify')}',
       )
       ..writeln(
-        '      ${_dim("these methods can't call each other on overlapping paths.")}',
+        '      ${_dim('these methods can\'t call each other '
+        'on overlapping paths.')}',
       );
   }
 }
@@ -422,7 +428,7 @@ void _printSummary({
   final cyclesNote = cyclesTotal == 0
       ? '${_boldGreen(_gCheck)} ${_boldGreen('clean')}'
       : '${_dim('(')}${_boldRed('$highCount HIGH')}${_dim(', ')}'
-          '${_boldYellow('$lowCount LOW')}${_dim(')')}';
+            '${_boldYellow('$lowCount LOW')}${_dim(')')}';
 
   final entries = <List<String>>[
     ['Files scanned', '$filesScanned'],
@@ -430,17 +436,18 @@ void _printSummary({
     ['Registered classes', '$registered'],
     ['getIt<T> references', '$references'],
     ['Cycles', '$cyclesTotal   $cyclesNote'],
-    ['Duplicates', duplicates == 0 ? '0' : _yellow('$duplicates')],
+    if (duplicates == 0)
+      ['Duplicates', '0']
+    else
+      ['Duplicates', _yellow('$duplicates')],
   ];
 
   const labelWidth = 22;
   const titleText = ' Summary ';
-  final innerWidth = _bannerWidth - 2;
+  const innerWidth = _bannerWidth - 2;
   final topRight = _gHLine * (innerWidth - titleText.length - 2);
-  final top = _boldCyan(
-    '$_gBoxTL${_gHLine * 2}$titleText$topRight',
-  );
-  final bot = _boldCyan('$_gBoxBL${_gHLine * (innerWidth)}');
+  final top = _boldCyan('$_gBoxTL${_gHLine * 2}$titleText$topRight');
+  final bot = _boldCyan('$_gBoxBL${_gHLine * innerWidth}');
 
   stdout
     ..writeln()
@@ -667,7 +674,8 @@ void _dumpGraph(
     final visible = '${cls.className}$asTag$hotTag';
     final padding = ' ' * (maxClassLen - visible.length + 2);
 
-    final renderedClass = _bold(cls.className) +
+    final renderedClass =
+        _bold(cls.className) +
         (asTag.isEmpty ? '' : _dim(asTag)) +
         (hotTag.isEmpty ? '' : ' ${_dim('[hot: $hot cycles]')}');
 

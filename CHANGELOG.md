@@ -1,3 +1,8 @@
+## 0.2.2
+
+* `catchRedirect` now in try/catch with the same behaviour as a base sender.
+* `getit_check` cleared from warnings.
+
 ## 0.2.1
 
 * `getit_check` executable added — static analyzer that scans `lib/` of the
