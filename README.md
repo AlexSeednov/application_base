@@ -77,8 +77,23 @@ dependencies:
     version: 0.1.3
 ```
 
-Now just call `ApplicationBase.prepare();` on application launching to 
-initialize all necessary data.
+The package registers its services through an injectable micro-package module.
+Wire it into your service locator by adding the module to your `@InjectableInit`:
+
+```dart
+import 'package:application_base/core/service/service_locator.dart';
+import 'package:application_base/core/service/service_locator.module.dart';
+
+@InjectableInit(
+  externalPackageModulesBefore: [ExternalModule(ApplicationBasePackageModule)],
+)
+void configureDependencies() => getIt.init();
+```
+
+Then, on application launch, initialize dependency injection first and call
+`ApplicationBase.prepare();` afterwards — it runs a post-DI step (flavor +
+lifecycle) and resolves `getIt<LifecycleService>()`, so it must be called AFTER
+your `getIt.init()`.
 
 Important: do not forget to call `WidgetsFlutterBinding.ensureInitialized();` 
 before preparing.
@@ -139,6 +154,18 @@ running. Just set it once when launching the application
 ## GetIt
 
 Based on [get_it](https://pub.dev/packages/get_it)
+
+### Package services
+
+The package registers its own services through an injectable micro-package
+module (`ApplicationBasePackageModule`, generated into
+`service_locator.module.dart` — see [Usage](#usage) for wiring). Every service
+is a getIt-owned singleton: annotate the class with `@lazySingleton`, or with
+`@LazySingleton(as: Contract)` to bind a contract to its implementation. Legacy
+services keep a private constructor plus a `.singleton()` factory annotated with
+`@factoryMethod`, so injectable builds the single shared instance without a
+manual `_instance` handoff. Ownership is uniform, so individual classes don't
+repeat this note.
 
 1. Prepare GetIt:
 

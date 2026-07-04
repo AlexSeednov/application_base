@@ -1,12 +1,15 @@
 import 'package:application_base/core/service/logger_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:injectable/injectable.dart';
 
 ///
+@lazySingleton
 final class AccessVM with ChangeNotifier {
   ///
   AccessVM._();
 
   ///
+  @factoryMethod
   factory AccessVM.singleton() => _instance;
 
   ///

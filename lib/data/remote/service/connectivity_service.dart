@@ -4,6 +4,7 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/domain/subject/network_subject.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:injectable/injectable.dart';
 
 /// Connectivity changes are no longer communicated to Android apps
 /// in the background starting with Android O (8.0).
@@ -12,11 +13,13 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 ///
 /// On iOS simulators, the connectivity types stream might not update
 /// when Wi-Fi status changes.
+@lazySingleton
 final class ConnectivityService {
   ///
   ConnectivityService._();
 
   ///
+  @factoryMethod
   factory ConnectivityService.singleton() => _instance;
 
   ///
@@ -54,6 +57,7 @@ final class ConnectivityService {
   }
 
   ///
+  @disposeMethod
   void dispose() {
     _subscription?.cancel();
 

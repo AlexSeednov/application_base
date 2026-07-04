@@ -1,9 +1,11 @@
 import 'package:application_base/data/remote/utility/url_launcher.dart';
 import 'package:application_base/data/remote/utility/url_launcher_pro.dart';
+import 'package:injectable/injectable.dart';
 
 /// [UrlLauncherPro] backed by the static [UrlLauncher].
 ///
 /// Thin adapter: every method delegates to the matching `UrlLauncher` helper.
+@LazySingleton(as: UrlLauncherPro)
 final class UrlLauncherRouter implements UrlLauncherPro {
   ///
   UrlLauncherRouter();

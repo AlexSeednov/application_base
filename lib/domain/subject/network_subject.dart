@@ -1,16 +1,19 @@
 import 'dart:async';
 
 import 'package:application_base/data/remote/const/network_event.dart';
+import 'package:injectable/injectable.dart';
 import 'package:rxdart/rxdart.dart';
 
 export 'package:application_base/data/remote/const/network_event.dart';
 
 ///
+@lazySingleton
 final class NetworkSubject {
   ///
   NetworkSubject._();
 
   ///
+  @factoryMethod
   factory NetworkSubject.singleton() => _instance;
 
   ///
@@ -20,6 +23,7 @@ final class NetworkSubject {
   final _networkSubject = PublishSubject<NetworkEvent>();
 
   ///
+  @disposeMethod
   void dispose() {
     _networkSubject.close();
   }

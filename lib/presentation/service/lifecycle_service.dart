@@ -4,14 +4,17 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/data/remote/service/connectivity_service.dart';
 import 'package:flutter/widgets.dart';
+import 'package:injectable/injectable.dart';
 import 'package:rxdart/rxdart.dart';
 
 ///
+@lazySingleton
 final class LifecycleService {
   ///
   LifecycleService._();
 
   ///
+  @factoryMethod
   factory LifecycleService.singleton() => _instance;
 
   ///
@@ -45,6 +48,7 @@ final class LifecycleService {
   }
 
   ///
+  @disposeMethod
   void dispose() {
     _listener?.dispose();
     _lifecycleSubject.close();

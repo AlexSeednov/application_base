@@ -2,11 +2,13 @@ import 'package:application_base/presentation/navigation/navigation_service.dart
     as base;
 import 'package:application_base/presentation/navigation/navigation_service_pro.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:injectable/injectable.dart';
 
 /// [NavigationServicePro] backed by the global `navigatorKey` via AutoRoute.
 ///
 /// Thin adapter: every method delegates to the top-level helpers in
 /// `navigation_service.dart`.
+@LazySingleton(as: NavigationServicePro)
 final class NavigationServiceRouter implements NavigationServicePro {
   ///
   NavigationServiceRouter();
