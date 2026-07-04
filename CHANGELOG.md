@@ -1,3 +1,19 @@
+## 0.2.3
+
+* `NavigationServicePro` — injectable facade over the `navigation_service.dart`
+  helpers (`push` / `replace` / `replaceAll` / `navigate` / `pop` / `popForced`
+  / `popUntilRouteName` / `currentRouteName`) so view models depend on a
+  contract instead of the global-`navigatorKey` functions and navigation
+  branches can be tested with a recording fake. Contract lives in
+  `navigation_service_pro.dart`, the `NavigationServiceRouter` implementation in
+  `navigation_service_router.dart`. The package ships the classes but does not
+  register them — bind in the consumer's DI.
+* `UrlLauncherPro` — injectable facade over the static `UrlLauncher` (`open` /
+  `sendEmail` / `call` / `sendSms`) for the same testability reason. Contract
+  lives in `url_launcher_pro.dart`, the `UrlLauncherRouter` implementation in
+  `url_launcher_router.dart`. Ships the classes but does not register them —
+  bind in the consumer's DI.
+
 ## 0.2.2
 
 * `catchRedirect` now in try/catch with the same behaviour as a base sender.

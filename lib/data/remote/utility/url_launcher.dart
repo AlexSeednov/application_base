@@ -55,7 +55,7 @@ abstract final class UrlLauncher {
 
   /// Try to make a call via phone application.
   /// Return **true** on success
-  static Future<bool> makeCall(String number) => launchLink('tel:$number!');
+  static Future<bool> makeCall(String number) => launchLink('tel:$number');
 
   /// Try to send an sms via message application.
   /// Return **true** on success

@@ -437,6 +437,39 @@ void logout(){
 }
 ```
 
+### NavigationServicePro (injectable facade)
+
+The top-level functions above read the global `navigatorKey`, which couples any
+view model that calls them to a mounted router. For testable navigation depend
+on the `NavigationServicePro` contract instead — in tests register a recording
+fake and assert navigation branches without pumping a widget tree.
+
+The contract (`push` / `replace` / `replaceAll` / `navigate` / `pop` /
+`popForced` / `popUntilRouteName` / `currentRouteName`) lives in
+`navigation_service_pro.dart`; the `NavigationServiceRouter` implementation in
+`navigation_service_router.dart`. The package ships both but **does not register
+them** — bind them in your project's DI. With `injectable`:
+
+```dart
+import 'package:application_base/data/remote/utility/url_launcher_pro.dart';
+import 'package:application_base/data/remote/utility/url_launcher_router.dart';
+import 'package:application_base/presentation/navigation/navigation_service_pro.dart';
+import 'package:application_base/presentation/navigation/navigation_service_router.dart';
+import 'package:injectable/injectable.dart';
+
+@module
+abstract class ServiceModule {
+  @lazySingleton
+  NavigationServicePro get navigation => NavigationServiceRouter();
+
+  @lazySingleton
+  UrlLauncherPro get urlLauncher => UrlLauncherRouter();
+}
+```
+
+or manually:
+`getIt.registerLazySingleton<NavigationServicePro>(NavigationServiceRouter.new)`.
+
 ## API interaction
 
 TBD
@@ -507,6 +540,12 @@ final bool emailResult = await UrlLauncher.launchSendMail(
       body: 'Strong email body!',
     );
 ```
+
+For testable link opening from view models use the `UrlLauncherPro` contract
+(`open` / `sendEmail` / `call` / `sendSms`) with its `UrlLauncherRouter`
+implementation instead of the static `UrlLauncher` — see
+[NavigationServicePro](#navigationservicepro-injectable-facade) for the DI
+binding pattern.
 
 ## Share
 
