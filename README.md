@@ -87,13 +87,13 @@ import 'package:application_base/core/service/service_locator.module.dart';
 @InjectableInit(
   externalPackageModulesBefore: [ExternalModule(ApplicationBasePackageModule)],
 )
-void configureDependencies() => getIt.init();
+Future<void> configureDependencies() => getIt.init();
 ```
 
-Then, on application launch, initialize dependency injection first and call
-`ApplicationBase.prepare();` afterwards — it runs a post-DI step (flavor +
-lifecycle) and resolves `getIt<LifecycleService>()`, so it must be called AFTER
-your `getIt.init()`.
+`getIt.init()` is asynchronous when external package modules are wired, so
+**await** it during launch. Call `ApplicationBase.prepare();` afterwards — it
+runs a post-DI step (flavor + lifecycle) and resolves `getIt<LifecycleService>()`,
+so it must run AFTER `getIt.init()` has completed.
 
 Important: do not forget to call `WidgetsFlutterBinding.ensureInitialized();` 
 before preparing.
