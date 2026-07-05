@@ -1,3 +1,27 @@
+## 0.2.3
+
+* **BREAKING — DI moved to injectable.** The package now registers its own
+  services through an injectable micro-package module
+  (`ApplicationBasePackageModule` in `service_locator.module.dart`) instead of
+  the manual `ServiceLocatorBase.prepare()` (class removed). Consumers wire it
+  via `externalPackageModulesBefore: [ExternalModule(ApplicationBasePackageModule)]`
+  in their `@InjectableInit`. `ApplicationBase.prepare()` no longer registers
+  dependencies — it is now a post-DI step (flavor + `LifecycleService.prepare()`)
+  and must be called AFTER the consumer's `getIt.init()`.
+* `NavigationServicePro` — injectable facade over the `navigation_service.dart`
+  helpers (`push` / `replace` / `replaceAll` / `navigate` / `pop` / `popForced`
+  / `popUntilRouteName` / `currentRouteName`) so view models depend on a
+  contract instead of the global-`navigatorKey` functions and navigation
+  branches can be tested with a recording fake. Contract lives in
+  `navigation_service_pro.dart`, the `NavigationServiceRouter` implementation in
+  `navigation_service_router.dart`. Registered by the package's injectable
+  module as `@LazySingleton(as: NavigationServicePro)`.
+* `UrlLauncherPro` — injectable facade over the static `UrlLauncher` (`open` /
+  `sendEmail` / `call` / `sendSms`) for the same testability reason. Contract
+  lives in `url_launcher_pro.dart`, the `UrlLauncherRouter` implementation in
+  `url_launcher_router.dart`. Registered by the package's injectable module as
+  `@LazySingleton(as: UrlLauncherPro)`.
+
 ## 0.2.2
 
 * `catchRedirect` now in try/catch with the same behaviour as a base sender.

@@ -1,32 +1,16 @@
-import 'package:application_base/data/local/service/storage_service.dart';
-import 'package:application_base/data/remote/service/connectivity_service.dart';
-import 'package:application_base/domain/subject/network_subject.dart';
-import 'package:application_base/presentation/service/lifecycle_service.dart';
-import 'package:application_base/presentation/view_model/access_vm.dart';
 import 'package:get_it/get_it.dart';
+import 'package:injectable/injectable.dart';
 
 /// Common instance for service locator
 final getIt = GetIt.instance;
 
-abstract final class ServiceLocatorBase {
-  /// Setup service locator
-  static void prepare() {
-    getIt
-      /// Data layer
-      ..registerLazySingleton<ConnectivityService>(
-        ConnectivityService.singleton,
-        dispose: (service) => service.dispose(),
-      )
-      ..registerLazySingleton<NetworkSubject>(
-        NetworkSubject.singleton,
-        dispose: (service) => service.dispose(),
-      )
-      ..registerLazySingleton<StorageService>(StorageService.singleton)
-      /// Presentation layer
-      ..registerLazySingleton<LifecycleService>(
-        LifecycleService.singleton,
-        dispose: (service) => service.dispose(),
-      )
-      ..registerLazySingleton<AccessVM>(AccessVM.singleton);
-  }
-}
+/// Injectable micro-package module.
+///
+/// build_runner collects every `@injectable` service of the package into
+/// `service_locator.module.dart` (the `ApplicationBasePackageModule` class).
+/// Consumers wire it via `externalPackageModulesBefore` in their
+/// `@InjectableInit` — there is no manual registration
+/// (`ServiceLocatorBase.prepare`) anymore; getIt is the single source of
+/// singleton ownership.
+@InjectableInit.microPackage()
+void initApplicationBasePackage() {}

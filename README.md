@@ -77,8 +77,23 @@ dependencies:
     version: 0.1.3
 ```
 
-Now just call `ApplicationBase.prepare();` on application launching to 
-initialize all necessary data.
+The package registers its services through an injectable micro-package module.
+Wire it into your service locator by adding the module to your `@InjectableInit`:
+
+```dart
+import 'package:application_base/core/service/service_locator.dart';
+import 'package:application_base/core/service/service_locator.module.dart';
+
+@InjectableInit(
+  externalPackageModulesBefore: [ExternalModule(ApplicationBasePackageModule)],
+)
+Future<void> configureDependencies() => getIt.init();
+```
+
+`getIt.init()` is asynchronous when external package modules are wired, so
+**await** it during launch. Call `ApplicationBase.prepare();` afterwards — it
+runs a post-DI step (flavor + lifecycle) and resolves `getIt<LifecycleService>()`,
+so it must run AFTER `getIt.init()` has completed.
 
 Important: do not forget to call `WidgetsFlutterBinding.ensureInitialized();` 
 before preparing.
@@ -139,6 +154,17 @@ running. Just set it once when launching the application
 ## GetIt
 
 Based on [get_it](https://pub.dev/packages/get_it)
+
+### Package services
+
+The package registers its own services through an injectable micro-package
+module (`ApplicationBasePackageModule`, generated into
+`service_locator.module.dart` — see [Usage](#usage) for wiring). Every service
+is a getIt-owned singleton: annotate the class with `@lazySingleton`, or with
+`@LazySingleton(as: Contract)` to bind a contract to its implementation.
+Dependencies are passed through the constructor (constructor injection), which
+is marked `@visibleForTesting` so a second instance can't be created outside
+tests. Ownership is uniform, so individual classes don't repeat this note.
 
 1. Prepare GetIt:
 
@@ -437,6 +463,39 @@ void logout(){
 }
 ```
 
+### NavigationServicePro (injectable facade)
+
+The top-level functions above read the global `navigatorKey`, which couples any
+view model that calls them to a mounted router. For testable navigation depend
+on the `NavigationServicePro` contract instead — in tests register a recording
+fake and assert navigation branches without pumping a widget tree.
+
+The contract (`push` / `replace` / `replaceAll` / `navigate` / `pop` /
+`popForced` / `popUntilRouteName` / `currentRouteName`) lives in
+`navigation_service_pro.dart`; the `NavigationServiceRouter` implementation in
+`navigation_service_router.dart`. The package ships both but **does not register
+them** — bind them in your project's DI. With `injectable`:
+
+```dart
+import 'package:application_base/data/remote/utility/url_launcher_pro.dart';
+import 'package:application_base/data/remote/utility/url_launcher_router.dart';
+import 'package:application_base/presentation/navigation/navigation_service_pro.dart';
+import 'package:application_base/presentation/navigation/navigation_service_router.dart';
+import 'package:injectable/injectable.dart';
+
+@module
+abstract class ServiceModule {
+  @lazySingleton
+  NavigationServicePro get navigation => NavigationServiceRouter();
+
+  @lazySingleton
+  UrlLauncherPro get urlLauncher => UrlLauncherRouter();
+}
+```
+
+or manually:
+`getIt.registerLazySingleton<NavigationServicePro>(NavigationServiceRouter.new)`.
+
 ## API interaction
 
 TBD
@@ -507,6 +566,12 @@ final bool emailResult = await UrlLauncher.launchSendMail(
       body: 'Strong email body!',
     );
 ```
+
+For testable link opening from view models use the `UrlLauncherPro` contract
+(`open` / `sendEmail` / `call` / `sendSms`) with its `UrlLauncherRouter`
+implementation instead of the static `UrlLauncher` — see
+[NavigationServicePro](#navigationservicepro-injectable-facade) for the DI
+binding pattern.
 
 ## Share
 

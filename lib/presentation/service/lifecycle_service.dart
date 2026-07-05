@@ -1,24 +1,21 @@
 import 'dart:async';
 
 import 'package:application_base/core/service/logger_service.dart';
-import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/data/remote/service/connectivity_service.dart';
 import 'package:flutter/widgets.dart';
+import 'package:injectable/injectable.dart';
+import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 
 ///
+@lazySingleton
 final class LifecycleService {
   ///
-  LifecycleService._();
+  @visibleForTesting
+  LifecycleService(this._connectivityService);
 
   ///
-  factory LifecycleService.singleton() => _instance;
-
-  ///
-  static final _instance = LifecycleService._();
-
-  ///
-  final _connectivityService = getIt<ConnectivityService>();
+  final ConnectivityService _connectivityService;
 
   ///
   final _lifecycleSubject = PublishSubject<AppLifecycleState>();
@@ -45,6 +42,7 @@ final class LifecycleService {
   }
 
   ///
+  @disposeMethod
   void dispose() {
     _listener?.dispose();
     _lifecycleSubject.close();
