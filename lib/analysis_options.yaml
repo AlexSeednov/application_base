@@ -10,9 +10,16 @@
 #
 # https://dart.dev/tools/analysis#the-analysis-options-file
 analyzer:
-  # https://dart.dev/tools/analysis#enabling-additional-type-checks
-  exclude: 
+  # Generated code is never hand-edited or reviewed by the analyzer. Excluding
+  # it also silences invalid_use_of_visible_for_testing_member on the
+  # injectable-generated modules (*.module.dart / *.config.dart), which call
+  # the @visibleForTesting service constructors.
+  exclude:
     - '**/*.g.dart'
+    - '**/*.gr.dart'
+    - '**/*.gen.dart'
+    - '**/*.config.dart'
+    - '**/*.module.dart'
 
   # https://dart.dev/tools/analysis#enabling-additional-type-checks
   language:
