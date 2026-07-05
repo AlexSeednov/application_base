@@ -161,11 +161,10 @@ The package registers its own services through an injectable micro-package
 module (`ApplicationBasePackageModule`, generated into
 `service_locator.module.dart` — see [Usage](#usage) for wiring). Every service
 is a getIt-owned singleton: annotate the class with `@lazySingleton`, or with
-`@LazySingleton(as: Contract)` to bind a contract to its implementation. Legacy
-services keep a private constructor plus a `.singleton()` factory annotated with
-`@factoryMethod`, so injectable builds the single shared instance without a
-manual `_instance` handoff. Ownership is uniform, so individual classes don't
-repeat this note.
+`@LazySingleton(as: Contract)` to bind a contract to its implementation.
+Dependencies are passed through the constructor (constructor injection), which
+is marked `@visibleForTesting` so a second instance can't be created outside
+tests. Ownership is uniform, so individual classes don't repeat this note.
 
 1. Prepare GetIt:
 
