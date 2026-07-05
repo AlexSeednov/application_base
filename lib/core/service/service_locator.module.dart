@@ -29,23 +29,22 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
 // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
-    gh.lazySingleton<_i431.StorageService>(
-        () => _i431.StorageService.singleton());
-    gh.lazySingleton<_i29.ConnectivityService>(
-      () => _i29.ConnectivityService.singleton(),
-      dispose: (i) => i.dispose(),
-    );
+    gh.lazySingleton<_i431.StorageService>(() => _i431.StorageService());
     gh.lazySingleton<_i657.NetworkSubject>(
-      () => _i657.NetworkSubject.singleton(),
+      () => _i657.NetworkSubject(),
       dispose: (i) => i.dispose(),
     );
-    gh.lazySingleton<_i198.LifecycleService>(
-      () => _i198.LifecycleService.singleton(),
-      dispose: (i) => i.dispose(),
-    );
-    gh.lazySingleton<_i1049.AccessVM>(() => _i1049.AccessVM.singleton());
+    gh.lazySingleton<_i1049.AccessVM>(() => _i1049.AccessVM());
     gh.lazySingleton<_i268.UrlLauncherPro>(() => _i635.UrlLauncherRouter());
     gh.lazySingleton<_i229.NavigationServicePro>(
         () => _i429.NavigationServiceRouter());
+    gh.lazySingleton<_i29.ConnectivityService>(
+      () => _i29.ConnectivityService(gh<_i657.NetworkSubject>()),
+      dispose: (i) => i.dispose(),
+    );
+    gh.lazySingleton<_i198.LifecycleService>(
+      () => _i198.LifecycleService(gh<_i29.ConnectivityService>()),
+      dispose: (i) => i.dispose(),
+    );
   }
 }
