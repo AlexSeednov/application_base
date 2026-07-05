@@ -4,7 +4,6 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:application_base/data/remote/service/connectivity_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:injectable/injectable.dart';
-import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 
 ///
