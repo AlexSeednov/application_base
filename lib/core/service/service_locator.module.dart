@@ -1,4 +1,3 @@
-//@GeneratedMicroModule;ApplicationBasePackageModule;package:application_base/core/service/service_locator.module.dart
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
 // coverage:ignore-file

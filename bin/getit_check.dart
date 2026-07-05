@@ -489,7 +489,7 @@ Iterable<_ClassInfo> _analyzeFile(File file) {
 }
 
 String? _detectRegistration(ClassDeclaration node) {
-  final className = node.name.lexeme;
+  final className = node.namePart.typeName.lexeme;
   for (final annotation in node.metadata) {
     final fullName = annotation.name.name;
     final aName = fullName.contains('.') ? fullName.split('.').last : fullName;
@@ -504,8 +504,8 @@ String? _detectRegistration(ClassDeclaration node) {
       final args = annotation.arguments;
       if (args != null) {
         for (final arg in args.arguments) {
-          if (arg is NamedExpression && arg.name.label.name == 'as') {
-            return _baseTypeName(arg.expression.toSource());
+          if (arg is NamedArgument && arg.name.lexeme == 'as') {
+            return _baseTypeName(arg.argumentExpression.toSource());
           }
         }
       }
@@ -712,15 +712,15 @@ class _Collector extends RecursiveAstVisitor<void> {
     if (registered == null) return;
 
     final info = _ClassInfo(
-      className: node.name.lexeme,
+      className: node.namePart.typeName.lexeme,
       registeredAs: registered,
       filePath: filePath,
       // Use the name token offset so the reported line points at the class
       // identifier itself, not at the start of the leading doc comment.
-      line: lineInfo.getLocation(node.name.offset).lineNumber,
+      line: lineInfo.getLocation(node.namePart.typeName.offset).lineNumber,
     );
 
-    for (final member in node.members) {
+    for (final member in node.body.members) {
       if (member is FieldDeclaration) {
         // Static fields are lazy: their initializers run on first access,
         // not during construction of a class instance.

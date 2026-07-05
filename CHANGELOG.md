@@ -1,3 +1,38 @@
+## 0.2.4
+
+* Updates minimum supported SDK version to Flutter 3.44.4/Dart 3.12.2.
+* Updates all packages to actual versions. Key upgrades and migration notes:
+  * **injectable 2.7 → 3.0 / injectable_generator 2.12 → 3.1.** The removed
+    `includeMicroPackages` and `usesNullSafety` options are gone — micro-packages
+    are wired explicitly through `externalPackageModulesBefore` /
+    `externalPackageModulesAfter` (already how this package is consumed, so no
+    change on the consumer side). The regenerated `service_locator.module.dart`
+    no longer carries the leading `//@GeneratedMicroModule` marker comment (it
+    belonged to the old discovery mechanism). injectable_generator now caps
+    `analyzer` at `<14.0.0` and requires Dart `>=3.12.0`; a new
+    `allowMultipleRegistrations` flag is available.
+  * **analyzer 9 → 13.** Major AST restructuring for primary-constructor
+    support: `ClassDeclaration.name` → `namePart.typeName`,
+    `ClassDeclaration.members` → `body.members`, and `NamedExpression` →
+    `NamedArgument` (`.name.label.name` → `.name.lexeme`, `.expression` →
+    `.argumentExpression`). The `getit_check` executable was migrated to the new
+    API. Pinned to `^13.0.0` because injectable_generator does not yet allow
+    analyzer 14.
+  * **build_runner 2.10 → 2.15.** Builders are now AOT-compiled and the
+    `--delete-conflicting-outputs` flag was removed (its behaviour is the default
+    now), so the build command is simply `dart run build_runner build`.
+  * **share_plus 12 → 13.** Breaking only in platform/dependency requirements
+    (Flutter ≥ 3.41.6, Dart ≥ 3.11, win32 6.x); the
+    `SharePlus.instance.share(ShareParams(...))` API is unchanged.
+  * Minor bumps: connectivity_plus 7.0 → 7.2, cross_file 0.3.5+2 → 0.3.5+4,
+    flutter_secure_storage 10.0 → 10.3, get_it 9.2.0 → 9.2.1,
+    hive_ce 2.19.1 → 2.19.3, logger 2.6 → 2.7, meta 1.17 → 1.18,
+    url_launcher_android 6.3.30 → 6.3.32.
+* Dropped the deprecated/removed `avoid_null_checks_in_equality_operators`,
+  `prefer_bool_in_asserts`, `prefer_final_parameters` and
+  `use_if_null_to_convert_nulls_to_bools` rules from the shipped
+  `analysis_options.yaml` — they no longer exist in the current Dart SDK.
+
 ## 0.2.3
 
 * **BREAKING — DI moved to injectable.** The package now registers its own
