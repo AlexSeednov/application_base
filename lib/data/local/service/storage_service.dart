@@ -2,19 +2,14 @@ import 'package:application_base/core/mixin/logging_mixin.dart';
 import 'package:application_base/data/local/utility/secure_storage_utility.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meta/meta.dart';
 
 /// Singleton for working with secure local storage
 @lazySingleton
 final class StorageService with LoggingMixin {
   ///
-  StorageService._();
-
-  ///
-  @factoryMethod
-  factory StorageService.singleton() => _instance;
-
-  ///
-  static final _instance = StorageService._();
+  @visibleForTesting
+  StorageService();
 
   /// Name for logger
   @override

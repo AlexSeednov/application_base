@@ -6,14 +6,8 @@ import 'package:injectable/injectable.dart';
 @lazySingleton
 final class AccessVM with ChangeNotifier {
   ///
-  AccessVM._();
-
-  ///
-  @factoryMethod
-  factory AccessVM.singleton() => _instance;
-
-  ///
-  static final _instance = AccessVM._();
+  @visibleForTesting
+  AccessVM();
 
   ///
   bool _isGranted = false;

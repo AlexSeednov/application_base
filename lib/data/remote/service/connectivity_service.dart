@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:application_base/core/service/logger_service.dart';
-import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/domain/subject/network_subject.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meta/meta.dart';
 
 /// Connectivity changes are no longer communicated to Android apps
 /// in the background starting with Android O (8.0).
@@ -16,17 +16,11 @@ import 'package:injectable/injectable.dart';
 @lazySingleton
 final class ConnectivityService {
   ///
-  ConnectivityService._();
+  @visibleForTesting
+  ConnectivityService(this._connectionSubject);
 
   ///
-  @factoryMethod
-  factory ConnectivityService.singleton() => _instance;
-
-  ///
-  static final _instance = ConnectivityService._();
-
-  ///
-  final _connectionSubject = getIt<NetworkSubject>();
+  final NetworkSubject _connectionSubject;
 
   ///
   final List<ConnectivityResult> _connectivityList = [];
