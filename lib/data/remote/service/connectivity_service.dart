@@ -34,11 +34,19 @@ final class ConnectivityService {
   /// Delay before checking connectivity availability
   final Duration _timerDelay = const Duration(seconds: 3);
 
+  /// Any transport other than [ConnectivityResult.none] counts as a link.
   ///
+  /// Deliberately not a white-list of `mobile`/`wifi`/`ethernet`: on iOS and
+  /// macOS a VPN has no dedicated interface type and is reported as
+  /// [ConnectivityResult.other], so a white-list drops the app into offline
+  /// mode while the network is perfectly usable. The same applies to
+  /// `bluetooth` and `satellite`.
+  ///
+  /// This is only a cheap gate on whether a link exists at all — whether the
+  /// backend is actually reachable is decided by the ping in
+  /// `NetworkServiceBase`.
   bool get isConnectivityAvailable =>
-      _connectivityList.contains(ConnectivityResult.mobile) ||
-      _connectivityList.contains(ConnectivityResult.wifi) ||
-      _connectivityList.contains(ConnectivityResult.ethernet);
+      _connectivityList.any((result) => result != ConnectivityResult.none);
 
   ///
   bool get isWiFi => _connectivityList.contains(ConnectivityResult.wifi);
@@ -54,6 +62,7 @@ final class ConnectivityService {
   @disposeMethod
   void dispose() {
     _subscription?.cancel();
+    _subscription = null;
 
     _timer?.cancel();
     _timer = null;
