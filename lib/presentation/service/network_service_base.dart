@@ -49,6 +49,8 @@ abstract base class NetworkServiceBase {
     _subscription = _networkSubject.listen(onUpdate);
 
     await _connectivityService.prepare();
+
+    /// Without connectivity offline will be activated automatically
     if (!_connectivityService.isConnectivityAvailable) return;
 
     ///
@@ -58,9 +60,8 @@ abstract base class NetworkServiceBase {
 
   ///
   void dispose() {
-    _connectivityService.dispose();
-
     _subscription?.cancel();
+    _subscription = null;
 
     _timer?.cancel();
     _timer = null;
@@ -80,11 +81,13 @@ abstract base class NetworkServiceBase {
 
   ///
   void _deactivateOfflineMode() {
-    /// Turn the offline mode on
-    isOnlineNotifier.value = true;
-
     _timer?.cancel();
     _timer = null;
+
+    if (isOnline) return;
+
+    /// Turn the offline mode on
+    isOnlineNotifier.value = true;
 
     logInfo(info: 'Offline mode deactivated');
   }

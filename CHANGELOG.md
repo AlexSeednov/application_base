@@ -1,3 +1,15 @@
+## 0.2.5
+
+* Fixes a false offline mode when the device is behind a VPN.
+  `ConnectivityService.isConnectivityAvailable` used to white-list only
+  `mobile`/`wifi`/`ethernet`. On iOS and macOS a VPN has no dedicated interface
+  type and `connectivity_plus` reports it as `ConnectivityResult.other`, which
+  fell outside the white-list — the app switched to offline mode on launch even
+  though every request succeeded, then flapped back online on the first `200`.
+  Availability is now "any transport other than `none`", which also covers
+  `bluetooth` and `satellite`. Actual backend reachability is still decided by
+  the ping in `NetworkServiceBase`, so the transport check stays a cheap gate.
+
 ## 0.2.4
 
 * Updates minimum supported SDK version to Flutter 3.44.4/Dart 3.12.2.
