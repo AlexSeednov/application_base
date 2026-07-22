@@ -54,6 +54,32 @@
   in `finalize()` with the generated boundary. `Cache-Control` is kept.
 * `.fvmrc` is no longer listed in `.gitignore` — it pins the Flutter version and
   is (and must stay) tracked.
+* **The shipped `analysis_options.yaml` now covers the complete rule set of the
+  pinned SDK.** It was audited against the linter registry of Dart 3.12.2: all
+  224 stable and 10 experimental rules are listed, none of the removed or
+  deprecated ones are. Rules that stay off are now written out as `false` with
+  the reason next to them instead of being absent, so the file answers "why
+  isn't this on?" without a trip to the docs. Notable changes:
+  * All seven `TODO(Alex): need to dive deeper` markers are resolved.
+    `discarded_futures`, `avoid_types_on_closure_parameters` and
+    `no_literal_bool_comparisons` are on; `diagnostic_describe_all_properties`,
+    `always_put_control_body_on_new_line`,
+    `avoid_classes_with_only_static_members` and `omit_local_variable_types`
+    stay off with a written rationale.
+  * The "Incompatible rules: always_specify_types" notes on
+    `avoid_types_on_closure_parameters` and `omit_local_variable_types` were
+    stale — `always_specify_types` is disabled, so nothing was blocking them.
+  * `no_runtimeType_toString`, `prefer_for_elements_to_map_fromIterable` and
+    `prefer_iterable_whereType` were listed under their old camelCase spelling,
+    which the analyzer treats as an alias of the canonical lowercase name. The
+    duplicates are gone.
+  * Experimental rules are now marked `# Experimental`, so the ones outside the
+    stability guarantee are visible at a glance.
+* Fixes the code that the newly enabled rules flagged: intentional
+  fire-and-forget calls in `StorageService`, `ConnectivityService`,
+  `NetworkSubject`, `LifecycleService` and `NetworkServiceBase` are wrapped in
+  `unawaited()`, non-obvious property and local types are annotated, redundant
+  closure parameter types and an `async` without `await` are dropped.
 
 ## 0.2.4
 

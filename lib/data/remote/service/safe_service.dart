@@ -17,9 +17,9 @@ abstract final class SafeService {
       final Object decodedData = json.decode(data.body) as Object;
       if (decodedData is! List) throw Exception('JSON is not a list');
       final List<Type> result = [];
-      for (final element in decodedData) {
+      for (final Object? element in decodedData) {
         try {
-          result.add(parseFunction(element as Map<String, dynamic>));
+          result.add(parseFunction(element! as Map<String, dynamic>));
         } catch (e) {
           /// Error with one of items in list, log it
           logJsonParsingError(data: data, info: e.toString());

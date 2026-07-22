@@ -17,7 +17,7 @@ final class EmptyButton extends StatelessWidget {
 
     return InkWell(
       overlayColor: WidgetStateProperty.resolveWith<Color>(
-        (Set<WidgetState> states) => Colors.transparent,
+        (states) => Colors.transparent,
       ),
       onTap: onClick,
       child: child,

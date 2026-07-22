@@ -42,7 +42,7 @@ abstract final class UrlLauncher {
     required String to,
     required String title,
     required String body,
-  }) async => launchUrl(
+  }) => launchUrl(
     Uri(
       scheme: 'mailto',
       path: to,
@@ -65,7 +65,7 @@ abstract final class UrlLauncher {
   static String? encodeQueryParameters(Map<String, String> params) => params
       .entries
       .map(
-        (MapEntry<String, String> e) =>
+        (e) =>
             '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
       )
       .join('&');

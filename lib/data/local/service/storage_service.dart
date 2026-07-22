@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:application_base/core/mixin/logging_mixin.dart';
 import 'package:application_base/data/local/utility/secure_storage_utility.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -58,7 +60,9 @@ final class StorageService with LoggingMixin {
     /// Check local data
     if (box.isEmpty) {
       /// Where is now local data, create a new one
-      box.add(emptyData);
+      /// The write is flushed by Hive on its own; the caller only needs the
+      /// in-memory value back.
+      unawaited(box.add(emptyData));
       logNamedInfo(info: '${box.name} - create new local data');
       return emptyData;
     }
@@ -67,7 +71,7 @@ final class StorageService with LoggingMixin {
     if (box.getAt(0) == null) {
       /// Something wrong, recreate data
       logNamedError(error: '${box.name} - null data in local storage');
-      box.putAt(0, emptyData);
+      unawaited(box.putAt(0, emptyData));
       logNamedInfo(info: '${box.name} - replaced new local data');
       return emptyData;
     }

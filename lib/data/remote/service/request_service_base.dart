@@ -59,7 +59,7 @@ abstract base class RequestServiceBase {
   void dispose() => _client.close();
 
   ///
-  final _networkSubject = getIt<NetworkSubject>();
+  final NetworkSubject _networkSubject = getIt<NetworkSubject>();
 
   ///
   @mustBeOverridden
@@ -325,7 +325,9 @@ abstract base class RequestServiceBase {
         ..maxRedirects = 0
         ..headers.addAll(headers);
 
-      final response = await _client.send(request).timeout(normalTimeout);
+      final StreamedResponse response = await _client
+          .send(request)
+          .timeout(normalTimeout);
 
       return response.isRedirect ? response.headers['location'] : null;
     } on TimeoutException {

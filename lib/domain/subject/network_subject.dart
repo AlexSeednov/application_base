@@ -20,7 +20,7 @@ final class NetworkSubject {
   ///
   @disposeMethod
   void dispose() {
-    _networkSubject.close();
+    unawaited(_networkSubject.close());
   }
 
   ///

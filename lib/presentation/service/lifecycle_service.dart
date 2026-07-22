@@ -44,7 +44,7 @@ final class LifecycleService {
   @disposeMethod
   void dispose() {
     _listener?.dispose();
-    _lifecycleSubject.close();
+    unawaited(_lifecycleSubject.close());
   }
 
   ///
@@ -55,7 +55,7 @@ final class LifecycleService {
 
     if (state == AppLifecycleState.resumed) {
       /// Need to check connectivity
-      _connectivityService.getConnectivity();
+      unawaited(_connectivityService.getConnectivity());
     }
     _lifecycleSubject.add(state);
   }
