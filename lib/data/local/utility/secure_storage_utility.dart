@@ -21,17 +21,19 @@ abstract final class SecureStorageUtility {
   static Future<Uint8List> _readCipherKey({required String key}) async {
     const secureStorage = FlutterSecureStorage();
 
-    String? encryptedKey = await secureStorage.read(key: key);
-    if (encryptedKey == null) {
-      /// Generate a new one
-      final List<int> newEncryptedKey = Hive.generateSecureKey();
-      await secureStorage.write(
-        key: key,
-        value: base64UrlEncode(newEncryptedKey),
-      );
-      encryptedKey = await secureStorage.read(key: key);
-    }
+    final String? storedKey = await secureStorage.read(key: key);
+    if (storedKey != null) return base64Url.decode(storedKey);
 
-    return base64Url.decode(encryptedKey!);
+    /// Generate a new one
+    ///
+    /// The freshly generated key is returned directly instead of being read
+    /// back: the round-trip only added a second point of failure. A locked
+    /// keychain or an unavailable Android Keystore makes the write silently
+    /// produce nothing, and re-reading it used to force-unwrap `null` and
+    /// crash the app on launch.
+    final List<int> newKey = Hive.generateSecureKey();
+    await secureStorage.write(key: key, value: base64UrlEncode(newKey));
+
+    return Uint8List.fromList(newKey);
   }
 }

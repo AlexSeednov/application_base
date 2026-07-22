@@ -57,11 +57,10 @@ void logError({required String error, String? additional}) {
   String message = error;
   if (additional != null) message += ': $additional';
 
+  if (loggerUserId.isNotEmpty) message += '\nUser: $loggerUserId';
+
   /// Logging local only in debug mode
   if (isDebug) {
-    /// Current user information
-    if (loggerUserId.isNotEmpty) message += '\nUser: $loggerUserId';
-
     _localLogger.e(message);
 
     /// For logging in browser console on Web

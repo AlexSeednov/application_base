@@ -9,6 +9,51 @@
   Availability is now "any transport other than `none`", which also covers
   `bluetooth` and `satellite`. Actual backend reachability is still decided by
   the ping in `NetworkServiceBase`, so the transport check stays a cheap gate.
+* Fixes `ConnectivityService` and `NetworkServiceBase` going permanently deaf
+  after a `dispose()`/`prepare()` cycle. Both cancelled their stream
+  subscription without clearing the field, while `prepare()` bails out on
+  `_subscription != null` — so the second `prepare()` silently did nothing.
+  Reachable from `getIt.reset()` in tests and from hot restart.
+* `NetworkServiceBase.dispose()` no longer disposes `ConnectivityService`: that
+  is a `@lazySingleton` owned by getIt with its own `@disposeMethod`.
+* `_deactivateOfflineMode()` now returns early when already online, mirroring
+  the guard in `_activateOfflineMode()`. The ping timer is still cancelled
+  first, so a stray timer cannot survive.
+* **Fixes uploaded files silently going missing.** `_sendPostFormData` attached
+  files inside `Map.forEach` with an `async` callback. `forEach` discards the
+  futures it gets back, so `request.send()` ran before `MultipartFile.fromPath`
+  had finished — the multipart body was sent with some or all files absent.
+  Replaced with a sequential `for` loop.
+* **Stops leaking error response bodies to the remote logger.**
+  `logResponseError` was the only logger in `network_logger_service.dart` that
+  appended `response.body` without checking `canLogSensitiveData`, and in
+  release `logError` forwards to the remote sink. Error bodies routinely carry
+  tokens, emails and an echo of user input.
+* `loggerUserId` is now attached to errors in release too. The check sat inside
+  the `isDebug` branch, so the id was added only where it was least useful and
+  omitted from every remote report.
+* Removes a crash-on-launch path in `SecureStorageUtility`. After generating a
+  cipher key it re-read the value and force-unwrapped the result; a locked
+  keychain or an unavailable Android Keystore turned that into a null-check
+  exception. The generated key is now returned directly.
+* **BREAKING.** `RequestType.expectedStatusList` and
+  `RequestType.expectedErrorMap` are now `final`. To accept extra statuses for
+  one call, pass `extraExpectedStatusList` to `RequestServiceBase.sendBase`
+  instead of writing into the request — it is a per-call concern, and mutating
+  a shared request object as a state flag is what the old callers did.
+* **BREAKING.** `flavor` now throws a `StateError` when read before it was set,
+  instead of logging and falling back to `FlavorProduction()`. A forgotten
+  `ApplicationBase.prepare` used to point debug builds at the production
+  backend and production analytics.
+* `RequestServiceBase` now releases its `http.Client`: the `client` setter
+  closes the instance it replaces, and a new `dispose()` closes the current one.
+  Previously the client and its keep-alive pool lived for the whole process.
+* Drops two dead headers from web multipart uploads:
+  `Access-Control-Allow-Origin` is a *response* header and does nothing on a
+  request, and the manual `Content-Type` is overwritten by `MultipartRequest`
+  in `finalize()` with the generated boundary. `Cache-Control` is kept.
+* `.fvmrc` is no longer listed in `.gitignore` — it pins the Flutter version and
+  is (and must stay) tracked.
 
 ## 0.2.4
 

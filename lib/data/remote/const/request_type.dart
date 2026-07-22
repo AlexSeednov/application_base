@@ -26,10 +26,13 @@ sealed class RequestType {
   Object? get body;
 
   /// Expected response statuse list in API endpoint
-  List<int> expectedStatusList;
+  ///
+  /// To accept extra statuses for a single call without touching the request,
+  /// pass them to `RequestServiceBase.sendBase` as `extraExpectedStatusList`.
+  final List<int> expectedStatusList;
 
   /// Expected response pair `HTTP status -> Network event` map in API endpoint
-  Map<int, NetworkEvent> expectedErrorMap;
+  final Map<int, NetworkEvent> expectedErrorMap;
 
   /// Do not show error on silence mode
   final bool silence;

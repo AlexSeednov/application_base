@@ -40,7 +40,10 @@ void logResponseError({required ResponseEntity response}) {
   String error =
       'Request ${response.request}\n'
       'Response ${response.statusCode}';
-  if (response.body.isNotEmpty) error += '\nBody ${response.body}';
+
+  if (canLogSensitiveData && response.body.isNotEmpty) {
+    error += '\nBody ${response.body}';
+  }
   logError(error: error);
 }
 

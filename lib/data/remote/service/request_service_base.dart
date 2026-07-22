@@ -41,8 +41,22 @@ abstract base class RequestServiceBase {
   /// https://dart.dev/tutorials/server/fetch-data#make-multiple-requests
   Client _client = Client();
 
+  /// Replaces the HTTP client, closing the previous one.
   ///
-  set client(Client newValue) => _client = newValue;
+  /// The replaced client owns a connection pool that would otherwise stay
+  /// open for the rest of the process.
+  set client(Client newValue) {
+    if (identical(_client, newValue)) return;
+    _client.close();
+    _client = newValue;
+  }
+
+  /// Releases the HTTP client together with its keep-alive connections.
+  ///
+  /// Subclasses are singletons, so mark the override with `@disposeMethod`
+  /// for getIt to call it on reset.
+  @mustCallSuper
+  void dispose() => _client.close();
 
   ///
   final _networkSubject = getIt<NetworkSubject>();
@@ -57,13 +71,25 @@ abstract base class RequestServiceBase {
   /// special in this case.
   ///
   /// Otherwise return **Response** with necessary information.
+  ///
+  /// [extraExpectedStatusList] widens [RequestType.expectedStatusList] for this
+  /// single call, so a caller can take over a status the unified path would
+  /// otherwise swallow — typically a 401 it wants to answer with a token
+  /// refresh. It is a per-call concern, not a property of the request, so it
+  /// is passed here instead of being written into [request].
   Future<ResponseEntity?> sendBase({
     required RequestType request,
     required Map<String, String> headers,
+    List<int> extraExpectedStatusList = const [],
   }) async {
     try {
       ///
       final Uri uri = prepareUri(path: request.path);
+
+      ///
+      final List<int> expectedStatusList = extraExpectedStatusList.isEmpty
+          ? request.expectedStatusList
+          : [...request.expectedStatusList, ...extraExpectedStatusList];
 
       /// Log request
       logRequestInfo(
@@ -116,7 +142,7 @@ abstract base class RequestServiceBase {
       );
 
       /// Check it
-      if (!request.expectedStatusList.contains(httpResponse.statusCode)) {
+      if (!expectedStatusList.contains(httpResponse.statusCode)) {
         /// Some error happened, log it
         logResponseError(response: response);
 
@@ -225,25 +251,37 @@ abstract base class RequestServiceBase {
     /// Add headers
     request.headers.addAll(headers);
     if (isWebBased) {
-      /// And special header for web compatibility
-      request.headers['Access-Control-Allow-Origin'] = '*';
+      /// Keep uploads away from any intermediate cache.
+      ///
+      /// `Content-Type` is deliberately not set here: [MultipartRequest]
+      /// writes its own `multipart/form-data` value with the generated
+      /// boundary in `finalize()`, and any value set earlier is overwritten.
       request.headers['Cache-Control'] = 'no-cache';
-      request.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
 
-    /// Add file
-    requestData.files.forEach((String field, XFile file) async {
+    /// Add files
+    ///
+    /// A sequential loop, not `Map.forEach`: the body is asynchronous and
+    /// `forEach` discards the futures it gets back, so the request used to be
+    /// sent before the files were attached.
+    for (final MapEntry<String, XFile> entry in requestData.files.entries) {
       if (isMobileBased) {
         /// Mobile
-        request.files.add(await MultipartFile.fromPath(field, file.path));
+        request.files.add(
+          await MultipartFile.fromPath(entry.key, entry.value.path),
+        );
       } else {
         /// Web - need to use fromBytes instead of fromPath
-        final Uint8List fileBytes = await file.readAsBytes();
+        final Uint8List fileBytes = await entry.value.readAsBytes();
         request.files.add(
-          MultipartFile.fromBytes(field, fileBytes, filename: file.name),
+          MultipartFile.fromBytes(
+            entry.key,
+            fileBytes,
+            filename: entry.value.name,
+          ),
         );
       }
-    });
+    }
 
     /// Sending request
     return Response.fromStream(await request.send());
