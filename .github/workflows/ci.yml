@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze:
+    name: Analyze and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Flutter version is the one pinned in .fvmrc; keep the two in sync.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.4
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Generated sources are committed, so a stale checkout must fail here
+      # rather than silently analyze against an outdated DI module.
+      - name: Verify generated sources are up to date
+        run: |
+          dart run build_runner build
+          git diff --exit-code -- '*.g.dart' '*.config.dart' '*.module.dart'
+
+      - name: Format
+        run: dart format --set-exit-if-changed .
+
+      # Infos are fatal on purpose: the shipped analysis_options.yaml states
+      # every rule explicitly, so anything it reports is a deliberate signal.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Check for dependency cycles in getIt
+        run: dart run application_base:getit_check --no-color

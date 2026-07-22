@@ -1,5 +1,7 @@
 import 'dart:async';
-// TODO(Alex): избавиться?
+// Safe on web: dart2js ships a stub, and the only members used here are the
+// [HttpStatus] integer constants plus exception types that are merely caught.
+// Nothing in this file evaluates a `Platform` member.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -201,6 +203,17 @@ abstract base class RequestServiceBase {
       /// SSL problem on backend side, need to activate offline mode
       logRequestError(request: request, error: error.message);
       notify(NetworkConnectionLost());
+    } on ClientException catch (error) {
+      /// The web build never sees a [SocketException]: there `package:http`
+      /// reports a connection that could not be made as [ClientException].
+      /// Without this branch such a failure fell through to the generic catch
+      /// and was reported as an unexpected error, so offline mode never
+      /// engaged on web.
+      logRequestInfo(
+        request: request,
+        info: 'No connection (${error.message})',
+      );
+      notify(NetworkConnectionLost());
     } catch (error) {
       /// Something is crashed
       logRequestError(request: request, error: error.toString());
@@ -340,6 +353,12 @@ abstract base class RequestServiceBase {
       return null;
     } on HandshakeException catch (error) {
       logError(error: 'Catch redirect $uri\n${error.message}');
+      notify(NetworkConnectionLost());
+      return null;
+    } on ClientException catch (error) {
+      /// See the note in [sendBase]: this is the web-side shape of a failed
+      /// connection.
+      logInfo(info: 'Catch redirect $uri\nNo connection (${error.message})');
       notify(NetworkConnectionLost());
       return null;
     } catch (error) {

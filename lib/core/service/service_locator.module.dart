@@ -5,6 +5,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i687;
 
+import 'package:application_base/core/service/logger_config_service.dart'
+    as _i211;
 import 'package:application_base/data/local/service/storage_service.dart'
     as _i431;
 import 'package:application_base/data/remote/service/connectivity_service.dart'
@@ -25,9 +27,12 @@ import 'package:application_base/presentation/view_model/access_vm.dart'
 import 'package:injectable/injectable.dart' as _i526;
 
 class ApplicationBasePackageModule extends _i526.MicroPackageModule {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
+    gh.lazySingleton<_i211.LoggerConfigService>(
+      () => _i211.LoggerConfigService(),
+    );
     gh.lazySingleton<_i431.StorageService>(() => _i431.StorageService());
     gh.lazySingleton<_i657.NetworkSubject>(
       () => _i657.NetworkSubject(),
@@ -36,7 +41,8 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
     gh.lazySingleton<_i1049.AccessVM>(() => _i1049.AccessVM());
     gh.lazySingleton<_i268.UrlLauncherPro>(() => _i635.UrlLauncherRouter());
     gh.lazySingleton<_i229.NavigationServicePro>(
-        () => _i429.NavigationServiceRouter());
+      () => _i429.NavigationServiceRouter(),
+    );
     gh.lazySingleton<_i29.ConnectivityService>(
       () => _i29.ConnectivityService(gh<_i657.NetworkSubject>()),
       dispose: (i) => i.dispose(),

@@ -74,6 +74,8 @@ devtools_options.yaml
 *.dot
 
 # AI instructions
-.github
+# .github is NOT ignored: it holds the CI workflows, which have to be tracked.
+# Only the AI-specific files are excluded.
+.github/copilot-instructions.md
 .claude
 CLAUDE.md

@@ -6,17 +6,16 @@ import 'package:application_base/data/remote/service/network_logger_service.dart
 /// Methods for safe work with entities
 abstract final class SafeService {
   /// Safe parse JSON with list from string
-  // ignore: avoid_types_as_parameter_names
-  static List<Type> parseList<Type>(
+  static List<T> parseList<T>(
     ResponseEntity data,
-    Type Function(Map<String, dynamic> json) parseFunction,
+    T Function(Map<String, dynamic> json) parseFunction,
   ) {
     if (data.body.isEmpty) return [];
 
     try {
       final Object decodedData = json.decode(data.body) as Object;
       if (decodedData is! List) throw Exception('JSON is not a list');
-      final List<Type> result = [];
+      final List<T> result = [];
       for (final Object? element in decodedData) {
         try {
           result.add(parseFunction(element! as Map<String, dynamic>));
@@ -34,10 +33,9 @@ abstract final class SafeService {
   }
 
   /// Safe parse JSON from string
-  // ignore: avoid_types_as_parameter_names
-  static Type? parse<Type>(
+  static T? parse<T>(
     ResponseEntity data,
-    Type Function(Map<String, dynamic> json) parseFunction,
+    T Function(Map<String, dynamic> json) parseFunction,
   ) {
     if (data.body.isEmpty) return null;
 

@@ -1,15 +1,29 @@
 import 'package:application_base/core/const/navigator_transaction.dart';
+import 'package:application_base/core/service/logger_config_service.dart';
 import 'package:application_base/core/service/platform_service.dart';
 import 'package:logger/logger.dart';
 
-///
-String loggerUserId = '';
+/// Facade over [LoggerConfigService.userId].
+String get loggerUserId => loggerConfigOrNull?.userId ?? '';
 
 ///
-void Function({required String information})? logInfoRemote;
+set loggerUserId(String value) => loggerConfigOrNull?.userId = value;
+
+/// Facade over [LoggerConfigService.infoSink].
+void Function({required String information})? get logInfoRemote =>
+    loggerConfigOrNull?.infoSink;
 
 ///
-void Function({required String error})? logErrorRemote;
+set logInfoRemote(void Function({required String information})? value) =>
+    loggerConfigOrNull?.infoSink = value;
+
+/// Facade over [LoggerConfigService.errorSink].
+void Function({required String error})? get logErrorRemote =>
+    loggerConfigOrNull?.errorSink;
+
+///
+set logErrorRemote(void Function({required String error})? value) =>
+    loggerConfigOrNull?.errorSink = value;
 
 /// Local logger for beauty output info in console
 final Logger _localLogger = Logger(

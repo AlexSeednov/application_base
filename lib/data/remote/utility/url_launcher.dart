@@ -65,8 +65,7 @@ abstract final class UrlLauncher {
   static String? encodeQueryParameters(Map<String, String> params) => params
       .entries
       .map(
-        (e) =>
-            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+        (e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
       )
       .join('&');
 }

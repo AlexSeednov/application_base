@@ -70,8 +70,12 @@ String get currentPlatformString {
   return Platform.operatingSystem;
 }
 
+/// `null` when the host is none of the known platforms.
 ///
-AvailablePlatform get currentPlatform {
+/// Deliberately nullable instead of defaulting to a plausible value: a wrong
+/// platform is harder to notice than a missing one, and the caller is the only
+/// one that knows what an unknown host should mean for it.
+AvailablePlatform? get currentPlatform {
   if (isWeb) return AvailablePlatform.web;
   if (isAndroid) return AvailablePlatform.android;
   if (isIOS) return AvailablePlatform.iOS;
@@ -79,6 +83,5 @@ AvailablePlatform get currentPlatform {
   if (isWindows) return AvailablePlatform.windows;
   if (isLinux) return AvailablePlatform.linux;
   if (isFuchsia) return AvailablePlatform.fuchsia;
-  // Optimize(Alex): think later
-  return AvailablePlatform.android;
+  return null;
 }

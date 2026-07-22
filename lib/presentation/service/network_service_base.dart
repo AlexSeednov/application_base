@@ -20,8 +20,7 @@ abstract base class NetworkServiceBase {
   Duration get pingPeriod => defaultPingPeriod;
 
   ///
-  final ConnectivityService _connectivityService =
-      getIt<ConnectivityService>();
+  final ConnectivityService _connectivityService = getIt<ConnectivityService>();
 
   ///
   final NetworkSubject _networkSubject = getIt<NetworkSubject>();

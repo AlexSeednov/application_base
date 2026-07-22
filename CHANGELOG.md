@@ -80,6 +80,45 @@
     of resting on discipline. Its old note justified the rule being off by
     pointing at `package_api_docs`, which no longer exists in the SDK. Six
     class- and mixin-level comments were missing and have been written.
+* **Offline mode now engages on web.** A connection that cannot be made is
+  reported by `package:http` as a `ClientException` there, never as a
+  `SocketException`, so on web such a failure fell through to the generic catch
+  and surfaced as `NetworkUnexpectedError` — nothing crashed, offline mode
+  simply never turned on. `sendBase` and `catchRedirect` now handle
+  `ClientException` the same way as a lost socket. The `dart:io` import is
+  fine on web and the stale "get rid of it?" to-do is replaced by a note
+  explaining why: dart2js ships a stub, only the `HttpStatus` integer constants
+  and caught exception types are used, and every `Platform` member in
+  `platform_service.dart` sits behind a `!isWeb` short-circuit.
+* Removes the force-unwrapped `actualRouter!` from all ten helpers in
+  `navigation_service.dart`. A missing router was logged by `actualContext` and
+  then immediately crashed on the `!`; navigation is now skipped with an error
+  entry instead.
+* The four mutable logger globals (`loggerUserId`, `canLogSensitiveData`,
+  `logInfoRemote`, `logErrorRemote`) moved into an injectable
+  `LoggerConfigService`. They survived `getIt.reset()` and leaked between
+  tests. The top-level names are kept as facades, so no call site changes; the
+  facades fall back to defaults while the service locator is not yet ready.
+* `ConnectionRestoreMixin` no longer stores its subscription in a `late` field:
+  calling `disposeConnection()` without a preceding `prepareConnection()` threw
+  a `LateInitializationError`. `prepareConnection()` is now idempotent and
+  `disposeConnection()` clears the field so a later prepare can re-subscribe.
+* `AccessVM` now implements `ValueListenable<bool>`, so screens can consume it
+  through a `ValueListenableBuilder` like the rest of the project's state. It
+  stays a `ChangeNotifier` on purpose — `auto_route` takes the instance as
+  `reevaluateListenable`, and `needNotify: false` has to be able to update the
+  flag without waking the router, which a plain `ValueNotifier` cannot do.
+  Repeated writes of the same value no longer notify.
+* **BREAKING.** `currentPlatform` returns `AvailablePlatform?` and yields `null`
+  on an unrecognised host instead of silently answering `android`.
+* `SafeService` renames its generic parameter from `Type` to `T`, which stopped
+  it shadowing the built-in `Type` and removed both
+  `// ignore: avoid_types_as_parameter_names` suppressions.
+* Adds a GitHub Actions workflow: dependencies, a check that the committed
+  generated sources match a fresh `build_runner` run, `dart format`,
+  `flutter analyze --fatal-infos` and `getit_check`. It could not exist before
+  — `.gitignore` excluded the whole `.github` directory, so no workflow could
+  be committed.
 * Fixes the code that the newly enabled rules flagged: intentional
   fire-and-forget calls in `StorageService`, `ConnectivityService`,
   `NetworkSubject`, `LifecycleService` and `NetworkServiceBase` are wrapped in
