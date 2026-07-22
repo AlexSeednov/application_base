@@ -57,8 +57,8 @@ void logJsonParsingError({required ResponseEntity data, required String info}) {
 }
 
 ///
-void logTokenEmptyError({required RequestType request}) => logInfo(
-  info:
+void logTokenEmptyError({required RequestType request}) => logError(
+  error:
       'Request ${request.type} ${request.path}\n'
       'Can not be sent without token',
 );

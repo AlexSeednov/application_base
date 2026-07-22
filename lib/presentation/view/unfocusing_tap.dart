@@ -1,6 +1,7 @@
 import 'package:application_base/presentation/navigation/navigation_service.dart';
 import 'package:flutter/material.dart';
 
+/// Drops keyboard focus when the user taps outside the focused field.
 final class UnfocusingTap extends StatelessWidget {
   ///
   const UnfocusingTap({required this.child, super.key});

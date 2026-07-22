@@ -1,6 +1,8 @@
 import 'package:application_base/core/service/logger_service.dart';
 import 'package:meta/meta.dart';
 
+/// Prefixes every line with [logName] so the output of one service stays
+/// greppable in a shared console.
 base mixin LoggingMixin {
   /// Name for logger
   @mustBeOverridden

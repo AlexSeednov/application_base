@@ -583,8 +583,10 @@ linter:
     provide_deprecation_message: true
 
     # https://dart.dev/tools/linter-rules/public_member_api_docs
-    # Less than https://dart.dev/tools/linter-rules/package_api_docs
-    public_member_api_docs: false
+    # Enforces the project rule that every declaration carries a `///` comment.
+    # An empty `///` satisfies it: the point is that adding a public member is a
+    # deliberate act, not that every line needs prose.
+    public_member_api_docs: true
 
     # https://dart.dev/tools/linter-rules/recursive_getters
     recursive_getters: true

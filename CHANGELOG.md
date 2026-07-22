@@ -75,6 +75,11 @@
     duplicates are gone.
   * Experimental rules are now marked `# Experimental`, so the ones outside the
     stability guarantee are visible at a glance.
+  * `public_member_api_docs` is enabled. The project rule that every
+    declaration carries a `///` comment is now checked by the analyzer instead
+    of resting on discipline. Its old note justified the rule being off by
+    pointing at `package_api_docs`, which no longer exists in the SDK. Six
+    class- and mixin-level comments were missing and have been written.
 * Fixes the code that the newly enabled rules flagged: intentional
   fire-and-forget calls in `StorageService`, `ConnectivityService`,
   `NetworkSubject`, `LifecycleService` and `NetworkServiceBase` are wrapped in
@@ -114,7 +119,7 @@
 * Dropped the deprecated/removed `avoid_null_checks_in_equality_operators`,
   `prefer_bool_in_asserts`, `prefer_final_parameters` and
   `use_if_null_to_convert_nulls_to_bools` rules from the shipped
-  `analysis_options.yaml` — they no longer exist in the current Dart SDK.
+  `analysis_options.yaml`.
 
 ## 0.2.3
 

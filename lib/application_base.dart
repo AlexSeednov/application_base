@@ -3,6 +3,7 @@ import 'package:application_base/core/service/configuration_service.dart';
 import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/presentation/service/lifecycle_service.dart';
 
+/// Entry point for the package's own start-up, separate from DI wiring.
 abstract final class ApplicationBase {
   /// Post-DI package initialization.
   ///
