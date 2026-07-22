@@ -101,16 +101,22 @@ linter:
     deprecated_member_use_from_same_package: true
 
     # https://dart.dev/tools/linter-rules/diagnostic_describe_all_properties
-    # Only pays off when the Flutter Inspector property view is actually
-    # used. The cost is debugFillProperties boilerplate on every
-    # Diagnosticable, which this package does not need.
+    # Only pays off where the Flutter Inspector property view is part of how
+    # the UI is actually debugged. The price is debugFillProperties boilerplate
+    # on every Diagnosticable, paid whether or not anyone reads it.
     diagnostic_describe_all_properties: false
 
     # https://dart.dev/tools/linter-rules/discarded_futures
-    # The synchronous half of unawaited_futures (enabled below): that rule
-    # only covers async bodies. Silence intentional fire-and-forget calls
-    # with unawaited().
-    discarded_futures: true
+    # Does not complement unawaited_futures the way it looks like it should.
+    # A forgotten await inside an async body is already caught by that rule,
+    # and an async callback handed to a synchronous higher-order function -
+    # where the future really is dropped - goes unreported by this one.
+    # What it does report is the deliberate kind: cancelling a subscription or
+    # closing a sink in dispose, a storage write left to flush on its own, a
+    # navigation call. Those live in synchronous functions where awaiting is
+    # not an option, so the only available fix is to spell out unawaited().
+    # That is ceremony, not risk.
+    discarded_futures: false
 
     # https://dart.dev/tools/linter-rules/empty_statements
     empty_statements: true
@@ -619,7 +625,13 @@ linter:
     sort_unnamed_constructors_first: true
 
     # https://dart.dev/tools/linter-rules/specify_nonobvious_local_variable_types
-    specify_nonobvious_local_variable_types: true
+    # The house style annotates fields and signatures, where the type is part
+    # of what a reader has to know, and leaves locals to inference, where the
+    # initialiser is usually right there. This rule argues with that choice on
+    # every local it disagrees about, so it reports style rather than risk, and
+    # in that volume it buries the findings that matter.
+    # The property-level counterpart stays on: those types are API surface.
+    specify_nonobvious_local_variable_types: false
 
     # https://dart.dev/tools/linter-rules/specify_nonobvious_property_types
     specify_nonobvious_property_types: true

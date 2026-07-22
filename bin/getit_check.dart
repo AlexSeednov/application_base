@@ -28,11 +28,6 @@
 //   (if/?:): every reached getIt<T>() call is counted as a potential
 //   dependency.
 
-// Annotating every local here would mean ~70 annotations in a standalone CLI
-// tool that is read top to bottom and where inference is already unambiguous.
-// The rule stays on for lib/, where the types are part of the API surface.
-// ignore_for_file: specify_nonobvious_local_variable_types
-
 import 'dart:io';
 import 'dart:math' as math;
 

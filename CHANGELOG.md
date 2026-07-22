@@ -1,3 +1,46 @@
+## 0.2.6
+
+* **Fixes a regression from 0.2.5: logging configuration written before
+  `getIt.init()` was silently discarded.** Moving the four logger globals into
+  `LoggerConfigService` put their storage behind the service locator, but every
+  consuming app configures logging as one of its first steps — it picks a
+  flavor and sets `canLogSensitiveData` — and that runs *before* the container
+  is initialised. The facade resolved an unregistered type, wrote nothing, and
+  the value fell back to its `isDebug` default. A production flavor started in
+  a debug build therefore kept logging request and response bodies after being
+  explicitly told not to. The storage now lives in a module-level `LoggerState`
+  that the facades read and write directly, so an early write always lands;
+  `LoggerConfigService` remains the injectable handle and restores the defaults
+  from its dispose hook, which is what keeps the state isolated between tests.
+
+* Turns `specify_nonobvious_local_variable_types` off in the shipped
+  `analysis_options.yaml`. Enabling it in 0.2.5 was a judgement made from this
+  package's `lib/` alone, where it produced 2 findings; measured against real
+  code it produces 73 in this package's own CLI tool and 614 in a consuming app.
+  The house style annotates fields and signatures rather than every local, so at
+  that volume the rule reports style disagreement and buries the findings that
+  matter. Its property-level counterpart stays on — those types are API surface.
+  The `ignore_for_file` this had forced into `getit_check.dart` is gone.
+
+* Turns `discarded_futures` off as well, for the same reason and after an
+  explicit check. It was enabled in 0.2.5 as "the synchronous half of
+  `unawaited_futures`"; that claim does not hold. The pattern it was meant to
+  catch — an `async` callback passed to `Map.forEach`, whose future is
+  discarded, the very bug fixed in this release — is not reported by it, while
+  a forgotten `await` inside an async body is already covered by
+  `unawaited_futures`. In practice it flags `.cancel()` / `.close()` in dispose
+  methods, Hive `.save()` and navigation calls: 32 hits in a consuming app,
+  each a deliberate fire-and-forget in a synchronous function where awaiting is
+  not possible. The `unawaited()` wrappers added in 0.2.5 are kept — they read
+  as intent — but they are no longer mandatory.
+
+* **BREAKING — adds `FlavorStage` to the `FlavorType` hierarchy.** Projects had
+  been redeclaring the whole flavor set locally just to gain a staging variant,
+  which left two parallel sealed hierarchies and a second "current flavor"
+  holder alongside the package's own. Because `FlavorType` is sealed, any
+  exhaustive `switch` over it now has to handle the new case — that surfaces as
+  a compile error, so nothing changes silently.
+
 ## 0.2.5
 
 * Fixes a false offline mode when the device is behind a VPN.

@@ -1,6 +1,5 @@
 import 'package:application_base/core/service/logger_config_service.dart';
 import 'package:application_base/core/service/logger_service.dart';
-import 'package:application_base/core/service/platform_service.dart';
 import 'package:application_base/data/remote/const/request_type.dart';
 import 'package:application_base/data/remote/entity/response_entity.dart';
 
@@ -9,15 +8,13 @@ import 'package:application_base/data/remote/entity/response_entity.dart';
 /// **isDebug** by default. Facade over
 /// [LoggerConfigService.canLogSensitiveData]; kept here so the existing import
 /// sites in the consuming apps do not change.
-bool get canLogSensitiveData =>
-    loggerConfigOrNull?.canLogSensitiveData ?? isDebug;
+bool get canLogSensitiveData => loggerState.canLogSensitiveData;
 
 ///
 // A setter parameter is positional by language rule, so this lint cannot be
 // satisfied without dropping the setter and breaking every existing call site.
 // ignore: avoid_positional_boolean_parameters
-set canLogSensitiveData(bool value) =>
-    loggerConfigOrNull?.canLogSensitiveData = value;
+set canLogSensitiveData(bool value) => loggerState.canLogSensitiveData = value;
 
 /// Logging request information
 void logRequestInfo({
