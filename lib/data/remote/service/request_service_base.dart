@@ -300,7 +300,7 @@ abstract base class RequestServiceBase {
     return Response.fromStream(await request.send());
   }
 
-  // TODO(SH): Tested on mobile devices only, need to test on other platforms
+  ///
   Future<Response> _sendPostFile({
     required Uri uri,
     required Map<String, String> headers,
