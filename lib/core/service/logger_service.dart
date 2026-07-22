@@ -17,6 +17,17 @@ void Function({required String information})? get logInfoRemote =>
 set logInfoRemote(void Function({required String information})? value) =>
     loggerConfigOrNull?.infoSink = value;
 
+/// Facade over [LoggerConfigService.isLocalLoggingEnabled].
+bool get isLocalLoggingEnabled =>
+    loggerConfigOrNull?.isLocalLoggingEnabled ?? isDebug;
+
+///
+// A setter parameter is positional by language rule, so this lint cannot be
+// satisfied without dropping the setter.
+// ignore: avoid_positional_boolean_parameters
+set isLocalLoggingEnabled(bool value) =>
+    loggerConfigOrNull?.isLocalLoggingEnabled = value;
+
 /// Facade over [LoggerConfigService.errorSink].
 void Function({required String error})? get logErrorRemote =>
     loggerConfigOrNull?.errorSink;
@@ -48,17 +59,14 @@ void logInfo({required String info, String? additional}) {
   String message = info;
   if (additional != null) message += ': $additional';
 
-  /// Logging local only in debug mode
-  if (isDebug) {
-    /// Current user information
-    _localPureLogger.i(message);
+  /// The console sink already goes through `print`, so on web this lands in
+  /// the browser console and in the tooling console at once — no second write
+  /// is needed.
+  if (isLocalLoggingEnabled) _localPureLogger.i(message);
 
-    /// For logging in browser console on Web
-    // ignore: avoid_print
-    if (isWeb) print(message);
-  } else {
-    logInfoRemote?.call(information: message);
-  }
+  /// Telemetry stays tied to release builds: a developer machine must not fill
+  /// up the reporting of a live app.
+  if (!isDebug) logInfoRemote?.call(information: message);
 }
 
 /// For greater clarity
@@ -73,16 +81,11 @@ void logError({required String error, String? additional}) {
 
   if (loggerUserId.isNotEmpty) message += '\nUser: $loggerUserId';
 
-  /// Logging local only in debug mode
-  if (isDebug) {
-    _localLogger.e(message);
+  ///
+  if (isLocalLoggingEnabled) _localLogger.e(message);
 
-    /// For logging in browser console on Web
-    // ignore: avoid_print
-    if (isWeb) print(message);
-  } else {
-    logErrorRemote?.call(error: message);
-  }
+  ///
+  if (!isDebug) logErrorRemote?.call(error: message);
 }
 
 /// New screen opened

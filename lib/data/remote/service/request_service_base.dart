@@ -74,11 +74,12 @@ abstract base class RequestServiceBase {
   ///
   /// Otherwise return **Response** with necessary information.
   ///
-  /// [extraExpectedStatusList] widens [RequestType.expectedStatusList] for this
-  /// single call, so a caller can take over a status the unified path would
-  /// otherwise swallow — typically a 401 it wants to answer with a token
-  /// refresh. It is a per-call concern, not a property of the request, so it
-  /// is passed here instead of being written into [request].
+  /// [extraExpectedStatusList] widens what this single call accepts, so a
+  /// caller can take over a status the unified path would otherwise swallow —
+  /// typically a 401 it wants to answer with a token refresh. It is additive:
+  /// it never removes a status that would have been accepted anyway. Being a
+  /// per-call concern rather than a property of the request, it is passed here
+  /// instead of being written into [request].
   Future<ResponseEntity?> sendBase({
     required RequestType request,
     required Map<String, String> headers,
@@ -87,11 +88,6 @@ abstract base class RequestServiceBase {
     try {
       ///
       final Uri uri = prepareUri(path: request.path);
-
-      ///
-      final List<int> expectedStatusList = extraExpectedStatusList.isEmpty
-          ? request.expectedStatusList
-          : [...request.expectedStatusList, ...extraExpectedStatusList];
 
       /// Log request
       logRequestInfo(
@@ -143,8 +139,18 @@ abstract base class RequestServiceBase {
         statusCode: httpResponse.statusCode,
       );
 
+      /// Success is "any 2xx" unless the request pins an explicit list, which
+      /// keeps this in step with [ResponseEntity.isOk].
+      /// [extraExpectedStatusList] is strictly additive on top of either: it
+      /// widens what this one call tolerates and never narrows it.
+      final bool isExpectedStatus =
+          extraExpectedStatusList.contains(httpResponse.statusCode) ||
+          (request.expectedStatusList.isEmpty
+              ? response.isOk
+              : request.expectedStatusList.contains(httpResponse.statusCode));
+
       /// Check it
-      if (!expectedStatusList.contains(httpResponse.statusCode)) {
+      if (!isExpectedStatus) {
         /// Some error happened, log it
         logResponseError(response: response);
 

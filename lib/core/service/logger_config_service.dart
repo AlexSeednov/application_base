@@ -23,6 +23,14 @@ final class LoggerConfigService {
   /// Whether request and response bodies are allowed to reach the logs.
   bool canLogSensitiveData = isDebug;
 
+  /// Whether messages are printed to the local console.
+  ///
+  /// Defaults to debug builds, so a release build prints nothing anywhere a
+  /// user could read it. Flip it on to investigate an issue on a real device —
+  /// it is the one switch that makes a release build talk, and it is off until
+  /// something sets it.
+  bool isLocalLoggingEnabled = isDebug;
+
   /// Remote sink for informational messages, wired by the consuming app.
   void Function({required String information})? infoSink;
 

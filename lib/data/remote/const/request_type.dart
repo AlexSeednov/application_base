@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:application_base/data/remote/const/network_event.dart';
 import 'package:application_base/data/remote/const/request_duration_type.dart';
 import 'package:cross_file/cross_file.dart';
@@ -10,7 +8,7 @@ sealed class RequestType {
   RequestType({
     required this.type,
     required this.path,
-    this.expectedStatusList = const [HttpStatus.ok],
+    this.expectedStatusList = const [],
     this.expectedErrorMap = const {},
     this.silence = false,
     this.durationType = RequestDurationType.normal,
@@ -26,6 +24,15 @@ sealed class RequestType {
   Object? get body;
 
   /// Expected response statuse list in API endpoint
+  ///
+  /// Empty — the default — means "any 2xx", the same definition of success as
+  /// `ResponseEntity.isOk`. Before, the default was `[200]` alone, so a `201
+  /// Created` from a POST was reported as an unexpected response even though
+  /// `ResponseEntity.isOk` called the very same reply a success.
+  ///
+  /// Fill the list in only when the exact status carries meaning — for example
+  /// to take over a `404` instead of letting the unified path report it. A
+  /// non-empty list is matched exactly, 2xx included.
   ///
   /// To accept extra statuses for a single call without touching the request,
   /// pass them to `RequestServiceBase.sendBase` as `extraExpectedStatusList`.
@@ -46,7 +53,7 @@ final class RequestGet extends RequestType {
   ///
   RequestGet({
     required super.path,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
     super.durationType = RequestDurationType.normal,
@@ -63,7 +70,7 @@ final class RequestPost extends RequestType {
   RequestPost({
     required super.path,
     this.body,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
     super.durationType = RequestDurationType.normal,
@@ -82,7 +89,7 @@ final class RequestPostFormData extends RequestType {
     this.body,
     this.files = const {},
     this.ignoreNullFields = true,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
   }) : super(type: 'POST form data');
@@ -104,7 +111,7 @@ final class RequestPostFile extends RequestType {
   RequestPostFile({
     required super.path,
     required this.file,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
   }) : super(type: 'POST file as binary data');
@@ -123,7 +130,7 @@ final class RequestPut extends RequestType {
   RequestPut({
     required super.path,
     this.body,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
     super.durationType = RequestDurationType.normal,
@@ -140,7 +147,7 @@ final class RequestPatch extends RequestType {
   RequestPatch({
     required super.path,
     this.body,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
     super.durationType = RequestDurationType.normal,
@@ -157,7 +164,7 @@ final class RequestDelete extends RequestType {
   RequestDelete({
     required super.path,
     this.body,
-    super.expectedStatusList = const [HttpStatus.ok],
+    super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
     super.durationType = RequestDurationType.normal,

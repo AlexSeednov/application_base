@@ -41,6 +41,17 @@
   one call, pass `extraExpectedStatusList` to `RequestServiceBase.sendBase`
   instead of writing into the request — it is a per-call concern, and mutating
   a shared request object as a state flag is what the old callers did.
+* **BREAKING — the package had two disagreeing definitions of success.**
+  `ResponseEntity.isOk` meant any 2xx, while `RequestType.expectedStatusList`
+  defaulted to `[200]` alone, so a `201 Created` from a POST — or a `204` from a
+  DELETE — was routed to `NetworkUnexpectedResponse` even though `isOk` called
+  the very same reply a success. The default is now an empty list, read as "any
+  2xx". A non-empty list keeps its old meaning and is matched exactly, so every
+  call site that pins statuses explicitly is unaffected;
+  `extraExpectedStatusList` is additive on top of either and never narrows what
+  is accepted. `RequestType` no longer imports `dart:io` — the `HttpStatus`
+  constants in the defaults were its only use. The stale
+  `ResponseEntity.isNotOk` comment ("every code except 200 & 201") is corrected.
 * **BREAKING.** `flavor` now throws a `StateError` when read before it was set,
   instead of logging and falling back to `FlavorProduction()`. A forgotten
   `ApplicationBase.prepare` used to point debug builds at the production
@@ -90,6 +101,14 @@
   explaining why: dart2js ships a stub, only the `HttpStatus` integer constants
   and caught exception types are used, and every `Platform` member in
   `platform_service.dart` sits behind a `!isWeb` short-circuit.
+* Local console logging is now controlled by `isLocalLoggingEnabled` instead of
+  being hard-wired to `isDebug`. A release build still prints nothing by
+  default, but the switch can be flipped to investigate an issue on a real
+  device. The duplicated web output is gone: the `logger` package writes through
+  `print`, so a single call already reaches the browser console and the tooling
+  console — the extra `print` was a second write to the same channel, not a
+  second destination.
+* `logTokenEmptyError` reports through `logError` instead of `logInfo`.
 * Removes the force-unwrapped `actualRouter!` from all ten helpers in
   `navigation_service.dart`. A missing router was logged by `actualContext` and
   then immediately crashed on the `!`; navigation is now skipped with an error
