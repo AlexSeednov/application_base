@@ -11,6 +11,13 @@ final class FlavorDevelopment implements FlavorType {
   final String name = 'Development';
 }
 
+/// Pre-production release version aimed at a staging backend
+final class FlavorStage implements FlavorType {
+  ///
+  @override
+  final String name = 'Stage';
+}
+
 /// Production release version without test functionality
 final class FlavorProduction implements FlavorType {
   ///

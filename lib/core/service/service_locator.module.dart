@@ -32,6 +32,7 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i211.LoggerConfigService>(
       () => _i211.LoggerConfigService(),
+      dispose: (i) => i.reset(),
     );
     gh.lazySingleton<_i431.StorageService>(() => _i431.StorageService());
     gh.lazySingleton<_i657.NetworkSubject>(

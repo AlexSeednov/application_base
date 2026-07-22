@@ -4,37 +4,36 @@ import 'package:application_base/core/service/platform_service.dart';
 import 'package:logger/logger.dart';
 
 /// Facade over [LoggerConfigService.userId].
-String get loggerUserId => loggerConfigOrNull?.userId ?? '';
+String get loggerUserId => loggerState.userId;
 
 ///
-set loggerUserId(String value) => loggerConfigOrNull?.userId = value;
+set loggerUserId(String value) => loggerState.userId = value;
 
 /// Facade over [LoggerConfigService.infoSink].
 void Function({required String information})? get logInfoRemote =>
-    loggerConfigOrNull?.infoSink;
+    loggerState.infoSink;
 
 ///
 set logInfoRemote(void Function({required String information})? value) =>
-    loggerConfigOrNull?.infoSink = value;
+    loggerState.infoSink = value;
 
 /// Facade over [LoggerConfigService.isLocalLoggingEnabled].
-bool get isLocalLoggingEnabled =>
-    loggerConfigOrNull?.isLocalLoggingEnabled ?? isDebug;
+bool get isLocalLoggingEnabled => loggerState.isLocalLoggingEnabled;
 
 ///
 // A setter parameter is positional by language rule, so this lint cannot be
 // satisfied without dropping the setter.
 // ignore: avoid_positional_boolean_parameters
 set isLocalLoggingEnabled(bool value) =>
-    loggerConfigOrNull?.isLocalLoggingEnabled = value;
+    loggerState.isLocalLoggingEnabled = value;
 
 /// Facade over [LoggerConfigService.errorSink].
 void Function({required String error})? get logErrorRemote =>
-    loggerConfigOrNull?.errorSink;
+    loggerState.errorSink;
 
 ///
 set logErrorRemote(void Function({required String error})? value) =>
-    loggerConfigOrNull?.errorSink = value;
+    loggerState.errorSink = value;
 
 /// Local logger for beauty output info in console
 final Logger _localLogger = Logger(
