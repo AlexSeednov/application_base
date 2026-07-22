@@ -80,10 +80,17 @@ abstract base class RequestServiceBase {
   /// it never removes a status that would have been accepted anyway. Being a
   /// per-call concern rather than a property of the request, it is passed here
   /// instead of being written into [request].
+  ///
+  /// [extraExpectedErrorMap] is the same idea for
+  /// [RequestType.expectedErrorMap]: it lets a service attach a handler that
+  /// applies to every request it sends — an outdated-client status, say —
+  /// without each call site having to declare it. Entries here win over the
+  /// request's own for the same status.
   Future<ResponseEntity?> sendBase({
     required RequestType request,
     required Map<String, String> headers,
     List<int> extraExpectedStatusList = const [],
+    Map<int, NetworkEvent> extraExpectedErrorMap = const {},
   }) async {
     try {
       ///
@@ -169,6 +176,7 @@ abstract base class RequestServiceBase {
 
         /// Try to get expected error type
         final NetworkEvent? expectedErrorType =
+            extraExpectedErrorMap[httpResponse.statusCode] ??
             request.expectedErrorMap[httpResponse.statusCode];
         if (expectedErrorType != null) {
           /// Custom handler
