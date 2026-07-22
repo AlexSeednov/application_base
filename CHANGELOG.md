@@ -1,3 +1,21 @@
+## 0.2.7
+
+* Adds `extraExpectedErrorMap` to `RequestServiceBase.sendBase`, completing the
+  per-call escape hatch that 0.2.5 left half-finished. Making
+  `RequestType.expectedErrorMap` final was right, but only
+  `expectedStatusList` got a way to be widened for a single call, so a service
+  that attaches a cross-cutting handler to every request it sends — an
+  outdated-client status, for instance — had no route left other than mutating
+  the request. Entries passed here win over the request's own for the same
+  status.
+
+* Turns the experimental `unsafe_variance` off. It fires on the ordinary shape
+  of a generic widget or view model that accepts a callback — a field typed
+  `Widget Function(BuildContext, T, int)` puts `T` in a parameter position,
+  which is unsound in theory and is what the entire Flutter builder idiom rests
+  on in practice. No rewrite both keeps the API and satisfies the rule, so the
+  only available response would be to silence it at every occurrence.
+
 ## 0.2.6
 
 * **Fixes a regression from 0.2.5: logging configuration written before
