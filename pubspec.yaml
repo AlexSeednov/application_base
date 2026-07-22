@@ -1,3 +1,4 @@
+# Last full SDK + dependency audit - 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
 version: 0.2.5
@@ -15,7 +16,6 @@ environment:
   # https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
   sdk: '>=3.12.2'
 
-# Last update - 05.07.2026
 dependencies:
   # analyzer 14 is held back by injectable_generator (<14.0.0)
   analyzer: ^13.0.0

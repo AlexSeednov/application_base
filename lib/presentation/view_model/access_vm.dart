@@ -2,15 +2,27 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
+/// Whether the current session is allowed past the authentication guard.
 ///
+/// Implements [ValueListenable] so screens consume it through a
+/// `ValueListenableBuilder<bool>` like every other piece of state in the
+/// project, while staying a [ChangeNotifier] because `auto_route` takes the
+/// instance itself as `reevaluateListenable`. A plain [ValueNotifier] would not
+/// do: it notifies on every write, and [grantAccess] / [revokeAccess] must be
+/// able to update the flag *without* waking the router — that is what
+/// `needNotify` is for.
 @lazySingleton
-final class AccessVM with ChangeNotifier {
+final class AccessVM extends ChangeNotifier implements ValueListenable<bool> {
   ///
   @visibleForTesting
   AccessVM();
 
   ///
   bool _isGranted = false;
+
+  ///
+  @override
+  bool get value => _isGranted;
 
   ///
   bool get isGranted => _isGranted;
@@ -29,6 +41,9 @@ final class AccessVM with ChangeNotifier {
     required bool isAccessGranted,
     required bool needNotify,
   }) {
+    /// Nothing changed — do not wake the router or repeat the log line.
+    if (_isGranted == isAccessGranted) return;
+
     _isGranted = isAccessGranted;
     if (needNotify) notifyListeners();
 

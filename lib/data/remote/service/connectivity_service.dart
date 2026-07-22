@@ -61,7 +61,7 @@ final class ConnectivityService {
   ///
   @disposeMethod
   void dispose() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = null;
 
     _timer?.cancel();

@@ -20,10 +20,10 @@ abstract base class NetworkServiceBase {
   Duration get pingPeriod => defaultPingPeriod;
 
   ///
-  final _connectivityService = getIt<ConnectivityService>();
+  final ConnectivityService _connectivityService = getIt<ConnectivityService>();
 
   ///
-  final _networkSubject = getIt<NetworkSubject>();
+  final NetworkSubject _networkSubject = getIt<NetworkSubject>();
 
   ///
   StreamSubscription<NetworkEvent>? _subscription;
@@ -60,7 +60,7 @@ abstract base class NetworkServiceBase {
 
   ///
   void dispose() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = null;
 
     _timer?.cancel();

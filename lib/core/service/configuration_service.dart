@@ -1,5 +1,4 @@
 import 'package:application_base/core/const/flavor_type.dart';
-import 'package:application_base/core/service/logger_service.dart';
 
 /// The current application flavor
 ///
@@ -9,15 +8,19 @@ FlavorType? _flavor;
 ///
 set flavor(FlavorType newFlavor) => _flavor = newFlavor;
 
+/// Throws a [StateError] when read before the flavor was set.
 ///
+/// Deliberately not falling back to [FlavorProduction]: a forgotten
+/// `ApplicationBase.prepare` would silently point a debug build at the
+/// production backend and production analytics. Failing loudly on the first
+/// read is the cheaper outcome.
 FlavorType get flavor {
-  if (_flavor == null) {
-    logError(
-      error:
-          'Flavor is null. Do you forgot to set it via '
-          'ApplicationBase.prepare?',
+  final FlavorType? currentFlavor = _flavor;
+  if (currentFlavor == null) {
+    throw StateError(
+      'Flavor is not set. Call ApplicationBase.prepare(currentFlavor: ...) '
+      'before reading it.',
     );
-    flavor = FlavorProduction();
   }
-  return _flavor!;
+  return currentFlavor;
 }

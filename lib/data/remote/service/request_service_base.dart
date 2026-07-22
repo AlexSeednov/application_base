@@ -1,5 +1,7 @@
 import 'dart:async';
-// TODO(Alex): избавиться?
+// Safe on web: dart2js ships a stub, and the only members used here are the
+// [HttpStatus] integer constants plus exception types that are merely caught.
+// Nothing in this file evaluates a `Platform` member.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -41,11 +43,25 @@ abstract base class RequestServiceBase {
   /// https://dart.dev/tutorials/server/fetch-data#make-multiple-requests
   Client _client = Client();
 
+  /// Replaces the HTTP client, closing the previous one.
   ///
-  set client(Client newValue) => _client = newValue;
+  /// The replaced client owns a connection pool that would otherwise stay
+  /// open for the rest of the process.
+  set client(Client newValue) {
+    if (identical(_client, newValue)) return;
+    _client.close();
+    _client = newValue;
+  }
+
+  /// Releases the HTTP client together with its keep-alive connections.
+  ///
+  /// Subclasses are singletons, so mark the override with `@disposeMethod`
+  /// for getIt to call it on reset.
+  @mustCallSuper
+  void dispose() => _client.close();
 
   ///
-  final _networkSubject = getIt<NetworkSubject>();
+  final NetworkSubject _networkSubject = getIt<NetworkSubject>();
 
   ///
   @mustBeOverridden
@@ -57,9 +73,17 @@ abstract base class RequestServiceBase {
   /// special in this case.
   ///
   /// Otherwise return **Response** with necessary information.
+  ///
+  /// [extraExpectedStatusList] widens what this single call accepts, so a
+  /// caller can take over a status the unified path would otherwise swallow —
+  /// typically a 401 it wants to answer with a token refresh. It is additive:
+  /// it never removes a status that would have been accepted anyway. Being a
+  /// per-call concern rather than a property of the request, it is passed here
+  /// instead of being written into [request].
   Future<ResponseEntity?> sendBase({
     required RequestType request,
     required Map<String, String> headers,
+    List<int> extraExpectedStatusList = const [],
   }) async {
     try {
       ///
@@ -115,8 +139,18 @@ abstract base class RequestServiceBase {
         statusCode: httpResponse.statusCode,
       );
 
+      /// Success is "any 2xx" unless the request pins an explicit list, which
+      /// keeps this in step with [ResponseEntity.isOk].
+      /// [extraExpectedStatusList] is strictly additive on top of either: it
+      /// widens what this one call tolerates and never narrows it.
+      final bool isExpectedStatus =
+          extraExpectedStatusList.contains(httpResponse.statusCode) ||
+          (request.expectedStatusList.isEmpty
+              ? response.isOk
+              : request.expectedStatusList.contains(httpResponse.statusCode));
+
       /// Check it
-      if (!request.expectedStatusList.contains(httpResponse.statusCode)) {
+      if (!isExpectedStatus) {
         /// Some error happened, log it
         logResponseError(response: response);
 
@@ -175,6 +209,17 @@ abstract base class RequestServiceBase {
       /// SSL problem on backend side, need to activate offline mode
       logRequestError(request: request, error: error.message);
       notify(NetworkConnectionLost());
+    } on ClientException catch (error) {
+      /// The web build never sees a [SocketException]: there `package:http`
+      /// reports a connection that could not be made as [ClientException].
+      /// Without this branch such a failure fell through to the generic catch
+      /// and was reported as an unexpected error, so offline mode never
+      /// engaged on web.
+      logRequestInfo(
+        request: request,
+        info: 'No connection (${error.message})',
+      );
+      notify(NetworkConnectionLost());
     } catch (error) {
       /// Something is crashed
       logRequestError(request: request, error: error.toString());
@@ -225,31 +270,43 @@ abstract base class RequestServiceBase {
     /// Add headers
     request.headers.addAll(headers);
     if (isWebBased) {
-      /// And special header for web compatibility
-      request.headers['Access-Control-Allow-Origin'] = '*';
+      /// Keep uploads away from any intermediate cache.
+      ///
+      /// `Content-Type` is deliberately not set here: [MultipartRequest]
+      /// writes its own `multipart/form-data` value with the generated
+      /// boundary in `finalize()`, and any value set earlier is overwritten.
       request.headers['Cache-Control'] = 'no-cache';
-      request.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     }
 
-    /// Add file
-    requestData.files.forEach((String field, XFile file) async {
+    /// Add files
+    ///
+    /// A sequential loop, not `Map.forEach`: the body is asynchronous and
+    /// `forEach` discards the futures it gets back, so the request used to be
+    /// sent before the files were attached.
+    for (final MapEntry<String, XFile> entry in requestData.files.entries) {
       if (isMobileBased) {
         /// Mobile
-        request.files.add(await MultipartFile.fromPath(field, file.path));
+        request.files.add(
+          await MultipartFile.fromPath(entry.key, entry.value.path),
+        );
       } else {
         /// Web - need to use fromBytes instead of fromPath
-        final Uint8List fileBytes = await file.readAsBytes();
+        final Uint8List fileBytes = await entry.value.readAsBytes();
         request.files.add(
-          MultipartFile.fromBytes(field, fileBytes, filename: file.name),
+          MultipartFile.fromBytes(
+            entry.key,
+            fileBytes,
+            filename: entry.value.name,
+          ),
         );
       }
-    });
+    }
 
     /// Sending request
     return Response.fromStream(await request.send());
   }
 
-  // TODO(SH): Tested on mobile devices only, need to test on other platforms
+  ///
   Future<Response> _sendPostFile({
     required Uri uri,
     required Map<String, String> headers,
@@ -287,7 +344,9 @@ abstract base class RequestServiceBase {
         ..maxRedirects = 0
         ..headers.addAll(headers);
 
-      final response = await _client.send(request).timeout(normalTimeout);
+      final StreamedResponse response = await _client
+          .send(request)
+          .timeout(normalTimeout);
 
       return response.isRedirect ? response.headers['location'] : null;
     } on TimeoutException {
@@ -300,6 +359,12 @@ abstract base class RequestServiceBase {
       return null;
     } on HandshakeException catch (error) {
       logError(error: 'Catch redirect $uri\n${error.message}');
+      notify(NetworkConnectionLost());
+      return null;
+    } on ClientException catch (error) {
+      /// See the note in [sendBase]: this is the web-side shape of a failed
+      /// connection.
+      logInfo(info: 'Catch redirect $uri\nNo connection (${error.message})');
       notify(NetworkConnectionLost());
       return null;
     } catch (error) {

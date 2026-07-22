@@ -19,6 +19,6 @@ final class ResponseEntity {
   /// Success status code
   bool get isOk => statusCode >= 200 && statusCode < 300;
 
-  /// Not success status code - for now it's every code except 200 & 201
+  /// Every status outside the 2xx range
   bool get isNotOk => !isOk;
 }

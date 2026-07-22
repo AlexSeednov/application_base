@@ -9,6 +9,140 @@
   Availability is now "any transport other than `none`", which also covers
   `bluetooth` and `satellite`. Actual backend reachability is still decided by
   the ping in `NetworkServiceBase`, so the transport check stays a cheap gate.
+* Fixes `ConnectivityService` and `NetworkServiceBase` going permanently deaf
+  after a `dispose()`/`prepare()` cycle. Both cancelled their stream
+  subscription without clearing the field, while `prepare()` bails out on
+  `_subscription != null` — so the second `prepare()` silently did nothing.
+  Reachable from `getIt.reset()` in tests and from hot restart.
+* `NetworkServiceBase.dispose()` no longer disposes `ConnectivityService`: that
+  is a `@lazySingleton` owned by getIt with its own `@disposeMethod`.
+* `_deactivateOfflineMode()` now returns early when already online, mirroring
+  the guard in `_activateOfflineMode()`. The ping timer is still cancelled
+  first, so a stray timer cannot survive.
+* **Fixes uploaded files silently going missing.** `_sendPostFormData` attached
+  files inside `Map.forEach` with an `async` callback. `forEach` discards the
+  futures it gets back, so `request.send()` ran before `MultipartFile.fromPath`
+  had finished — the multipart body was sent with some or all files absent.
+  Replaced with a sequential `for` loop.
+* **Stops leaking error response bodies to the remote logger.**
+  `logResponseError` was the only logger in `network_logger_service.dart` that
+  appended `response.body` without checking `canLogSensitiveData`, and in
+  release `logError` forwards to the remote sink. Error bodies routinely carry
+  tokens, emails and an echo of user input.
+* `loggerUserId` is now attached to errors in release too. The check sat inside
+  the `isDebug` branch, so the id was added only where it was least useful and
+  omitted from every remote report.
+* Removes a crash-on-launch path in `SecureStorageUtility`. After generating a
+  cipher key it re-read the value and force-unwrapped the result; a locked
+  keychain or an unavailable Android Keystore turned that into a null-check
+  exception. The generated key is now returned directly.
+* **BREAKING.** `RequestType.expectedStatusList` and
+  `RequestType.expectedErrorMap` are now `final`. To accept extra statuses for
+  one call, pass `extraExpectedStatusList` to `RequestServiceBase.sendBase`
+  instead of writing into the request — it is a per-call concern, and mutating
+  a shared request object as a state flag is what the old callers did.
+* **BREAKING — the package had two disagreeing definitions of success.**
+  `ResponseEntity.isOk` meant any 2xx, while `RequestType.expectedStatusList`
+  defaulted to `[200]` alone, so a `201 Created` from a POST — or a `204` from a
+  DELETE — was routed to `NetworkUnexpectedResponse` even though `isOk` called
+  the very same reply a success. The default is now an empty list, read as "any
+  2xx". A non-empty list keeps its old meaning and is matched exactly, so every
+  call site that pins statuses explicitly is unaffected;
+  `extraExpectedStatusList` is additive on top of either and never narrows what
+  is accepted. `RequestType` no longer imports `dart:io` — the `HttpStatus`
+  constants in the defaults were its only use. The stale
+  `ResponseEntity.isNotOk` comment ("every code except 200 & 201") is corrected.
+* **BREAKING.** `flavor` now throws a `StateError` when read before it was set,
+  instead of logging and falling back to `FlavorProduction()`. A forgotten
+  `ApplicationBase.prepare` used to point debug builds at the production
+  backend and production analytics.
+* `RequestServiceBase` now releases its `http.Client`: the `client` setter
+  closes the instance it replaces, and a new `dispose()` closes the current one.
+  Previously the client and its keep-alive pool lived for the whole process.
+* Drops two dead headers from web multipart uploads:
+  `Access-Control-Allow-Origin` is a *response* header and does nothing on a
+  request, and the manual `Content-Type` is overwritten by `MultipartRequest`
+  in `finalize()` with the generated boundary. `Cache-Control` is kept.
+* `.fvmrc` is no longer listed in `.gitignore` — it pins the Flutter version and
+  is (and must stay) tracked.
+* **The shipped `analysis_options.yaml` now covers the complete rule set of the
+  pinned SDK.** It was audited against the linter registry of Dart 3.12.2: all
+  224 stable and 10 experimental rules are listed, none of the removed or
+  deprecated ones are. Rules that stay off are now written out as `false` with
+  the reason next to them instead of being absent, so the file answers "why
+  isn't this on?" without a trip to the docs. Notable changes:
+  * All seven `TODO(Alex): need to dive deeper` markers are resolved.
+    `discarded_futures`, `avoid_types_on_closure_parameters` and
+    `no_literal_bool_comparisons` are on; `diagnostic_describe_all_properties`,
+    `always_put_control_body_on_new_line`,
+    `avoid_classes_with_only_static_members` and `omit_local_variable_types`
+    stay off with a written rationale.
+  * The "Incompatible rules: always_specify_types" notes on
+    `avoid_types_on_closure_parameters` and `omit_local_variable_types` were
+    stale — `always_specify_types` is disabled, so nothing was blocking them.
+  * `no_runtimeType_toString`, `prefer_for_elements_to_map_fromIterable` and
+    `prefer_iterable_whereType` were listed under their old camelCase spelling,
+    which the analyzer treats as an alias of the canonical lowercase name. The
+    duplicates are gone.
+  * Experimental rules are now marked `# Experimental`, so the ones outside the
+    stability guarantee are visible at a glance.
+  * `public_member_api_docs` is enabled. The project rule that every
+    declaration carries a `///` comment is now checked by the analyzer instead
+    of resting on discipline. Its old note justified the rule being off by
+    pointing at `package_api_docs`, which no longer exists in the SDK. Six
+    class- and mixin-level comments were missing and have been written.
+* **Offline mode now engages on web.** A connection that cannot be made is
+  reported by `package:http` as a `ClientException` there, never as a
+  `SocketException`, so on web such a failure fell through to the generic catch
+  and surfaced as `NetworkUnexpectedError` — nothing crashed, offline mode
+  simply never turned on. `sendBase` and `catchRedirect` now handle
+  `ClientException` the same way as a lost socket. The `dart:io` import is
+  fine on web and the stale "get rid of it?" to-do is replaced by a note
+  explaining why: dart2js ships a stub, only the `HttpStatus` integer constants
+  and caught exception types are used, and every `Platform` member in
+  `platform_service.dart` sits behind a `!isWeb` short-circuit.
+* Local console logging is now controlled by `isLocalLoggingEnabled` instead of
+  being hard-wired to `isDebug`. A release build still prints nothing by
+  default, but the switch can be flipped to investigate an issue on a real
+  device. The duplicated web output is gone: the `logger` package writes through
+  `print`, so a single call already reaches the browser console and the tooling
+  console — the extra `print` was a second write to the same channel, not a
+  second destination.
+* `logTokenEmptyError` reports through `logError` instead of `logInfo`.
+* Removes the force-unwrapped `actualRouter!` from all ten helpers in
+  `navigation_service.dart`. A missing router was logged by `actualContext` and
+  then immediately crashed on the `!`; navigation is now skipped with an error
+  entry instead.
+* The four mutable logger globals (`loggerUserId`, `canLogSensitiveData`,
+  `logInfoRemote`, `logErrorRemote`) moved into an injectable
+  `LoggerConfigService`. They survived `getIt.reset()` and leaked between
+  tests. The top-level names are kept as facades, so no call site changes; the
+  facades fall back to defaults while the service locator is not yet ready.
+* `ConnectionRestoreMixin` no longer stores its subscription in a `late` field:
+  calling `disposeConnection()` without a preceding `prepareConnection()` threw
+  a `LateInitializationError`. `prepareConnection()` is now idempotent and
+  `disposeConnection()` clears the field so a later prepare can re-subscribe.
+* `AccessVM` now implements `ValueListenable<bool>`, so screens can consume it
+  through a `ValueListenableBuilder` like the rest of the project's state. It
+  stays a `ChangeNotifier` on purpose — `auto_route` takes the instance as
+  `reevaluateListenable`, and `needNotify: false` has to be able to update the
+  flag without waking the router, which a plain `ValueNotifier` cannot do.
+  Repeated writes of the same value no longer notify.
+* **BREAKING.** `currentPlatform` returns `AvailablePlatform?` and yields `null`
+  on an unrecognised host instead of silently answering `android`.
+* `SafeService` renames its generic parameter from `Type` to `T`, which stopped
+  it shadowing the built-in `Type` and removed both
+  `// ignore: avoid_types_as_parameter_names` suppressions.
+* Adds a GitHub Actions workflow: dependencies, a check that the committed
+  generated sources match a fresh `build_runner` run, `dart format`,
+  `flutter analyze --fatal-infos` and `getit_check`. It could not exist before
+  — `.gitignore` excluded the whole `.github` directory, so no workflow could
+  be committed.
+* Fixes the code that the newly enabled rules flagged: intentional
+  fire-and-forget calls in `StorageService`, `ConnectivityService`,
+  `NetworkSubject`, `LifecycleService` and `NetworkServiceBase` are wrapped in
+  `unawaited()`, non-obvious property and local types are annotated, redundant
+  closure parameter types and an `async` without `await` are dropped.
 
 ## 0.2.4
 
@@ -43,7 +177,7 @@
 * Dropped the deprecated/removed `avoid_null_checks_in_equality_operators`,
   `prefer_bool_in_asserts`, `prefer_final_parameters` and
   `use_if_null_to_convert_nulls_to_bools` rules from the shipped
-  `analysis_options.yaml` — they no longer exist in the current Dart SDK.
+  `analysis_options.yaml`.
 
 ## 0.2.3
 
