@@ -33,7 +33,12 @@ final class LoggerState {
   void Function({required String information})? infoSink;
 
   /// Remote sink for errors, wired by the consuming app.
-  void Function({required String error})? errorSink;
+  ///
+  /// The stack trace travels beside the message instead of being folded into
+  /// it: crash reporters group incoming errors by their frames, so a sink that
+  /// only ever sees text has to invent a trace at the point of reporting and
+  /// every unrelated error collapses into one issue.
+  void Function({required String error, StackTrace? stack})? errorSink;
 }
 
 /// The instance every logging facade reads from and writes to.
@@ -81,12 +86,12 @@ final class LoggerConfigService {
       loggerState.infoSink = value;
 
   ///
-  void Function({required String error})? get errorSink =>
+  void Function({required String error, StackTrace? stack})? get errorSink =>
       loggerState.errorSink;
 
   ///
-  set errorSink(void Function({required String error})? value) =>
-      loggerState.errorSink = value;
+  set errorSink(void Function({required String error, StackTrace? stack})? v) =>
+      loggerState.errorSink = v;
 
   /// Restores every value to its default, so one test cannot inherit the
   /// logging configuration of another.

@@ -28,12 +28,13 @@ set isLocalLoggingEnabled(bool value) =>
     loggerState.isLocalLoggingEnabled = value;
 
 /// Facade over [LoggerConfigService.errorSink].
-void Function({required String error})? get logErrorRemote =>
+void Function({required String error, StackTrace? stack})? get logErrorRemote =>
     loggerState.errorSink;
 
 ///
-set logErrorRemote(void Function({required String error})? value) =>
-    loggerState.errorSink = value;
+set logErrorRemote(
+  void Function({required String error, StackTrace? stack})? value,
+) => loggerState.errorSink = value;
 
 /// Local logger for beauty output info in console
 final Logger _localLogger = Logger(
@@ -73,7 +74,10 @@ void logImportant({required String info, String? additional}) =>
     logInfo(info: '⚡️⚡️⚡️ $info', additional: additional);
 
 /// Logging some error
-void logError({required String error, String? additional}) {
+///
+/// [stack] reaches the remote sink untouched — a reporter needs the frames as
+/// a trace, not as text inside the message, to group the error with its peers.
+void logError({required String error, String? additional, StackTrace? stack}) {
   /// Prepare full error message
   String message = error;
   if (additional != null) message += ': $additional';
@@ -81,10 +85,10 @@ void logError({required String error, String? additional}) {
   if (loggerUserId.isNotEmpty) message += '\nUser: $loggerUserId';
 
   ///
-  if (isLocalLoggingEnabled) _localLogger.e(message);
+  if (isLocalLoggingEnabled) _localLogger.e(message, stackTrace: stack);
 
   ///
-  if (!isDebug) logErrorRemote?.call(error: message);
+  if (!isDebug) logErrorRemote?.call(error: message, stack: stack);
 }
 
 /// New screen opened

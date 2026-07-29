@@ -246,14 +246,18 @@ set `logInfoRemote` and `logErrorRemote`:
 void _logInfo({required String information}) => 
     SomeRemoteService.log(information);
 ///
-void _logError({required String error}) => 
-    SomeRemoteService.log(error);
+void _logError({required String error, StackTrace? stack}) => 
+    SomeRemoteService.report(error, stack);
 
 void prepare(){
     logInfoRemote = _logInfo;
     logErrorRemote = _logError;
 }
 ```
+
+The error sink takes the stack trace as a separate argument: reporters group
+issues by frames, so a sink that receives text only would have to synthesise a
+trace at the reporting site and pile unrelated errors into a single issue.
 
 You can set User ID for local error logging:
 
@@ -270,6 +274,7 @@ And use logger everywhere it need
 ```dart
 logInfo(info: 'Interesting information');
 logError(error: 'Some error happened');
+logError(error: 'Some error happened', stack: stackTrace);
 ```
 
 Also created **LoggingMixin** for easier named logs in classes. Just mix it and

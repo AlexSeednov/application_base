@@ -17,6 +17,6 @@ base mixin LoggingMixin {
       logImportant(info: logName, additional: info);
 
   ///
-  void logNamedError({required String error}) =>
-      logError(error: logName, additional: error);
+  void logNamedError({required String error, StackTrace? stack}) =>
+      logError(error: logName, additional: error, stack: stack);
 }
