@@ -1,3 +1,17 @@
+## 0.2.8
+
+* **Breaking: the remote error sink now receives the stack trace.**
+  `logErrorRemote` (and `LoggerConfigService.errorSink` behind it) changed from
+  `void Function({required String error})` to
+  `void Function({required String error, StackTrace? stack})`, and `logError`
+  gained an optional `stack` that it forwards untouched. The sink used to get
+  text only, which left a crash reporter nothing to group by: every reporter
+  buckets incoming errors by their frames, so a sink with no trace has to
+  synthesise one at the point of reporting and unrelated errors collapse into a
+  single issue. `LoggingMixin.logNamedError` takes and forwards `stack` too,
+  and the local console printer now shows it. Consuming apps must widen their
+  sink signature — adding `StackTrace? stack` to it is the whole migration.
+
 ## 0.2.7
 
 * Adds `extraExpectedErrorMap` to `RequestServiceBase.sendBase`, completing the
