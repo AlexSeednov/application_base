@@ -36,6 +36,31 @@ abstract final class UrlLauncher {
     return false;
   }
 
+  /// Open a link in the **current** browser tab. Web-oriented: made for the
+  /// links whose navigation is handed over to the OS — custom application
+  /// schemes and `intent://` — so the page (and the application state) stays
+  /// in place. On non-web platforms behaves as a plain default launch.
+  /// Return **true** on success.
+  ///
+  /// Deliberately skips the `canLaunch` check: the web implementation of
+  /// url_launcher reports `false` for any non-standard scheme, while such
+  /// links are exactly what this method exists for.
+  ///
+  /// The current tab instead of a new one on purpose: `_blank` is subject to
+  /// popup blockers (especially iOS Safari), leaves a dead empty tab behind
+  /// and steals the focus, breaking any "page stayed visible" fallback logic
+  /// of the caller.
+  static Future<bool> launchLinkInSameTab(String? link) async {
+    if (link == null || link.isEmpty) return false;
+
+    try {
+      return await launchUrlString(link, webOnlyWindowName: '_self');
+    } catch (error) {
+      logError(error: 'Error on launching the link $link in same tab: $error');
+    }
+    return false;
+  }
+
   /// Try to open email application with prepeared email.
   /// Return **true** on success
   static Future<bool> sendEmail({

@@ -1,3 +1,14 @@
+## 0.3.0
+
+* **`UrlLauncher.launchLinkInSameTab`** — opens a link in the current browser
+  tab. Made for the web links whose navigation is handed over to the OS
+  (custom application schemes, `intent://`): the page and the application
+  state stay in place, popup blockers are not involved and no dead empty tab
+  is left behind. Deliberately skips the `canLaunch` check — the web
+  implementation of url_launcher reports `false` for any non-standard scheme,
+  while such links are exactly what this method exists for. On non-web
+  platforms behaves as a plain default launch.
+
 ## 0.2.9
 
 * **`ShareService.share` is now safe and returns `Future<bool>`.** When the
