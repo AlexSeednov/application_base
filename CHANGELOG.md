@@ -1,3 +1,17 @@
+## 0.2.9
+
+* **`ShareService.share` is now safe and returns `Future<bool>`.** When the
+  Web Share API is unavailable on web (desktop Firefox, Chromium on Linux,
+  insecure HTTP context), share_plus used to open the default mail client with
+  the shared text — surprising UX at best, a silent no-op when no mail client
+  is configured. That `mailto:` fallback is now disabled, the call never
+  throws, and the result tells whether the share sheet was actually presented:
+  on `false` the consuming app applies its own fallback (e.g. copy the link to
+  the clipboard and show a toast). Dismissing the sheet still counts as `true`
+  — the user made a choice, no fallback is due. On web an unavailable share is
+  an expected browser state and is not logged; on other platforms the failure
+  is logged inside the service, so callers need no try-catch of their own.
+
 ## 0.2.8
 
 * **Breaking: the remote error sink now receives the stack trace.**
