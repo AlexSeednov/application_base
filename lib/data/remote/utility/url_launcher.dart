@@ -1,4 +1,6 @@
 import 'package:application_base/core/service/logger_service.dart';
+import 'package:application_base/data/remote/utility/location_navigation.dart'
+    if (dart.library.js_interop) 'package:application_base/data/remote/utility/location_navigation_web.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -57,6 +59,35 @@ abstract final class UrlLauncher {
       return await launchUrlString(link, webOnlyWindowName: '_self');
     } catch (error) {
       logError(error: 'Error on launching the link $link in same tab: $error');
+    }
+    return false;
+  }
+
+  /// Navigate the **current** browser tab to [link] by assigning it to
+  /// `window.location` directly, bypassing `window.open`.
+  ///
+  /// [launchLinkInSameTab] requests the same behavior through url_launcher,
+  /// whose web implementation always calls `window.open` with the `noopener`
+  /// window feature. Spec-wise `_self` still means "this tab", but browsers
+  /// with custom popup handling (Arc and alike) treat a feature-bearing
+  /// `window.open` as a popup request and detach the page into a separate
+  /// window — fatal for redirect flows (e.g. payment confirmation) that must
+  /// return into the tab they left. A direct location assignment cannot
+  /// create a browsing context by construction, in any browser.
+  ///
+  /// Prefer this method for web redirect flows leaving for another `https`
+  /// page; [launchLinkInSameTab] stays for links handed over to the OS
+  /// (custom application schemes, `intent://`).
+  ///
+  /// On non-web platforms behaves as a plain default launch.
+  /// Return **true** on success.
+  static Future<bool> launchLinkViaLocation(String? link) async {
+    if (link == null || link.isEmpty) return false;
+
+    try {
+      return await navigateViaLocation(link);
+    } catch (error) {
+      logError(error: 'Error on launching the link $link via location: $error');
     }
     return false;
   }

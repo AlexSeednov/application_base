@@ -1,3 +1,18 @@
+## 0.3.1
+
+* **`UrlLauncher.launchLinkViaLocation`** — navigates the current browser tab
+  by assigning `window.location` directly, bypassing `window.open`.
+  url_launcher's web implementation always passes the `noopener` window
+  feature to `window.open`, and browsers with custom popup handling (Arc and
+  alike) treat such a call as a popup request even with the `_self` target —
+  the page detaches into a separate window, so a redirect flow (e.g. payment
+  confirmation) returns into the wrong tab while the original one keeps
+  hanging with stale state. A direct location assignment cannot create a
+  browsing context by construction. Meant for web redirect flows leaving for
+  another `https` page; `launchLinkInSameTab` stays for links handed over to
+  the OS (custom schemes, `intent://`). On non-web platforms behaves as a
+  plain default launch.
+
 ## 0.3.0
 
 * **`UrlLauncher.launchLinkInSameTab`** — opens a link in the current browser
