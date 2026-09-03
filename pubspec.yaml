@@ -1,7 +1,7 @@
 # Last full SDK + dependency audit - 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.3.1
+version: 0.3.2
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:

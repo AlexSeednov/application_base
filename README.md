@@ -595,6 +595,11 @@ EmptyButton(
 ),
 ```
 
+`EmptyButton` gives no visual feedback except a focus ring for keyboard-driven
+focus (`FocusHighlightMode.traditional`) — with a transparent overlay a
+keyboard user would otherwise not see where they are. Pass `focusBorderRadius`
+to match the rounding of the child.
+
 ```dart
 UnfocusingTap(child: child),
 ```
@@ -614,3 +619,100 @@ EnabledPro(
   child: child,
 ),
 ```
+
+## Web
+
+Flutter on the web is a canvas with a keyboard, a mouse and a URL bar around
+it: several things a browser page does for free have to be wired by hand. This
+section collects what the package provides for that and the rules an app has to
+follow for it to work.
+
+### Keyboard scrolling
+
+On the web Flutter maps the arrows, PageUp/PageDown and Space to `ScrollIntent`
+by itself and handles them with the built-in `ScrollAction`. The action scrolls
+the `Scrollable` around the focused widget, and when nothing inside a scrollable
+is focused, it falls back to the route's `PrimaryScrollController`, which then
+must have **exactly one** attached scroll position. That is where the web
+differs from mobile: on desktop platforms (and the web in a desktop browser
+reports the host OS) scroll views do **not** inherit the primary controller
+automatically, so the controller has no clients and the keys do nothing.
+
+Rules that make it work:
+
+- **Exactly one root scrollable per route gets `primary: true`**: the page
+  list, the sheet list, the dialog list. Nested lists (`shrinkWrap`,
+  `NeverScrollableScrollPhysics`) must not be `primary`: a second position on
+  the route controller fails the scroll action and the desktop scrollbar.
+- A scroll view that **owns** the route controller (passes it as `controller`
+  and reads `offset` from it) wraps its content in
+  `PrimaryScrollController.none`: on mobile nested vertical lists inherit the
+  primary controller and would attach to it as well.
+- **Tabs (`IndexedStack`)**: Flutter excludes a hidden tab from focus, but the
+  focus lands on the scope above the tabs, where there is nothing to scroll.
+  When a tab becomes active, focus the scope of the top route of its navigator,
+  and do it after the frame: until the stack rebuilds the tab is still
+  excluded and the request is silently dropped.
+
+  ```dart
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final FocusNode navigatorNode = Navigator.of(context).focusNode;
+    final FocusScopeNode? topRouteScope = navigatorNode.children
+        .whereType<FocusScopeNode>()
+        .lastOrNull;
+
+    (topRouteScope ?? FocusScope.of(context)).requestScopeFocus();
+  });
+  ```
+
+- `unfocus()` (and `UnfocusingTap` with it) leaves the focus alone when it
+  already sits on a scope: unfocusing a scope moves the focus one scope up,
+  and a tap on the page background would otherwise kill keyboard scrolling.
+- A focused `TextField` keeps the keys, as it does in a browser.
+
+`KeyboardShortcutsPro` adds what Flutter does not map: Home/End (also with
+Ctrl) and Shift+Space. Pass its maps to the app; they extend the defaults, so
+the text-editing shortcuts still win inside a field:
+
+```dart
+MaterialApp.router(
+  shortcuts: KeyboardShortcutsPro.shortcuts,
+  actions: KeyboardShortcutsPro.actions,
+  ...
+)
+```
+
+### Links
+
+A tap target is not a link for the browser: no URL on hover, no Ctrl/Cmd+click
+or middle click into a new tab. `RouteLink` makes a widget a real link on the
+web (`url_launcher`'s `Link`, an `<a>` element over the widget) and stays a
+plain `EmptyButton` elsewhere:
+
+```dart
+RouteLink(
+  path: '/catalog/product/1', // absolute in-app path; null — no link, tap only
+  onClick: viewModel.openDetails,
+  child: card,
+)
+```
+
+A plain click goes to `onClick`, the same in-app navigation as before, with
+whatever data the view model already holds. Only a click with a modifier key is
+handed to the link: the browser opens the new tab itself, and without a
+`followLink` signal from the app the plugin cancels the in-tab navigation.
+Build the path from the same route object the click pushes (auto_route's
+`RouteMatcher.matchByRoute` + `UrlState.fromSegments`), so the URL on hover
+matches the one the click produces.
+
+### Browser context menu
+
+`BrowserContextMenu.disableContextMenu()` (after the binding is initialised)
+removes the browser menu that only offers "Back" and "Reload" over the canvas;
+text fields then show Flutter's own menu. The price: no native "Open link in
+new tab" on `RouteLink` either, Ctrl/Cmd+click and the middle button remain.
+
+### Keyboard focus
+
+`EmptyButton` draws a focus ring for keyboard-driven focus so a keyboard user
+can see where they are; Material buttons show their own focus overlay.

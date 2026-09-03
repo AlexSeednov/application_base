@@ -1,3 +1,27 @@
+## 0.3.2
+
+* **`EmptyButton`** draws a focus ring for keyboard-driven focus
+  (`FocusHighlightMode.traditional`). The overlay colour is transparent by
+  design, so the ink well's own focus highlight was invisible and a keyboard
+  user tabbing through the page could not see where they were. The ring
+  follows the new `focusBorderRadius` (default — a small rounding).
+* **`unfocus()`** — and `UnfocusingTap` with it — no longer touches the focus
+  when the primary focus already sits on a scope, i.e. a route with no
+  focused field. Unfocusing a scope moves the focus one scope up, and on the
+  web that killed keyboard scrolling after any tap on the page background:
+  Flutter's scroll action looks the scrollable up from the focused node, and
+  above the route there is nothing to scroll.
+* **`KeyboardShortcutsPro`** — shortcut and action maps for `MaterialApp` that
+  add Home/End (also with Ctrl) and Shift+Space page scrolling on top of
+  Flutter's defaults; a focused text field keeps the keys.
+* **`RouteLink`** — a tap target that is a real link on the web (`url_launcher`
+  `Link`): URL on hover, Ctrl/Cmd+click and the middle button into a new tab,
+  while a plain click stays with the in-app navigation. A plain `EmptyButton`
+  elsewhere.
+* README: a **Web** section on keyboard scrolling (`primary: true` on the one
+  root scrollable per route, `PrimaryScrollController.none`, tab focus,
+  `unfocus()`), links and the browser context menu.
+
 ## 0.3.1
 
 * **`UrlLauncher.launchLinkViaLocation`** — navigates the current browser tab
