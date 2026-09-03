@@ -25,8 +25,20 @@ BuildContext? get actualContext {
   return _navigatorKey.currentContext;
 }
 
-/// Removes the focus on this node by moving the primary focus to another node
-void unfocus() => FocusManager.instance.primaryFocus?.unfocus();
+/// Drops the focus from the focused node by moving the primary focus to its
+/// scope.
+///
+/// Does nothing when the primary focus already sits on a scope — a route with
+/// no focused field. Unfocusing a scope moves the focus one scope up, and on
+/// the web that is what killed keyboard scrolling after any tap on the page
+/// background: Flutter's scroll action looks the scrollable up from the
+/// focused node, and above the route there is nothing to scroll.
+void unfocus() {
+  final FocusNode? node = FocusManager.instance.primaryFocus;
+  if (node == null || node is FocusScopeNode) return;
+
+  node.unfocus();
+}
 
 /// Runs [action] against the live router, or reports and does nothing.
 ///
