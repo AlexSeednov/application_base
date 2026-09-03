@@ -1,3 +1,18 @@
+## 0.3.4
+
+* **`HapticService`** — tactile feedback with a small semantic vocabulary
+  (`selection`, `lightImpact`, `mediumImpact`, `longPress`, `success`,
+  `failure`): a caller says what happened rather than how hard to buzz, so an
+  application feels the same throughout and can be retuned in one place. The
+  two-beat success and three-beat failure are composed here, since the
+  framework offers single taps only. `longPress` fires on iOS alone — Material
+  ink already answers a long press on Android with the platform's own buzz.
+  Bound as a contract (`HapticServicePlatform`), so a view model takes it
+  through the constructor and a test hands it a fake. Safe on every platform:
+  one without a haptics channel is remembered after its first refusal and
+  never asked again, so a per-tick cue cannot flood the log on desktop or the
+  web.
+
 ## 0.3.3
 
 * **`RouteLink`** takes external URLs as well: an `https://…` link gets

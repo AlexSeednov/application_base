@@ -28,6 +28,7 @@ For now includes:
 * [StorageService](#local-storage-service)
 * [Url launcher](#url-launcher)
 * [Share](#share)
+* [Haptics](#haptics)
 * [Some useful widgets](#widgets)
 
 ## Supported platforms
@@ -585,6 +586,39 @@ binding pattern.
 ```dart
 await ShareService.share(text: text);
 ```
+
+## Haptics
+
+**HapticService** — tactile feedback over Flutter's own `HapticFeedback`, with
+a small semantic vocabulary instead of raw impact strengths: the caller says
+what happened, and the feel of «a choice moved», «a thing landed» or «that
+failed» stays the same across the whole application.
+
+```dart
+final HapticService _haptic;      // constructor-injected into a view model
+
+unawaited(_haptic.selection());   // a choice moving under the finger
+unawaited(_haptic.lightImpact()); // a small action landing
+unawaited(_haptic.mediumImpact());// a mode changing
+unawaited(_haptic.longPress());   // a context menu picking up (iOS only)
+unawaited(_haptic.success());     // a job coming good  — two rising beats
+unawaited(_haptic.failure());     // something refused  — three flat beats
+```
+
+A cue is feedback on something the user is already seeing, never a signal of
+its own; pair it with the visible change rather than with the code path that
+caused it. Restoring saved state on open is not a gesture — leave it silent.
+Whether anything is felt at all is the system's call: both mobile platforms
+honour their own haptics switch, so an app needs no setting of its own.
+
+`longPress()` is iOS-only on purpose: Material's ink already fires the
+platform long-press haptic on Android, and a second one on top of it doubles
+up.
+
+The contract is what callers take, so a test can hand a view model a fake and
+assert the cues it asked for. A platform with no haptics channel (desktop, the
+web) is remembered after its first refusal and never asked again — a cue as
+frequent as `selection()` would otherwise write a log line per tick of a drag.
 
 ## Widgets
 
