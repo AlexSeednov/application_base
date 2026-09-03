@@ -705,8 +705,20 @@ Rules that make it work:
 - A focused `TextField` keeps the keys, as it does in a browser.
 
 `KeyboardShortcutsPro` adds what Flutter does not map: Home/End (also with
-Ctrl) and Shift+Space. Pass its maps to the app; they extend the defaults, so
-the text-editing shortcuts still win inside a field:
+Ctrl) and Shift+Space. Its actions also replace the framework's own
+`ScrollAction` with `ScrollActionPro`, which is what makes a **held** key
+usable: the framework aims every press at the offset the page holds at that
+moment and animates there over 100ms with an eased curve, while the OS repeats
+a held key every 30–60ms — each repeat cancels the previous animation in its
+slow opening and starts another from there, and the page crawls at a fraction
+of a step per press. `ScrollActionPro` adds the step of a repeat to the target
+the previous press aimed at and drives the animation at the pace of the
+repeats, so a held key scrolls a whole step per repeat and stops with the key.
+A single press is unchanged, and Home/End go the same way, aiming at a target
+that does not move.
+
+Pass both maps to the app; they extend the defaults, so the text-editing
+shortcuts still win inside a field:
 
 ```dart
 MaterialApp.router(
@@ -745,6 +757,46 @@ An external URL (`https://…`) works the same way and gets `target="_blank"`:
 the browser context menu recognises it as a link, and a modifier-click opens
 it in a new tab; a plain click still goes to `onClick`, so the app keeps its
 own way of opening such links.
+
+### Middle-button autoscroll
+
+A browser scrolls a page from a middle click: the press anchors it, the mouse
+then sets the direction and the speed, and a click ends the mode. On the web
+the browser cannot do it here — Flutter draws into a canvas, the document
+holds no scrollable element of its own — so `AutoScrollPro` rebuilds the mode
+over the application. Wrap the whole of it, above the navigator, and the
+anchor mark and the pointer block cover the pages, the sheets and the dialogs
+alike:
+
+```dart
+MaterialApp.router(
+  builder: (_, child) => AutoScrollPro(child: child!),
+  ...
+)
+```
+
+The step goes out the way the wheel does — a synthesized `PointerScrollEvent`
+aimed at the anchor — rather than as a write into a scroll position: the
+framework then picks the scrollable itself, the one the user aimed at, keeps
+its physics, and hands the movement to the parent when a nested list has
+nowhere left to go. Only when nothing under the anchor scrolls at all (a fixed
+header, a side menu) does the route's primary position take the step directly
+— the same position the keyboard scrolls, so the *one root scrollable per
+route* rule above serves this mode as well.
+
+While the mode is on, the application stands behind a pointer block: the click
+that ends the mode presses nothing and hovers nothing, as in a browser. The
+block opens for the mode's own wheel events alone. The mode also ends on the
+wheel, on Escape, on the window losing the application, on the mouse leaving
+it, and on the release of a button that was dragged rather than clicked.
+
+Over a `RouteLink` the middle button belongs to the browser — it opens the
+link in a new tab — so the link takes that click from the mode through
+`AutoScrollScope`. Anything else that answers the middle button itself should
+do the same.
+
+Nothing is gated on the web: a platform without a middle button never starts
+the mode, and on Windows the same gesture is a desktop convention.
 
 ### Browser context menu
 

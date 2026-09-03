@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:application_base/core/service/platform_service.dart';
+import 'package:application_base/presentation/view/auto_scroll_pro.dart';
 import 'package:application_base/presentation/view/empty_button.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/link.dart';
@@ -55,11 +57,23 @@ final class RouteLink extends StatelessWidget {
     // `?` percent-encoded and the router would not match it.
     final Uri uri = Uri.parse(path!);
 
-    return Link(
-      uri: uri,
-      target: uri.hasScheme ? LinkTarget.blank : LinkTarget.defaultTarget,
-      builder: (_, followLink) => _button(() => _onTap(followLink)),
+    return Listener(
+      onPointerDown: (event) => _claimMiddleButton(context, event),
+      child: Link(
+        uri: uri,
+        target: uri.hasScheme ? LinkTarget.blank : LinkTarget.defaultTarget,
+        builder: (_, followLink) => _button(() => _onTap(followLink)),
+      ),
     );
+  }
+
+  /// The middle button over a link is the browser's: it opens the link in a
+  /// new tab. The page autoscroll must not start on the same click, so the
+  /// click is taken from it here.
+  void _claimMiddleButton(BuildContext context, PointerDownEvent event) {
+    if (event.buttons != kMiddleMouseButton) return;
+
+    AutoScrollScope.maybeOf(context)?.claimPointer(event.pointer);
   }
 
   ///

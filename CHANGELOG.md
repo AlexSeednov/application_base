@@ -1,3 +1,31 @@
+## 0.3.5
+
+* **`AutoScrollPro`** — middle-button autoscroll for the web: the press
+  anchors the page, the mouse sets the direction and the speed, a click ends
+  the mode. The browser gives it to a plain page for free and cannot give it
+  here — Flutter draws into a canvas and the document holds no scrollable
+  element of its own — so the mode is rebuilt over the application. The step
+  goes out as the wheel does (a synthesized `PointerScrollEvent` at the
+  anchor), so the framework picks the scrollable the user aimed at, keeps its
+  physics and hands the movement to the parent when a nested list is over;
+  with nothing scrollable under the anchor the route's primary position takes
+  the step instead. While the mode is on the application stands behind a
+  pointer block, so the click that ends it presses nothing.
+* **`RouteLink`** takes the middle click from that mode: over a link the
+  button is the browser's, which opens it in a new tab.
+* **`ScrollActionPro`** replaces the framework's `ScrollAction` behind the
+  arrows, PageUp/PageDown and the space bar, and `KeyboardScrollAction` joins
+  it: a held key now scrolls a whole step per repeat instead of a fraction of
+  one. The framework aims every press at the offset the page holds at that
+  moment and animates there over 100ms with an eased curve, while the OS
+  repeats a held key every 30–60ms — each repeat cancelled the previous
+  animation in its slow opening and started another one from there, and the
+  page crawled. A repeat now adds its step to the target the previous press
+  aimed at, and the animation runs at the pace of the repeats, so the movement
+  is continuous and ends with the key. A single press is unchanged. The
+  scrollable is also looked up by the axis of the intent, so a page with a
+  carousel in focus is no longer left unscrollable.
+
 ## 0.3.4
 
 * **`HapticService`** — tactile feedback with a small semantic vocabulary
