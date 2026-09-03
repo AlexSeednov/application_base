@@ -6,9 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/link.dart';
 
-/// A tap target that on the web is also a real link to a page of the app: the
-/// URL shows on hover, Ctrl/Cmd+click and the middle button open the page in a
-/// new tab.
+/// A tap target that on the web is also a real link: the URL shows on hover,
+/// the browser context menu offers "Open in new tab" and "Copy link address",
+/// Ctrl/Cmd+click and the middle button open the target in a new tab.
+///
+/// The link is either a page of the app (an absolute in-app path) or an
+/// external URL. An external one gets `target="_blank"`: the browser opens it
+/// in a new tab on its own, the way the app opens such links itself.
 ///
 /// A plain click stays with the app and goes to [onClick] — the same push as
 /// before: the page gets whatever data the view model already holds, and the
@@ -29,8 +33,8 @@ final class RouteLink extends StatelessWidget {
     super.key,
   });
 
-  /// Absolute in-app path of the page (`/catalog/product/1`); `null` — no
-  /// link, tap only.
+  /// Absolute in-app path of the page (`/catalog/product/1`, query included)
+  /// or an external URL (`https://…`); `null` — no link, tap only.
   final String? path;
 
   /// `null` — the target is disabled: neither tap nor link.
@@ -47,8 +51,13 @@ final class RouteLink extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isWeb || onClick == null || path == null) return _button(onClick);
 
+    // Parsed, not `Uri(path:)`: a path with a query would otherwise get its
+    // `?` percent-encoded and the router would not match it.
+    final Uri uri = Uri.parse(path!);
+
     return Link(
-      uri: Uri(path: path),
+      uri: uri,
+      target: uri.hasScheme ? LinkTarget.blank : LinkTarget.defaultTarget,
       builder: (_, followLink) => _button(() => _onTap(followLink)),
     );
   }

@@ -703,14 +703,22 @@ handed to the link: the browser opens the new tab itself, and without a
 `followLink` signal from the app the plugin cancels the in-tab navigation.
 Build the path from the same route object the click pushes (auto_route's
 `RouteMatcher.matchByRoute` + `UrlState.fromSegments`), so the URL on hover
-matches the one the click produces.
+matches the one the click produces. Pass the encoded form (`uri.toString()`),
+not the decoded `UrlState.url`, and keep the query in the path string: the
+widget parses it, a `Uri(path:)` would percent-encode the `?`.
+
+An external URL (`https://…`) works the same way and gets `target="_blank"`:
+the browser context menu recognises it as a link, and a modifier-click opens
+it in a new tab; a plain click still goes to `onClick`, so the app keeps its
+own way of opening such links.
 
 ### Browser context menu
 
-`BrowserContextMenu.disableContextMenu()` (after the binding is initialised)
-removes the browser menu that only offers "Back" and "Reload" over the canvas;
-text fields then show Flutter's own menu. The price: no native "Open link in
-new tab" on `RouteLink` either, Ctrl/Cmd+click and the middle button remain.
+Over the canvas the browser menu only offers "Back" and "Reload", but on a
+`RouteLink` it is the native link menu — "Open in new tab", "Copy link
+address" — so it is worth keeping. `BrowserContextMenu.disableContextMenu()`
+(after the binding is initialised) removes it everywhere at once; text fields
+then show Flutter's own menu instead.
 
 ### Keyboard focus
 
