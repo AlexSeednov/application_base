@@ -1,3 +1,11 @@
+## 0.3.3
+
+* **`RouteLink`** takes external URLs as well: an `https://…` link gets
+  `target="_blank"`, so the browser context menu recognises it and a
+  modifier-click opens it in a new tab, while a plain click still goes to
+  `onClick`. A path with a query (`/list?kind=category`) is no longer
+  percent-encoded into `/list%3Fkind=category` — the router could not match it.
+
 ## 0.3.2
 
 * **`EmptyButton`** draws a focus ring for keyboard-driven focus
