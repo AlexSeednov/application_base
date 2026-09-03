@@ -20,6 +20,8 @@ import 'package:application_base/presentation/navigation/navigation_service_pro.
     as _i229;
 import 'package:application_base/presentation/navigation/navigation_service_router.dart'
     as _i429;
+import 'package:application_base/presentation/service/haptic_service.dart'
+    as _i596;
 import 'package:application_base/presentation/service/lifecycle_service.dart'
     as _i198;
 import 'package:application_base/presentation/view_model/access_vm.dart'
@@ -40,6 +42,7 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
       dispose: (i) => i.dispose(),
     );
     gh.lazySingleton<_i1049.AccessVM>(() => _i1049.AccessVM());
+    gh.lazySingleton<_i596.HapticService>(() => _i596.HapticServicePlatform());
     gh.lazySingleton<_i268.UrlLauncherPro>(() => _i635.UrlLauncherRouter());
     gh.lazySingleton<_i229.NavigationServicePro>(
       () => _i429.NavigationServiceRouter(),
