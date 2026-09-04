@@ -1,3 +1,17 @@
+## 0.3.7
+
+* **`AutoScrollPro`**: the hold on the browser's middle-button defaults now
+  outlives the press that ends the mode. In 0.3.6 the hold was let go when
+  the mode ended — inside the `pointerdown`, which the engine hands to the
+  application synchronously — while the browser fires the `mousedown` and,
+  on the release, the `auxclick` after it: the defaults that open the link
+  were never prevented, and the click that ended the mode over a card still
+  opened the card in a new tab. A middle press that begins under the mode is
+  now held to its own `auxclick`, whatever the mode does meanwhile; a press
+  that begins outside the mode is the browser's. Verified in Chrome with the
+  browser's event order (`test/middle_button_default_test.dart`, runs with
+  `flutter test --platform chrome`).
+
 ## 0.3.6
 
 * **`AutoScrollPro`** holds off the browser's own answer to the middle button
