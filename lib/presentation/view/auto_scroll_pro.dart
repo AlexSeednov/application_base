@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:application_base/presentation/utility/middle_button_default.dart'
+    if (dart.library.js_interop)
+        'package:application_base/presentation/utility/middle_button_default_web.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -133,6 +136,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    holdMiddleButtonDefault(isHeld: false);
     HardwareKeyboard.instance.removeHandler(_onKey);
     _ticker.dispose();
     super.dispose();
@@ -268,6 +272,10 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     _pointer = anchor;
     _fallback = fallback;
     _latch.isBlocking = true;
+
+    /// The browser answers the middle button on its own — over a link with a
+    /// new tab — and the click that ends the mode must do nothing but that.
+    holdMiddleButtonDefault(isHeld: true);
     HardwareKeyboard.instance.addHandler(_onKey);
     _ticker.start();
 
@@ -282,6 +290,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     if (_anchor == null) return;
 
     _ticker.stop();
+    holdMiddleButtonDefault(isHeld: false);
     HardwareKeyboard.instance.removeHandler(_onKey);
     _isHeld = false;
     _isDragged = false;
