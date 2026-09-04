@@ -1,3 +1,13 @@
+## 0.3.6
+
+* **`AutoScrollPro`** holds off the browser's own answer to the middle button
+  while the mode is on. A click was ending the mode and, over a card, opening
+  the card in a new tab at the same time: the link is a real `<a>` element and
+  the browser acts on it without asking the application. The default of the
+  middle button (`mousedown`, `auxclick`) is now prevented in the capture
+  phase for as long as the mode holds it — propagation is untouched, so the
+  click still reaches the application and ends the mode.
+
 ## 0.3.5
 
 * **`AutoScrollPro`** — middle-button autoscroll for the web: the press

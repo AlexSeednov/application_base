@@ -786,7 +786,10 @@ route* rule above serves this mode as well.
 
 While the mode is on, the application stands behind a pointer block: the click
 that ends the mode presses nothing and hovers nothing, as in a browser. The
-block opens for the mode's own wheel events alone. The mode also ends on the
+block opens for the mode's own wheel events alone. The browser is held off as
+well — the default of the middle button is prevented while the mode is on, or
+the click that ends it would also open the link under the cursor in a new tab,
+since a `RouteLink` is a real `<a>` element the browser acts on by itself. The mode also ends on the
 wheel, on Escape, on the window losing the application, on the mouse leaving
 it, and on the release of a button that was dragged rather than clicked.
 
