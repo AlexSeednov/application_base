@@ -684,19 +684,14 @@ Rules that make it work:
   primary controller and would attach to it as well.
 - **Tabs (`IndexedStack`)**: Flutter excludes a hidden tab from focus, but the
   focus lands on the scope above the tabs, where there is nothing to scroll.
-  When a tab becomes active, focus the scope of the top route of its navigator,
-  and do it after the frame: until the stack rebuilds the tab is still
-  excluded and the request is silently dropped.
+  When a tab becomes active, focus the top route of its navigator with
+  `focusTopRoute(Navigator.of(context))`, and do it after the frame: until the
+  stack rebuilds the tab is still excluded and the request is silently dropped.
 
   ```dart
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final FocusNode navigatorNode = Navigator.of(context).focusNode;
-    final FocusScopeNode? topRouteScope = navigatorNode.children
-        .whereType<FocusScopeNode>()
-        .lastOrNull;
-
-    (topRouteScope ?? FocusScope.of(context)).requestScopeFocus();
-  });
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => focusTopRoute(Navigator.of(context)),
+  );
   ```
 
 - `unfocus()` (and `UnfocusingTap` with it) leaves the focus alone when it
@@ -707,15 +702,19 @@ Rules that make it work:
 `KeyboardShortcutsPro` adds what Flutter does not map: Home/End (also with
 Ctrl) and Shift+Space. Its actions also replace the framework's own
 `ScrollAction` with `ScrollActionPro`, which is what makes a **held** key
-usable: the framework aims every press at the offset the page holds at that
-moment and animates there over 100ms with an eased curve, while the OS repeats
-a held key every 30–60ms — each repeat cancels the previous animation in its
-slow opening and starts another from there, and the page crawls at a fraction
-of a step per press. `ScrollActionPro` adds the step of a repeat to the target
-the previous press aimed at and drives the animation at the pace of the
-repeats, so a held key scrolls a whole step per repeat and stops with the key.
-A single press is unchanged, and Home/End go the same way, aiming at a target
-that does not move.
+usable. The framework animates every press to the offset the page holds at
+that moment, and an animation is a ticker of its own that reports zero elapsed
+time on its first tick: with the OS repeating a held key every two or three
+frames, every other frame left the page standing still and the next one made
+the distance up in a jerk. Here a press moves an *aim* instead, and a single
+ticker — started with the first press, stopped once the page has arrived —
+draws the page after it with a critically damped pull tuned to the pace of the
+repeats. Held down, the page trails the aim by a fixed distance and holds
+exactly the speed the repeats ask for; released, it closes that distance and
+stops, and the distance covered is always the sum of the presses. Home/End go
+the same way, aiming at a target that does not move. The action is enabled
+only when it has a scrollable of the intent's axis to move, so a key it cannot
+use is left to whoever is next.
 
 Pass both maps to the app; they extend the defaults, so the text-editing
 shortcuts still win inside a field:
@@ -792,9 +791,12 @@ the click that ends it would also open the link under the cursor in a new tab,
 since a `RouteLink` is a real `<a>` element the browser acts on by itself. The
 hold outlives the press that ends the mode: the mode ends inside the
 `pointerdown`, and the `mousedown` and `auxclick` whose defaults matter come
-after it, so a press that begins under the mode is held to its own `auxclick`. The mode also ends on the
-wheel, on Escape, on the window losing the application, on the mouse leaving
-it, and on the release of a button that was dragged rather than clicked.
+after it, so a press that begins under the mode is held to its own `auxclick`.
+Nothing but the user ends the mode: the wheel, Escape, a click, or the release
+of a button that was dragged rather than clicked. The cursor leaving the window
+and the window losing the focus leave it on — the aim simply stops being
+updated, and the page keeps going the way it was last aimed, as the browser's
+own mode does.
 
 Over a `RouteLink` the middle button belongs to the browser — it opens the
 link in a new tab — so the link takes that click from the mode through
@@ -816,3 +818,22 @@ then show Flutter's own menu instead.
 
 `EmptyButton` draws a focus ring for keyboard-driven focus so a keyboard user
 can see where they are; Material buttons show their own focus overlay.
+
+A `RouteLink` is a real `<a>` element, and the browser leaves its focus on the
+element a click landed on. When that element then goes — the card was on the
+page the click navigated away from, or a lazy list recycled it — the browser
+drops the focus onto the body of the document, outside the Flutter view, and
+Flutter parks its own focus on the root scope, where no widget can take a
+key: page scrolling, Escape and every other shortcut go dead until the next
+click anywhere. `PageFocusKeeper` puts the focus back: it tells this case
+from the user leaving for the address bar or another tab (the document still
+holds the focus, its body has it) and walks the focus down the chain of
+last-focused children onto the top route, the way the next click would have.
+Wrap the application in it above everything else, next to `AutoScrollPro`:
+
+```dart
+MaterialApp.router(
+  builder: (_, child) => PageFocusKeeper(child: AutoScrollPro(child: child!)),
+  ...
+)
+```
