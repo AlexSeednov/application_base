@@ -29,6 +29,7 @@ For now includes:
 * [Url launcher](#url-launcher)
 * [Share](#share)
 * [Haptics](#haptics)
+* [Clipboard](#clipboard)
 * [Some useful widgets](#widgets)
 
 ## Supported platforms
@@ -130,7 +131,11 @@ include: package:application_base/analysis_options.yaml
 
 ## Flavor
 
-Pre-created `Development` and `Production` flavors with public getter `flavor`.
+Pre-created `Development`, `Stage` and `Production` flavors with public getter
+`flavor`. Every flavor carries a short `name` (`Dev` / `Stage` / `Prod`) used
+by the logger and by [`BannerPro`](#widgets) — short because the banner's
+ribbon is narrow and clips a long word.
+
 You can set it directrly on package prepare flow:
 
 ```dart
@@ -621,7 +626,25 @@ assert the cues it asked for. A platform with no haptics channel (desktop, the
 web) is remembered after its first refusal and never asked again — a cue as
 frequent as `selection()` would otherwise write a log line per tick of a drag.
 
+## Clipboard
+
+**ClipboardService** — the system clipboard with a haptic cue on every copy:
+copied text gives no visual feedback of its own, so the tap has to be felt.
+
+```dart
+await ClipboardService.set('text to copy');
+final String text = await ClipboardService.get();
+```
+
 ## Widgets
+
+```dart
+BannerPro(application: application),
+```
+
+`BannerPro` marks a non-production build with a corner ribbon carrying the
+flavor [name](#flavor). It wraps the whole application — above every route, so
+no screen can cover it — and on `FlavorProduction` returns the child as is.
 
 ```dart
 EmptyButton(

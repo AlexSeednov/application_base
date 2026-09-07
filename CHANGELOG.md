@@ -1,3 +1,19 @@
+## 0.3.9
+
+* **Flavor names shortened to `Dev` / `Stage` / `Prod`.** The name is what the
+  debug banner shows, and the ribbon is narrow: `Development` ran past its own
+  corner and came out cut off. The logger prefix gets shorter with it.
+
+* **`BannerPro`** (`presentation/view/banner_pro.dart`) — the corner ribbon
+  that tells a non-production build apart, carrying the flavor name. It wraps
+  the whole application, so no route can cover it, and brings its own
+  `Directionality`: above the application there is none yet. On
+  `FlavorProduction` it is the child alone.
+
+* **`ClipboardService`** (`presentation/service/clipboard_service.dart`) — the
+  system clipboard with a haptic cue on every copy: copied text gives no
+  visual feedback of its own, so the tap has to be felt.
+
 ## 0.3.8
 
 * **`navigation_service`: the pops and `currentRouteName` address the visible
@@ -58,7 +74,11 @@
   damped pull whose strength follows the pace of the repeats. Every frame
   moves the page, the step holds steady (`25.4, 24.6, 25.4…` and
   `9.3…10.5` px for the same two rates), and the distance covered is
-  unchanged: the page still ends exactly where the presses aimed it.
+  unchanged: the page still ends exactly where the presses aimed it. The same
+  change fixes the worst case of the old scheme — a key repeating *faster*
+  than a frame (a fast system autorepeat) never got a single moving frame:
+  the page stood still for the whole hold and jumped to the accumulated
+  target on release.
 
 * **`AutoScrollPro`**: the mode is now ended by the user alone. The cursor
   leaving the window and the window losing the focus both used to stop it —
