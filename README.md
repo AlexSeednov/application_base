@@ -359,14 +359,15 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route});
 /// Adds a new entry to the screens stack by using path
 Future<void> pushNamed({required String routeName});
 
-/// Pops the last screen unless stack has one entry
+/// Pops the last screen of the visible stack unless it is the only entry
 Future<void> popScreen({bool? result});
 
-/// Pop current route regardless if it's the last route in stack
-/// or the result of it's
+/// Pops the current screen of the visible stack regardless of whether it is
+/// the last one there or of what its PopScopes say
 void popScreenForced({bool? result});
 
-/// Keeps popping routes until route with provided path is found
+/// Keeps popping routes until route with provided name is found,
+/// in whichever stack holds it
 void popUntilScreenWithName({required String routeName});
 
 /// Pops until provided route, if it already exists in stack

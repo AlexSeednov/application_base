@@ -11,8 +11,12 @@ GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
 /// Actual application router
 StackRouter? get actualRouter => actualContext?.router;
 
+/// Name of the screen on view: the current route of the top-most router.
 ///
-String? get currentRouteName => actualRouter?.current.name;
+/// [actualRouter] is the root, and with the screens in a nested router — a
+/// shell route that holds a stack of its own — the root's own current route
+/// is the shell, whatever screen is showing inside it.
+String? get currentRouteName => actualRouter?.topRoute.name;
 
 /// Current context getter
 ///
@@ -77,25 +81,95 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
 Future<void> pushNamed({required String routeName}) =>
     _withRouterAsync('pushNamed', (router) => router.pushPath(routeName));
 
-/// Pops the last screen unless stack has one entry
+/// Pops the last screen of the visible stack unless it is the only entry.
+///
+/// Through the top-most router, the way the system back button goes
+/// (`AutoRouterDelegate.popRoute`): [actualRouter] is the root, and with the
+/// screens in a nested router — a shell route that holds a stack of its own —
+/// the root navigator holds that one shell page, so a pop aimed at the root
+/// has nothing to pop and silently does nothing.
 // Optimize(Alex): пометить как awaitNotRequired с выходом meta 1.17
 Future<void> popScreen({bool? result}) =>
-    _withRouterAsync('pop', (router) => router.maybePop(result));
+    _withRouterAsync('pop', (router) => router.maybePopTop(result));
 
-/// Calls pop on the controller with the top-most visible page
+/// Calls pop on the controller with the top-most visible page.
+///
+/// The same call as [popScreen] since that one moved to the top-most router;
+/// kept so existing callers keep compiling.
 void popTopScreen({bool? result}) =>
     _withRouter('popTop', (router) => router.maybePopTop(result));
 
-/// Pop current route regardless if it's the last route in stack
-/// or the result of it's
-void popScreenForced({bool? result}) =>
-    _withRouter('popForced', (router) => router.pop(result));
-
-/// Keeps popping routes until route with provided [routeName] is found
-void popUntilScreenWithName({required String routeName}) => _withRouter(
-  'popUntilRouteWithName',
-  (router) => router.popUntilRouteWithName(routeName),
+/// Pops the current screen of the visible stack regardless of whether it is
+/// the last one there or of what its `PopScope`s say.
+///
+/// Through the top-most router for the same reason as [popScreen]: on the
+/// root a forced pop takes the shell page of a nested router off instead and
+/// leaves an empty window. A nested stack down to its last page is not popped
+/// to nothing either — the pop moves up to the page that holds it, the way
+/// `maybePop` bubbles; only the root pops its last page, which is what the
+/// caller asked for.
+void popScreenForced({bool? result}) => _withRouter(
+  'popForced',
+  (router) => _forcedPopTarget(router).pop(result),
 );
+
+/// The router the forced pop lands on: the top-most one, or the nearest
+/// ancestor with something of its own to pop.
+///
+/// Tabs routers have nothing of their own and are climbed through, so a
+/// forced pop on a tabs page removes the page — not the tab.
+RoutingController _forcedPopTarget(StackRouter root) {
+  RoutingController target = root.topMostRouter();
+  while (true) {
+    final RoutingController? parent = target.parent<RoutingController>();
+    if (parent == null) return target;
+    if (target.canPop(ignoreParentRoutes: true, ignoreChildRoutes: true)) {
+      return target;
+    }
+    target = parent;
+  }
+}
+
+/// Keeps popping routes until the route named [routeName] is on top.
+///
+/// The name is looked for from the top-most router up to the root, and the
+/// first stack that holds it pops to it — scoped, so no stack is ever emptied
+/// on the way (auto_route's unscoped `popUntil` clears every stack the name
+/// is not in). A name no stack holds pops nothing and is logged. Whatever an
+/// ancestor shows over that stack — a sheet or a dialog on the root — goes as
+/// well, since it sits above the target.
+void popUntilScreenWithName({required String routeName}) =>
+    _withRouter('popUntilRouteWithName', (router) {
+      StackRouter? holder;
+      RoutingController? candidate = router.topMostRouter(
+        ignorePagelessRoutes: true,
+      );
+      while (candidate != null) {
+        if (candidate is StackRouter &&
+            candidate.stackData.any((data) => data.name == routeName)) {
+          holder = candidate;
+          break;
+        }
+        candidate = candidate.parent<RoutingController>();
+      }
+      if (holder == null) {
+        logError(
+          error: 'Navigation skipped, no stack holds the route: $routeName',
+        );
+        return;
+      }
+
+      for (
+        RoutingController? ancestor = holder.parent<RoutingController>();
+        ancestor != null;
+        ancestor = ancestor.parent<RoutingController>()
+      ) {
+        if (ancestor is StackRouter) {
+          ancestor.popUntil((route) => route.settings is Page);
+        }
+      }
+      holder.popUntilRouteWithName(routeName);
+    });
 
 /// Pops until provided [route], if it already exists in stack
 /// else adds it to the stack (good for web Apps).
