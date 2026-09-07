@@ -6,9 +6,10 @@ sealed class FlavorType {
 
 /// Development release version with test functionality
 final class FlavorDevelopment implements FlavorType {
-  ///
+  /// Short on purpose: the name is what the debug banner shows, and the
+  /// banner's ribbon is narrow — a long word gets cut off by its own corner
   @override
-  final String name = 'Development';
+  final String name = 'Dev';
 }
 
 /// Pre-production release version aimed at a staging backend
@@ -22,5 +23,5 @@ final class FlavorStage implements FlavorType {
 final class FlavorProduction implements FlavorType {
   ///
   @override
-  final String name = 'Production';
+  final String name = 'Prod';
 }
