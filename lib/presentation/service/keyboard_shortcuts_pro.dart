@@ -6,8 +6,12 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 /// Page scrolling keys on top of Flutter's own map: on the web Flutter maps
-/// the arrows, PageUp/PageDown and Space itself, but not Home/End and
-/// Shift+Space.
+/// the arrows, PageUp/PageDown and Space itself, but neither Home/End and
+/// Shift+Space nor any of the combinations a browser on macOS scrolls a page
+/// with. Flutter's own Apple map is no help with the latter: on the web
+/// `defaultShortcuts` answers with the web map whatever the host OS is, and
+/// where the Apple map does apply it moves Cmd+arrow by a line rather than to
+/// the ends of the page.
 ///
 /// The maps go into `MaterialApp.shortcuts` / `actions` and extend the
 /// defaults: there they sit above the text-editing shortcuts, so a focused
@@ -18,19 +22,70 @@ abstract final class KeyboardShortcutsPro {
   ///
   static Map<ShortcutActivator, Intent> get shortcuts => {
     ...WidgetsApp.defaultShortcuts,
-    const SingleActivator(LogicalKeyboardKey.home): const KeyboardScrollIntent(
+    ..._commonShortcuts,
+    if (_isApple) ..._appleShortcuts,
+  };
+
+  /// The keys that mean the same on every platform.
+  static const Map<ShortcutActivator, Intent> _commonShortcuts = {
+    SingleActivator(LogicalKeyboardKey.home): KeyboardScrollIntent(
       KeyboardScrollKind.toStart,
     ),
-    const SingleActivator(LogicalKeyboardKey.end): const KeyboardScrollIntent(
+    SingleActivator(LogicalKeyboardKey.end): KeyboardScrollIntent(
       KeyboardScrollKind.toEnd,
     ),
-    const SingleActivator(LogicalKeyboardKey.home, control: true):
-        const KeyboardScrollIntent(KeyboardScrollKind.toStart),
-    const SingleActivator(LogicalKeyboardKey.end, control: true):
-        const KeyboardScrollIntent(KeyboardScrollKind.toEnd),
-    const SingleActivator(LogicalKeyboardKey.space, shift: true):
-        const KeyboardScrollIntent(KeyboardScrollKind.pageUp),
+    SingleActivator(LogicalKeyboardKey.home, control: true):
+        KeyboardScrollIntent(KeyboardScrollKind.toStart),
+    SingleActivator(LogicalKeyboardKey.end, control: true):
+        KeyboardScrollIntent(KeyboardScrollKind.toEnd),
+    SingleActivator(LogicalKeyboardKey.space, shift: true):
+        KeyboardScrollIntent(KeyboardScrollKind.pageUp),
   };
+
+  /// What a browser on macOS scrolls a page with — Cmd+arrow to the ends of
+  /// the page, Option+arrow by a screen — bound on the Apple platforms alone:
+  /// the same combinations are Alt+arrow elsewhere, where Alt+left/right is
+  /// the browser's own back/forward.
+  ///
+  /// Cmd+left/right is deliberately absent: Safari, Chrome and Firefox all
+  /// walk the history with it, and a key the application does not handle is
+  /// left to the browser. Bound to a horizontal scroll it would take
+  /// back/forward away from the user.
+  ///
+  /// The horizontal pair goes through the framework's own [ScrollIntent],
+  /// since [KeyboardScrollAction] moves the vertical scrollable of the page;
+  /// [ScrollActionPro] takes the axis from the intent and moves whatever is
+  /// focused — a carousel, in practice.
+  static const Map<ShortcutActivator, Intent> _appleShortcuts = {
+    SingleActivator(LogicalKeyboardKey.arrowUp, meta: true):
+        KeyboardScrollIntent(KeyboardScrollKind.toStart),
+    SingleActivator(LogicalKeyboardKey.arrowDown, meta: true):
+        KeyboardScrollIntent(KeyboardScrollKind.toEnd),
+    SingleActivator(LogicalKeyboardKey.home, meta: true): KeyboardScrollIntent(
+      KeyboardScrollKind.toStart,
+    ),
+    SingleActivator(LogicalKeyboardKey.end, meta: true): KeyboardScrollIntent(
+      KeyboardScrollKind.toEnd,
+    ),
+    SingleActivator(LogicalKeyboardKey.arrowUp, alt: true):
+        KeyboardScrollIntent(KeyboardScrollKind.pageUp),
+    SingleActivator(LogicalKeyboardKey.arrowDown, alt: true):
+        KeyboardScrollIntent(KeyboardScrollKind.pageDown),
+    SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): ScrollIntent(
+      direction: AxisDirection.left,
+      type: ScrollIncrementType.page,
+    ),
+    SingleActivator(LogicalKeyboardKey.arrowRight, alt: true): ScrollIntent(
+      direction: AxisDirection.right,
+      type: ScrollIncrementType.page,
+    ),
+  };
+
+  /// Whether the modifiers are laid out the Apple way — on the web the
+  /// platform follows the host OS, which is what decides that.
+  static bool get _isApple =>
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.iOS;
 
   ///
   static Map<Type, Action<Intent>> get actions => {
@@ -48,8 +103,11 @@ enum KeyboardScrollKind {
   /// To the end of the page.
   toEnd,
 
-  /// One page up.
+  /// One screen up.
   pageUp,
+
+  /// One screen down.
+  pageDown,
 }
 
 /// Intent to scroll the page with the keyboard.
@@ -113,7 +171,8 @@ final class ScrollActionPro extends ScrollAction {
 /// Inside a text field the keys stay with the field: Home/End move the caret
 /// and Shift+Space is a plain space typed with Shift held. The web
 /// text-editing shortcuts do not intercept these combinations, so the check
-/// lives here.
+/// lives here. The Apple ones they do — Cmd/Option+arrow is handed to the
+/// browser from inside a field — and the check covers them all the same.
 final class KeyboardScrollAction extends ContextAction<KeyboardScrollIntent> {
   /// Share of the viewport per key press — as the built-in page step.
   static const double _pageFraction = 0.8;
@@ -129,18 +188,20 @@ final class KeyboardScrollAction extends ContextAction<KeyboardScrollIntent> {
     final ScrollPosition? position = _positionOf(context);
     if (position == null) return;
 
-    /// A page step is held down as often as any other, so it goes through the
-    /// same aim; the ends of the page are a fixed target and need none.
-    if (intent.kind == KeyboardScrollKind.pageUp) {
-      _HeldScroll.step(position, -position.viewportDimension * _pageFraction);
-      return;
+    final double page = position.viewportDimension * _pageFraction;
+
+    /// A screen step is held down as often as any other, so it goes through
+    /// the same aim; the ends of the page are a fixed target and need none.
+    switch (intent.kind) {
+      case KeyboardScrollKind.pageUp:
+        _HeldScroll.step(position, -page);
+      case KeyboardScrollKind.pageDown:
+        _HeldScroll.step(position, page);
+      case KeyboardScrollKind.toStart:
+        _HeldScroll.settle(position, position.minScrollExtent);
+      case KeyboardScrollKind.toEnd:
+        _HeldScroll.settle(position, position.maxScrollExtent);
     }
-
-    final double target = intent.kind == KeyboardScrollKind.toStart
-        ? position.minScrollExtent
-        : position.maxScrollExtent;
-
-    _HeldScroll.settle(position, target);
   }
 
   /// The position the key moves; `null` — nothing to move.
