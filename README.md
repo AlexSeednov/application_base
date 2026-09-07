@@ -30,6 +30,8 @@ For now includes:
 * [Share](#share)
 * [Haptics](#haptics)
 * [Clipboard](#clipboard)
+* [Store listing](#store-listing)
+* [Identifiers](#identifiers)
 * [Some useful widgets](#widgets)
 
 ## Supported platforms
@@ -636,6 +638,47 @@ await ClipboardService.set('text to copy');
 final String text = await ClipboardService.get();
 ```
 
+## Store listing
+
+**StoreService** — opens the store page of the application. One place for
+every reason to send the user there — rating the app, taking an update the
+backend now demands — because it is one and the same page. The store identity
+is handed over once on start-up, so a tap carries nothing but itself:
+
+```dart
+getIt<StoreService>().appStoreId = '1234567890'; // Apple platforms only
+
+// the control is shown only where there is a store to open
+if (getIt<StoreService>().isAvailable) ...
+
+await getIt<StoreService>().openListing();
+```
+
+Android, iOS and macOS have a store the plugin can open; everywhere else
+`isAvailable` is `false` and `openListing()` does nothing, so an application
+hides the control rather than offering one that leads nowhere. On the Apple
+platforms the listing cannot be found without `appStoreId` — a missing one is
+logged as an error instead of throwing.
+
+The in-app rating sheet is deliberately left out. The system shows it at its
+own discretion and does nothing at all once the user has rated the application
+or the platform quota is spent — while the plugin's `isAvailable()` keeps
+answering true, so an application cannot tell a shown sheet from a swallowed
+one. A tap on an explicit «rate us» control has to land somewhere every time,
+and only the store listing does.
+
+## Identifiers
+
+**UuidPro** — the random (v4) identifiers an application stores with its
+records:
+
+```dart
+final String uid = UuidPro.get();
+```
+
+One generator for the whole application: `Uuid` carries a random number
+generator of its own, and building a fresh one per identifier is pure waste.
+
 ## Widgets
 
 ```dart
@@ -724,9 +767,19 @@ Rules that make it work:
 - A focused `TextField` keeps the keys, as it does in a browser.
 
 `KeyboardShortcutsPro` adds what Flutter does not map: Home/End (also with
-Ctrl) and Shift+Space. Its actions also replace the framework's own
-`ScrollAction` with `ScrollActionPro`, which is what makes a **held** key
-usable. The framework animates every press to the offset the page holds at
+Ctrl), Shift+Space, and — on the Apple platforms alone — the keys a browser on
+macOS scrolls a page with: Cmd+Up/Down to the ends of the page, Option+Up/Down
+by a screen, Option+Left/Right the same horizontally. The last of those needs
+the binding the most: `defaultShortcuts` answers with the web map whatever the
+host OS is, so Flutter's own Apple map never reaches a browser, and where it
+does apply it moves Cmd+arrow by a single line instead. They are bound on the
+Apple platforms alone because the same combinations are Alt+arrow elsewhere,
+where Alt+Left/Right is the browser's own back/forward; Cmd+Left/Right is left
+unbound everywhere, since every browser walks its history with it and a key
+the application does not handle goes to the browser.
+
+Its actions also replace the framework's own `ScrollAction` with
+`ScrollActionPro`, which is what makes a **held** key usable. The framework animates every press to the offset the page holds at
 that moment, and an animation is a ticker of its own that reports zero elapsed
 time on its first tick: with the OS repeating a held key every two or three
 frames, every other frame left the page standing still and the next one made
