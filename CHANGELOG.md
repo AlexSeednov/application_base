@@ -1,3 +1,60 @@
+## 0.3.8
+
+* **`ScrollActionPro`** is enabled only when it has something to move. The
+  `isEnabled` inherited from the framework said yes to any client of the route
+  controller and to a scrollable of any axis, while `invoke` needs exactly one
+  position on the axis of the intent — the key was spent on standing still and
+  nobody below got it. One lookup now serves both, and `KeyboardScrollAction`
+  shares it instead of carrying a near copy.
+
+* **`focusTopRoute(NavigatorState)`** (`presentation/utility/route_focus.dart`)
+  puts the keyboard focus on the topmost route of a navigator — the recipe the
+  README used to paste for the tabs of an `IndexedStack`, now a function.
+
+* README: the *Web* section brought in line with the code — the held-key
+  follow, the autoscroll mode that only the user ends, `PageFocusKeeper`,
+  `focusTopRoute`.
+
+* **`PageFocusKeeper`**: a new widget that keeps the keyboard working after a
+  click on a link. A link of an application is a real `<a>` element laid over
+  the widget (`RouteLink`), and the browser leaves its focus on that element;
+  when the element then goes — the card was on the page the click navigated
+  away from, or a lazy list recycled it — the browser drops the focus onto the
+  body of the document. Flutter reads that `focusout` as the view losing the
+  focus and parks its own focus on the root scope, which has no context and
+  where no widget can take a key: page scrolling, Escape, every shortcut went
+  dead until the next click anywhere (`widgets/view.dart`, `ViewFocusState
+  .unfocused`). The document itself never left, though — and that is what
+  tells this case from the user going to the address bar or to another tab.
+  The widget checks exactly that (the document has the focus, its body holds
+  it) and puts the focus back the way the next click would have: the root
+  scope descends the chain of its last-focused children onto the scope of the
+  topmost route. Wrap the application in it above everything else.
+
+* **`KeyboardShortcutsPro`**: a held arrow now scrolls smoothly. The step of
+  every press was animated, and an animation is a ticker of its own — a ticker
+  reports zero elapsed time on its first tick, so the frame that started one
+  left the page exactly where it was. A key repeating every two or three
+  frames therefore spent every other frame standing still and made the
+  distance up in a jerk (measured: `0, 50, 0, 50…` px per frame, and
+  `0, 2.5, 8.2, 12.5, 13.2, 0, 63.5, 0, 0, 0` at the slower repeat rate).
+  The presses now move an aim, and one ticker — started with the first press,
+  stopped once the page arrives — draws the page after it with a critically
+  damped pull whose strength follows the pace of the repeats. Every frame
+  moves the page, the step holds steady (`25.4, 24.6, 25.4…` and
+  `9.3…10.5` px for the same two rates), and the distance covered is
+  unchanged: the page still ends exactly where the presses aimed it.
+
+* **`AutoScrollPro`**: the mode is now ended by the user alone. The cursor
+  leaving the window and the window losing the focus both used to stop it —
+  the first the more painful of the two, since aiming at the edge of a long
+  list is the most natural way to leave the window at all. Neither does now:
+  without fresh pointer events the aim simply stays where it was and the page
+  keeps going, as the browser's own mode does; a click, the wheel or Escape
+  ends it. The step is measured over a frame bounded at 100 ms, so the first
+  frame back from a hidden tab — where the frames stop and the clock does
+  not — carries one frame of scrolling and not the whole pause.
+
 ## 0.3.7
 
 * **`AutoScrollPro`**: the hold on the browser's middle-button defaults now

@@ -27,6 +27,11 @@ import 'package:flutter/services.dart';
 /// anchor scrolls at all does the route's primary position take the step
 /// directly — the same position the keyboard scrolls.
 ///
+/// Nothing but the user ends the mode: a click, the wheel or Escape. The
+/// cursor leaving the window and the window losing the focus leave it on —
+/// the aim simply stops being updated, and the page keeps going the way it
+/// was last aimed, exactly as the browser's own mode does.
+///
 /// A platform without a middle button never starts the mode, so the widget is
 /// inert on a phone.
 final class AutoScrollPro extends StatefulWidget {
@@ -67,7 +72,7 @@ final class AutoScrollScope extends InheritedWidget {
 /// The mode's own state: where it is anchored, where the mouse is, and what
 /// carries the step.
 final class _AutoScrollProState extends State<AutoScrollPro>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin {
   /// Distance from the anchor the page stands still within. The same travel
   /// turns the press into a drag: past it the release ends the mode.
   static const double _deadZone = 12;
@@ -80,6 +85,12 @@ final class _AutoScrollProState extends State<AutoScrollPro>
 
   /// Diameter of the anchor mark.
   static const double _anchorSize = 30;
+
+  /// Upper bound of the frame the step is measured over. The mode outlives a
+  /// hidden tab, where the frames stop and the clock does not: without the
+  /// bound the first frame back would carry the whole pause and throw the
+  /// page across the list in one step.
+  static const Duration _maxFrame = Duration(milliseconds: 100);
 
   /// Marks the wheel events the mode sends itself, so it does not read its
   /// own scrolling as the user's wheel and stop on the first frame. A real
@@ -129,24 +140,15 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
-    WidgetsBinding.instance.addObserver(this);
   }
 
   ///
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     holdMiddleButtonDefault(isHeld: false);
     HardwareKeyboard.instance.removeHandler(_onKey);
     _ticker.dispose();
     super.dispose();
-  }
-
-  /// The application losing the window loses the mouse with it: the mode
-  /// would keep scrolling with nothing left to aim it.
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _stop();
   }
 
   ///
@@ -189,7 +191,6 @@ final class _AutoScrollProState extends State<AutoScrollPro>
                   cursor: _cursor,
                   opaque: false,
                   hitTestBehavior: HitTestBehavior.translucent,
-                  onExit: _onExit,
                   child: const SizedBox.expand(),
                 ),
               ),
@@ -237,11 +238,6 @@ final class _AutoScrollProState extends State<AutoScrollPro>
 
     _stop();
   }
-
-  /// The mouse leaving the application takes the aim with it: the mode would
-  /// otherwise scroll on blind, and the click that ends it would land on
-  /// another window.
-  void _onExit(PointerExitEvent event) => _stop();
 
   /// Escape leaves the mode, as it does in a browser; every other key belongs
   /// to the application.
@@ -325,12 +321,13 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     final Duration frame = elapsed - _lastTick;
     _lastTick = elapsed;
     if (frame <= Duration.zero) return;
+    final Duration step = frame > _maxFrame ? _maxFrame : frame;
 
     final Offset velocity = _velocityFor(_pointer - anchor);
     if (velocity == Offset.zero) return;
 
     final double seconds =
-        frame.inMicroseconds / Duration.microsecondsPerSecond;
+        step.inMicroseconds / Duration.microsecondsPerSecond;
 
     _scrollBy(velocity * seconds, anchor);
   }
