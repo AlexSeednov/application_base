@@ -1,7 +1,7 @@
 # Last full SDK + dependency audit - 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.3.9
+version: 0.4.0
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -48,6 +48,13 @@ dependencies:
   # All platform supported
   http: ^1.6.0
 
+  # Not supported: Linux | Web | Windows
+  #
+  # Store listing of the application, see ReviewService. Compiles everywhere —
+  # a platform without an implementation simply registers no plugin, and the
+  # service gates itself on the platform before it calls anything
+  in_app_review: ^2.0.12
+
   # All platform supported
   injectable: ^3.0.0
 
@@ -65,6 +72,11 @@ dependencies:
 
   # All platform supported
   url_launcher: ^6.3.2
+
+  # All platform supported
+  #
+  # Random identifiers of the records an application stores locally
+  uuid: ^4.6.0
 
   # Web only — browser API bindings, reached strictly through conditional
   # imports (`if (dart.library.js_interop)`), never imported directly

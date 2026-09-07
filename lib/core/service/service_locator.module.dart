@@ -24,12 +24,14 @@ import 'package:application_base/presentation/service/haptic_service.dart'
     as _i596;
 import 'package:application_base/presentation/service/lifecycle_service.dart'
     as _i198;
+import 'package:application_base/presentation/service/store_service.dart'
+    as _i918;
 import 'package:application_base/presentation/view_model/access_vm.dart'
     as _i1049;
 import 'package:injectable/injectable.dart' as _i526;
 
 class ApplicationBasePackageModule extends _i526.MicroPackageModule {
-  // initializes the registration of main-scope dependencies inside of GetIt
+// initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
     gh.lazySingleton<_i211.LoggerConfigService>(
@@ -41,12 +43,12 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
       () => _i657.NetworkSubject(),
       dispose: (i) => i.dispose(),
     );
+    gh.lazySingleton<_i918.StoreService>(() => _i918.StoreService());
     gh.lazySingleton<_i1049.AccessVM>(() => _i1049.AccessVM());
     gh.lazySingleton<_i596.HapticService>(() => _i596.HapticServicePlatform());
     gh.lazySingleton<_i268.UrlLauncherPro>(() => _i635.UrlLauncherRouter());
     gh.lazySingleton<_i229.NavigationServicePro>(
-      () => _i429.NavigationServiceRouter(),
-    );
+        () => _i429.NavigationServiceRouter());
     gh.lazySingleton<_i29.ConnectivityService>(
       () => _i29.ConnectivityService(gh<_i657.NetworkSubject>()),
       dispose: (i) => i.dispose(),

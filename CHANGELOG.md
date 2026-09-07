@@ -1,3 +1,35 @@
+## 0.4.0
+
+* **`StoreService`** (`presentation/service/store_service.dart`) — the store
+  page of the application, moved in from `alex_base`'s `ReviewService` so
+  every project on the stack opens it the same way. Named after the action
+  rather than one reason for it: rating the app and taking a demanded update
+  lead to the same page, and the applications had a service each for the two.
+  The in-app rating sheet is left out: the system shows it at its own
+  discretion and does nothing once the user has rated the app or the quota is
+  spent, while `isAvailable()` keeps answering true — a tap on an explicit
+  «rate us» control has to land somewhere every time. `isAvailable` now covers
+  macOS beside the mobile platforms, which the plugin has always supported,
+  and `appStoreId` is set once on start-up rather than travelling with every
+  call.
+
+* **`UuidPro`** (`domain/utility/uuid_pro.dart`) — the random identifiers an
+  application stores with its records, also from `alex_base`. One `Uuid`
+  instance for the whole application.
+
+* **`KeyboardShortcutsPro`: the keys a browser on macOS scrolls a page with.**
+  Cmd+Up/Down goes to the ends of the page, Option+Up/Down moves by a screen
+  and Option+Left/Right does the same horizontally — none of which worked.
+  `WidgetsApp.defaultShortcuts` answers with the web map whatever the host OS
+  is, so Flutter's own Apple map never reaches a browser, and where it does
+  apply it moves Cmd+arrow by a single line rather than to the ends of the
+  page. The set is bound on the Apple platforms alone: the same combinations
+  are Alt+arrow elsewhere, where Alt+Left/Right is the browser's own
+  back/forward. Cmd+Left/Right stays unbound on purpose — every browser walks
+  its history with it, and a key the application does not handle is left to
+  the browser. `KeyboardScrollKind` gains `pageDown` beside `pageUp`. Pinned
+  by `test/keyboard_shortcuts_pro_test.dart`.
+
 ## 0.3.9
 
 * **Flavor names shortened to `Dev` / `Stage` / `Prod`.** The name is what the
