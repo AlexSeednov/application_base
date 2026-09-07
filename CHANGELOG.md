@@ -1,5 +1,20 @@
 ## 0.3.8
 
+* **`navigation_service`: the pops and `currentRouteName` address the visible
+  stack.** With the screens in a nested router — a shell route that holds a
+  stack of its own — the root navigator holds one page, the shell, and the
+  helpers spoke to the root: `popScreen` had nothing to pop there and silently
+  did nothing, `popScreenForced` took the shell off and left an empty window,
+  `popUntilScreenWithName` never found the name, and `currentRouteName` always
+  answered with the shell. They now go through the top-most router, the way
+  the system back button does (`maybePopTop`). A forced pop on the last page
+  of a nested stack moves up to the page that holds it instead of emptying
+  the stack, and `popUntilScreenWithName` pops in the first stack from the
+  top that holds the name — scoped, so no stack is cleared on the way, and a
+  name no stack holds is a logged no-op rather than a wiped root. An app with
+  a flat root stack sees no difference; `popTopScreen` is now the same call as
+  `popScreen`. Pinned by `test/navigation_service_test.dart`.
+
 * **`ScrollActionPro`** is enabled only when it has something to move. The
   `isEnabled` inherited from the framework said yes to any client of the route
   controller and to a scrollable of any axis, while `invoke` needs exactly one

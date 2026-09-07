@@ -27,15 +27,26 @@ abstract interface class NavigationServicePro {
   /// (cross-sector navigation).
   Future<void> navigate(PageRouteInfo<dynamic> route);
 
-  /// Pops the top screen unless it is the only entry, returning [result].
+  /// Pops the top screen of the visible stack unless it is the only entry
+  /// there, returning [result].
+  ///
+  /// The visible stack is the top-most router's — the nested one when the
+  /// screens live inside a shell route — the way the system back button sees
+  /// it.
   Future<void> pop({bool? result});
 
-  /// Pops the top screen regardless of whether it is the last one in the stack.
+  /// Pops the top screen of the visible stack regardless of whether it is the
+  /// last one there or of what its `PopScope`s say.
+  ///
+  /// A nested stack down to its last page hands the pop to the page that
+  /// holds it rather than emptying itself.
   void popForced({bool? result});
 
-  /// Keeps popping routes until a route named [routeName] is on top.
+  /// Keeps popping routes until a route named [routeName] is on top, in
+  /// whichever stack holds it; a name no stack holds pops nothing.
   void popUntilRouteName(String routeName);
 
-  /// Name of the current (top) route, or `null` if the router is unavailable.
+  /// Name of the screen on view — the top route of the top-most router — or
+  /// `null` if the router is unavailable.
   String? get currentRouteName;
 }
