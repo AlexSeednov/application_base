@@ -2,6 +2,12 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
+/// `isTouchInput` belongs with the other platform questions, and re-exporting
+/// it here spares every caller the conditional clause the bridge needs
+export 'package:application_base/core/utility/touch_input.dart'
+    if (dart.library.js_interop)
+        'package:application_base/core/utility/touch_input_web.dart';
+
 /// Note: using `Platform` on web throws exception,
 /// so web checking must be the first
 

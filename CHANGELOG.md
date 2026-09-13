@@ -1,3 +1,23 @@
+## 0.4.1
+
+* **`isTouchInput`** (`core/utility/touch_input.dart`, re-exported from
+  `core/service/platform_service.dart`) — whether the device the browser runs
+  on accepts touch, moved in from Medita. The one signal that tells an iPad
+  from a desktop Mac in a browser: Safari on iPadOS reports itself as macOS,
+  so `defaultTargetPlatform` alone sends a tablet down the desktop branch —
+  and an application already installed on that very device is then offered as
+  a QR code there is nothing to scan with.
+
+  Deliberately shipped as the measurement rather than the conclusion: no
+  corrected `TargetPlatform` getter comes with it. A Mac with a touch screen
+  answers `maxTouchPoints` the way an iPad does, and a wrong platform handed
+  out as a fact is harder to notice than a coarse one — the same stance
+  `currentPlatform` takes by staying nullable. The caller owns the verdict and
+  owns making it degrade into something harmless.
+
+  Outside the web the value is a plain `false`: not a claim about the
+  hardware — a native build has nothing to correct.
+
 ## 0.4.0
 
 * **`StoreService`** (`presentation/service/store_service.dart`) — the store
