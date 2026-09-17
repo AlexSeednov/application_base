@@ -1,3 +1,31 @@
+## 0.4.2
+
+* **`ExpansionTilePro`** (`presentation/view/expansion_tile_pro.dart`) — an
+  expandable row of a list: a title with a chevron, a body under it, and a
+  hover highlight, moved in from Medita where two lists had grown their own
+  copy of it.
+
+  The expanded state stays with the caller (`isExpanded` + `onToggle`): one
+  list keeps a single row open at a time, another opens any number, and the
+  row has no business deciding that. Everything an application owns — the
+  chevron widget, the highlight colour, the corner radius, the title style,
+  the duration — is a parameter, so the row brings no design system of its
+  own.
+
+  The highlight is the part worth the widget. It is painted as a layer of its
+  own under the row and bleeds past it horizontally (`highlightBleed`), so the
+  title never touches the edge of the fill while staying on the same vertical
+  line as the rest of the block. Two conditions come with that: no ancestor
+  may clip those edges (a list needs `clipBehavior: Clip.none`), and where
+  there is no room outside — a modal, a column flush against the edge — the
+  caller gives the row a padding of the same width for the highlight to take.
+
+  The tap target is `EmptyButton`, not an `InkWell` of its own: no ripple, no
+  focus fill left behind by a mouse click — a keyboard focus ring and nothing
+  else. That is what a hover fill grown out of Material's own state layers
+  gets wrong, and the widget test pins it down: the highlight covers the row
+  including its vertical padding, and fades the moment the cursor leaves.
+
 ## 0.4.1
 
 * **`isTouchInput`** (`core/utility/touch_input.dart`, re-exported from
