@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 /// Tap target without any visual feedback.
 ///
-/// The overlay colour is forced to transparent so wrapping a laid-out
-/// subtree in it does not change how that subtree looks.
+/// The overlay colour is forced to transparent, so wrapping a laid-out
+/// subtree does not change how it looks.
 ///
-/// The one thing it does draw is a focus ring. With a transparent overlay the
-/// ink well's own focus highlight is invisible, so a keyboard user tabbing
-/// through the page could not see where they were. The ring shows only for
-/// keyboard-driven focus ([FocusHighlightMode.traditional]): a pointer tap
-/// never focuses the button, so touch and mouse users never see it.
+/// It draws only a focus ring: with a transparent overlay the ink well's own
+/// focus highlight is invisible, and a keyboard user could not see where the
+/// focus is. The ring shows only for keyboard focus
+/// ([FocusHighlightMode.traditional]); a pointer tap never focuses the
+/// button, so touch and mouse users never see it.
 final class EmptyButton extends StatefulWidget {
   ///
   const EmptyButton({
@@ -19,7 +19,7 @@ final class EmptyButton extends StatefulWidget {
     super.key,
   });
 
-  ///
+  /// `null` — no tap target: the child is shown as is.
   final VoidCallback? onClick;
 
   ///
@@ -46,7 +46,8 @@ final class _EmptyButtonState extends State<EmptyButton> {
   /// Whether the ink well (or a descendant) holds the focus.
   bool _isFocused = false;
 
-  /// Whether the focus is driven by the keyboard: only then the ring shows.
+  /// Whether the focus is driven by the keyboard: only then does the ring
+  /// show.
   bool _isKeyboardFocus =
       FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
 

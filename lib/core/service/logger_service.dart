@@ -36,7 +36,7 @@ set logErrorRemote(
   void Function({required String error, StackTrace? stack})? value,
 ) => loggerState.errorSink = value;
 
-/// Local logger for beauty output info in console
+/// Console logger for errors, which keep their stack frames.
 final Logger _localLogger = Logger(
   printer: PrettyPrinter(
     printEmojis: false,
@@ -44,7 +44,8 @@ final Logger _localLogger = Logger(
   ),
 );
 
-/// Local logger for beauty output info in console without stack
+/// Console logger for info lines, with no stack frames: a trace under every
+/// line would bury the messages themselves.
 final Logger _localPureLogger = Logger(
   printer: PrettyPrinter(
     methodCount: 0,
@@ -53,9 +54,8 @@ final Logger _localPureLogger = Logger(
   ),
 );
 
-/// Logging some information
+///
 void logInfo({required String info, String? additional}) {
-  /// Prepare full error message
   String message = info;
   if (additional != null) message += ': $additional';
 
@@ -69,29 +69,24 @@ void logInfo({required String info, String? additional}) {
   if (!isDebug) logInfoRemote?.call(information: message);
 }
 
-/// For greater clarity
+/// An info line marked to stand out in a busy console.
 void logImportant({required String info, String? additional}) =>
     logInfo(info: '⚡️⚡️⚡️ $info', additional: additional);
 
-/// Logging some error
-///
 /// [stack] reaches the remote sink untouched — a reporter needs the frames as
 /// a trace, not as text inside the message, to group the error with its peers.
 void logError({required String error, String? additional, StackTrace? stack}) {
-  /// Prepare full error message
   String message = error;
   if (additional != null) message += ': $additional';
 
   if (loggerUserId.isNotEmpty) message += '\nUser: $loggerUserId';
 
-  ///
   if (isLocalLoggingEnabled) _localLogger.e(message, stackTrace: stack);
 
-  ///
   if (!isDebug) logErrorRemote?.call(error: message, stack: stack);
 }
 
-/// New screen opened
+///
 void logScreenChanged({
   required NavigatorTransaction transaction,
   required String? from,

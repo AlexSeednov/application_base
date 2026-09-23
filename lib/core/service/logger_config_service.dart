@@ -4,14 +4,12 @@ import 'package:meta/meta.dart';
 
 /// Backing store of the logging facade.
 ///
-/// Deliberately a plain object held in a module-level field rather than state
-/// living inside [LoggerConfigService]: a consuming app configures logging as
-/// one of its very first steps — picking a flavor and deciding whether
-/// sensitive data may be logged — and that happens *before* `getIt.init()` has
-/// run. Keeping the values in the singleton meant those early writes resolved
-/// against an unregistered type and were silently dropped, so a production
-/// flavor running in a debug build would have kept logging bodies despite
-/// being told not to.
+/// A plain object in a module-level field rather than state inside
+/// [LoggerConfigService]: an application configures logging — the flavor,
+/// whether sensitive data may be logged — *before* `getIt.init()` runs.
+/// Behind DI those early writes would resolve against an unregistered type
+/// and be dropped, and a production flavor in a debug build would keep
+/// logging bodies despite being told not to.
 final class LoggerState {
   ///
   @visibleForTesting
@@ -46,12 +44,14 @@ final LoggerState loggerState = LoggerState();
 
 /// Injectable handle over [loggerState].
 ///
-/// The values used to be four separate top-level variables with nothing tying
-/// them together and no way to put them back: they survived `getIt.reset()` and
-/// leaked between tests. Grouping them here gives the container a seam — the
-/// dispose hook restores defaults — without moving the storage itself behind
-/// DI, which is what the early-write problem above rules out.
-@lazySingleton
+/// Gives getIt a seam over state it does not own: [reset] runs on
+/// `getIt.reset()`, so logging state does not leak between tests. The storage
+/// itself stays outside DI for the early writes described on [LoggerState].
+///
+/// Registered eagerly: getIt skips the dispose hook of a lazy singleton nobody
+/// resolved, and the top-level logging setters write around this service, so
+/// a lazy one would let their state leak whenever only they were used.
+@singleton
 final class LoggerConfigService {
   ///
   @visibleForTesting

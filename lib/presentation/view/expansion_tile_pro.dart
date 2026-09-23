@@ -36,8 +36,8 @@ final class ExpansionTilePro extends StatefulWidget {
   ///
   final TextStyle titleStyle;
 
-  /// The collapsed-state indicator: the row turns it half a turn on its own
-  /// when expanded
+  /// The collapsed-state indicator; the row turns it half a turn when
+  /// expanded.
   final Widget icon;
 
   ///
@@ -46,29 +46,29 @@ final class ExpansionTilePro extends StatefulWidget {
   ///
   final VoidCallback onToggle;
 
-  /// Shown under the title while expanded
+  /// Shown under the title while expanded.
   final Widget child;
 
-  /// The fill of the row under the cursor
+  /// The fill of the row under the cursor.
   final Color highlightColor;
 
   ///
   final BorderRadius borderRadius;
 
-  /// How long expanding and turning the chevron take
+  /// How long expanding and turning the chevron take.
   final Duration duration;
 
   ///
   final double highlightBleed;
 
-  /// How far the highlight bleeds past the row when the caller does not say
+  /// Default [highlightBleed].
   static const double defaultHighlightBleed = 12;
 
-  /// The vertical padding of the row: the highlight covers it with the title
+  /// Vertical padding of the title row; the highlight covers it too.
   static const double headerOffset = 16;
 
-  /// The vertical padding of the tile — the rest of the gap to its
-  /// neighbours, left outside the highlight
+  /// Vertical padding of the tile: the rest of the gap to its neighbours,
+  /// left outside the highlight.
   static const double itemOffset = 8;
 
   ///
@@ -80,16 +80,16 @@ final class ExpansionTilePro extends StatefulWidget {
 final class _ExpansionTileProState extends State<ExpansionTilePro> {
   // MARK: Const
 
-  /// The gap between the title and the chevron
+  /// Gap between the title and the chevron.
   static const double _headerGap = 16;
 
-  /// The highlight appears and fades noticeably faster than the row expands —
-  /// otherwise the fill trails the cursor and lingers once it has left
+  /// Much shorter than the expansion: a slower fill trails the cursor and
+  /// lingers once it has left.
   static const Duration _highlightDuration = Duration(milliseconds: 100);
 
   // MARK: Notifiers
 
-  /// Whether the cursor is over the row; never true on a touch device
+  /// Whether the cursor is over the row; never true on a touch device.
   final ValueNotifier<bool> _isHoveredNotifier = ValueNotifier<bool>(false);
 
   // MARK: Base functions
@@ -124,9 +124,8 @@ final class _ExpansionTileProState extends State<ExpansionTilePro> {
 
   // MARK: Functions
 
-  /// The title row is both the tap target and the highlighted area, and both
-  /// take all of it — so neither the cursor nor the fill disagrees with what
-  /// a click actually hits
+  /// The whole title row is both the tap target and the highlighted area, so
+  /// the fill always matches what a click hits.
   Widget _header(BuildContext context) {
     return MouseRegion(
       onEnter: (_) => _isHoveredNotifier.value = true,
@@ -140,7 +139,7 @@ final class _ExpansionTileProState extends State<ExpansionTilePro> {
             ///
             _highlight(),
 
-            /// Sizes the row — the highlight stretches to it
+            /// Sizes the row; the highlight stretches to it.
             Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: ExpansionTilePro.headerOffset,
@@ -174,8 +173,8 @@ final class _ExpansionTileProState extends State<ExpansionTilePro> {
     );
   }
 
-  /// A layer of its own under the content of the row: that way the fill
-  /// reaches past the row without moving either the title or the chevron
+  /// A separate layer under the row's content, so the fill reaches past the
+  /// row without moving the title or the chevron.
   Widget _highlight() {
     return Positioned(
       left: -widget.highlightBleed,

@@ -34,7 +34,7 @@ class ApplicationBasePackageModule extends _i526.MicroPackageModule {
 // initializes the registration of main-scope dependencies inside of GetIt
   @override
   _i687.FutureOr<void> init(_i526.GetItHelper gh) {
-    gh.lazySingleton<_i211.LoggerConfigService>(
+    gh.singleton<_i211.LoggerConfigService>(
       () => _i211.LoggerConfigService(),
       dispose: (i) => i.reset(),
     );

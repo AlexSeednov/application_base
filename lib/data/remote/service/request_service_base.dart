@@ -17,7 +17,11 @@ import 'package:cross_file/cross_file.dart';
 import 'package:http/http.dart';
 import 'package:meta/meta.dart';
 
-/// Extended class should be a singleton
+/// Base of the application's HTTP service: sends a [RequestType] and reports
+/// every failure to [NetworkSubject].
+///
+/// A subclass must be a singleton: it owns the HTTP client and its connection
+/// pool.
 abstract base class RequestServiceBase {
   /// Timeout for super fast requests (e.g. ping). Override to customize.
   Duration get shortTimeout => const Duration(seconds: 3);
@@ -37,9 +41,10 @@ abstract base class RequestServiceBase {
     RequestDurationType.long => longTimeout,
   };
 
-  // Optimize(Alex): попробовать заменить на RetryClient для автоматического
-  // перезапроса в случае ошибок https://pub.dev/packages/http#retrying-requests
-  // Настроить обработку ошибок - как минимум исключить 401.
+  // Optimize(Alex): try `RetryClient` to retry failed requests automatically
+  // (https://pub.dev/packages/http#retrying-requests). Tune which failures are
+  // retried — a 401 at least must not be.
+  /// One client for every request, so keep-alive connections are reused:
   /// https://dart.dev/tutorials/server/fetch-data#make-multiple-requests
   Client _client = Client();
 
@@ -63,16 +68,16 @@ abstract base class RequestServiceBase {
   ///
   final NetworkSubject _networkSubject = getIt<NetworkSubject>();
 
-  ///
+  /// Builds the full URL for [path]: the host and the base API segment are
+  /// the subclass's, see [RequestType.path].
   @mustBeOverridden
   Uri prepareUri({required String path});
 
-  /// Return **null** only if got error with unified application behaviour
-  /// via **errorSubject** stream (for example - `no connection` or
-  /// `need authorization` errors), so it's not necessary to do something
-  /// special in this case.
+  /// Sends [request]; `null` means it failed.
   ///
-  /// Otherwise return **Response** with necessary information.
+  /// A failure is already reported to [NetworkSubject] — no connection, a
+  /// 401, an unexpected status — and handled there the same way for the whole
+  /// application, so a caller needs no special branch for `null`.
   ///
   /// [extraExpectedStatusList] widens what this single call accepts, so a
   /// caller can take over a status the unified path would otherwise swallow —
@@ -93,17 +98,14 @@ abstract base class RequestServiceBase {
     Map<int, NetworkEvent> extraExpectedErrorMap = const {},
   }) async {
     try {
-      ///
       final Uri uri = prepareUri(path: request.path);
 
-      /// Log request
       logRequestInfo(
         request: request,
         body: request.body?.toString(),
         info: 'Sending',
       );
 
-      /// Prepare response
       final Future<Response> futureResponse = switch (request) {
         RequestGet() => _client.get(uri, headers: headers),
         RequestPost() => _client.post(
@@ -134,12 +136,10 @@ abstract base class RequestServiceBase {
         ),
       };
 
-      /// Send request
       final Response httpResponse = await futureResponse.timeout(
         timeoutFor(request.durationType),
       );
 
-      /// Get response
       final response = ResponseEntity(
         request: '${request.type} $uri',
         body: httpResponse.body,
@@ -156,90 +156,85 @@ abstract base class RequestServiceBase {
               ? response.isOk
               : request.expectedStatusList.contains(httpResponse.statusCode));
 
-      /// Check it
       if (!isExpectedStatus) {
-        /// Some error happened, log it
         logResponseError(response: response);
 
         if (httpResponse.statusCode == HttpStatus.unauthorized) {
-          // To apply custom behaviour on unathorized response (for example to
-          // refresh access token) add unauthorized status code to
-          // expectedStatusList and check response manually (do not forget to
-          // call `onUnauthorized` to notify `NetworkSubject`)
+          // A caller that handles a 401 itself (say, with a token refresh)
+          // accepts it through `expectedStatusList` or
+          // `extraExpectedStatusList`, checks the response, and calls
+          // `notifyUnauthorized` itself when `NetworkSubject` must still know.
           notifyUnauthorized();
           return null;
         }
         if (httpResponse.statusCode == HttpStatus.gatewayTimeout) {
+          // The backend behind the gateway is unreachable: the same lost
+          // connection as a timeout, and just as global, so never silenced.
           notify(NetworkConnectionLost());
           return null;
         }
 
-        /// Try to get expected error type
         final NetworkEvent? expectedErrorType =
             extraExpectedErrorMap[httpResponse.statusCode] ??
             request.expectedErrorMap[httpResponse.statusCode];
         if (expectedErrorType != null) {
-          /// Custom handler
           notify(expectedErrorType, silence: request.silence);
           return null;
         }
 
-        /// Handle it as unexpected response
         notify(NetworkUnexpectedResponse(), silence: request.silence);
         return null;
       }
 
-      /// Expected response, just log it, notify and return
       logResponseInfo(response: response);
       notify(NetworkSuccess(), silence: request.silence);
       return response;
     } on TimeoutException {
-      /// Request didn't complete in time — treat it the same way as a lost
-      /// connection: backend is effectively unreachable from the user's
-      /// perspective, so switch to offline mode. Bypass the `silence` flag
-      /// because connection state is global.
+      /// A timeout counts as a lost connection: for the user the backend is
+      /// unreachable, so the app goes offline. Never silenced — connection
+      /// state is global.
       logRequestInfo(request: request, info: 'Timeout exception');
       notify(NetworkConnectionLost());
     } on SocketException catch (error) {
-      /// SocketException means we could not even establish a socket
-      /// (DNS lookup failure, route unreachable, connection refused, etc.).
-      /// This is the typical signal of a connection problem when, for example,
-      /// Wi-Fi reports as "available" but the upstream router blocks Internet
-      /// or DNS resolution. Activate offline mode regardless of the silence
-      /// flag — connection state is global and must not be hidden by silenced
-      /// requests (e.g. ping).
+      /// No socket at all: DNS failure, unreachable route, refused connection.
+      /// The typical case is Wi-Fi reported as available while the router
+      /// blocks the Internet or DNS. Never silenced, not even for a ping —
+      /// connection state is global.
       logRequestInfo(
         request: request,
         info: 'No connection (${error.message})',
       );
       notify(NetworkConnectionLost());
     } on HandshakeException catch (error) {
-      /// SSL problem on backend side, need to activate offline mode
+      /// An SSL problem on the backend side leaves it just as unreachable, so
+      /// the app goes offline.
       logRequestError(request: request, error: error.message);
       notify(NetworkConnectionLost());
     } on ClientException catch (error) {
       /// The web build never sees a [SocketException]: there `package:http`
       /// reports a connection that could not be made as [ClientException].
-      /// Without this branch such a failure fell through to the generic catch
-      /// and was reported as an unexpected error, so offline mode never
-      /// engaged on web.
+      /// The generic catch below would call it an unexpected error, and the
+      /// app would never go offline on the web.
       logRequestInfo(
         request: request,
         info: 'No connection (${error.message})',
       );
       notify(NetworkConnectionLost());
     } catch (error) {
-      /// Something is crashed
+      /// Not a connection problem, so the request's `silence` applies.
       logRequestError(request: request, error: error.toString());
       notify(NetworkUnexpectedError(), silence: request.silence);
     }
     return null;
   }
 
-  /// Just notify subjects
+  /// Reports a 401 to [NetworkSubject], never silenced.
+  ///
+  /// Public for a caller that accepted a 401 itself and still needs the
+  /// unified handling.
   void notifyUnauthorized() => notify(NetworkUnauthorized());
 
-  ///
+  /// A silenced event is dropped, not delivered quietly.
   void notify(NetworkEvent type, {bool silence = false}) {
     if (silence) return;
     _networkSubject.add(type);
@@ -251,10 +246,8 @@ abstract base class RequestServiceBase {
     required Map<String, String> headers,
     required RequestPostFormData requestData,
   }) async {
-    /// Prepearing request
     final request = MultipartRequest('POST', uri);
 
-    /// Add body data
     if (requestData.body != null) {
       Iterable<MapEntry<String, dynamic>> entries;
 
@@ -275,7 +268,6 @@ abstract base class RequestServiceBase {
       );
     }
 
-    /// Add headers
     request.headers.addAll(headers);
     if (isWebBased) {
       /// Keep uploads away from any intermediate cache.
@@ -286,19 +278,17 @@ abstract base class RequestServiceBase {
       request.headers['Cache-Control'] = 'no-cache';
     }
 
-    /// Add files
-    ///
-    /// A sequential loop, not `Map.forEach`: the body is asynchronous and
-    /// `forEach` discards the futures it gets back, so the request used to be
-    /// sent before the files were attached.
+    /// A sequential loop, not `Map.forEach`: `forEach` drops the futures of
+    /// the asynchronous body, and the request would go out before the files
+    /// are attached.
     for (final MapEntry<String, XFile> entry in requestData.files.entries) {
       if (isMobileBased) {
-        /// Mobile
         request.files.add(
           await MultipartFile.fromPath(entry.key, entry.value.path),
         );
       } else {
-        /// Web - need to use fromBytes instead of fromPath
+        /// `fromPath` needs `dart:io`, which the web lacks. Desktop takes this
+        /// branch too.
         final Uint8List fileBytes = await entry.value.readAsBytes();
         request.files.add(
           MultipartFile.fromBytes(
@@ -310,8 +300,7 @@ abstract base class RequestServiceBase {
       }
     }
 
-    /// Sending request
-    return Response.fromStream(await request.send());
+    return Response.fromStream(await _client.send(request));
   }
 
   ///
@@ -320,28 +309,20 @@ abstract base class RequestServiceBase {
     required Map<String, String> headers,
     required RequestPostFile requestData,
   }) async {
-    /// Prepare data
     final XFile file = requestData.file;
 
-    /// Prepearing request
-    final request = StreamedRequest('POST', uri);
+    final request = _FileRequest(uri, file);
 
-    /// Add headers
     request.headers.addAll(headers);
     request.headers['Content-Type'] = 'application/octet-stream';
     request.contentLength = await file.length();
 
-    /// Write chunks to request
-    await file.openRead().forEach((chunk) => request.sink.add(chunk));
-
-    /// Close sink without awaiting, otherwise request will not be sended
-    unawaited(request.sink.close());
-
-    /// Sending request
-    return Response.fromStream(await request.send());
+    return Response.fromStream(await _client.send(request));
   }
 
-  /// **null** on error
+  /// The `Location` a GET to [uri] redirects to, without following it.
+  ///
+  /// `null` when the response is not a redirect or the request fails.
   Future<String?> catchRedirect({
     required Uri uri,
     required Map<String, String> headers,
@@ -379,5 +360,26 @@ abstract base class RequestServiceBase {
       logError(error: 'Catch redirect $uri\n$error');
       return null;
     }
+  }
+}
+
+/// A POST whose body is read from [file] while the client sends it.
+///
+/// The file is opened only when the client listens, and read no faster than
+/// the socket takes it: a body written into a `StreamedRequest` up front sits
+/// whole in memory until `send()` reads it. On the web the browser client
+/// still reads the body into memory — the platform takes nothing else.
+final class _FileRequest extends BaseRequest {
+  ///
+  _FileRequest(Uri url, this.file) : super('POST', url);
+
+  ///
+  final XFile file;
+
+  ///
+  @override
+  ByteStream finalize() {
+    super.finalize();
+    return ByteStream(file.openRead());
   }
 }

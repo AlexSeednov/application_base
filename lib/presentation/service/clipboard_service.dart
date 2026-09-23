@@ -14,7 +14,7 @@ abstract final class ClipboardService {
     unawaited(getIt<HapticService>().lightImpact());
   }
 
-  ///
+  /// `''` when the clipboard holds no text.
   static Future<String> get() async {
     final ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
 

@@ -3,26 +3,29 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The hover highlight of a row: it covers the row whole, bleeds past its
-/// edges, and fades exactly when the cursor has left.
+/// The hover highlight of a row covers the whole row, bleeds past its edges
+/// and fades as soon as the cursor leaves; a tap on the row toggles the body.
 ///
-/// All of that is easy to lose. A highlight grown out of a pressed state
-/// hugs the size of the text, lingers after the cursor is gone, and leaves
-/// the vertical padding of the row uncovered.
+/// The highlight is easy to break: grown out of a pressed state, it hugs the
+/// text, lingers after the cursor is gone and leaves the vertical padding of
+/// the row uncovered.
 void main() {
+  ///
   const String title = 'What will I get out of the course?';
 
+  ///
   const String answer = 'A better idea of yourself and your emotions';
 
+  ///
   const Color highlightColor = Color(0x141B1B24);
 
-  /// Differs from the default on purpose: this also checks that the bleed the
-  /// caller asks for is the one applied
+  /// Not the default, so the tests also prove the caller's bleed is applied.
   const double bleed = 16;
 
-  /// The width the row is given
+  ///
   const double width = 400;
 
+  ///
   Future<void> pumpTile(
     WidgetTester tester, {
     required ValueNotifier<bool> isExpandedNotifier,
@@ -57,11 +60,12 @@ void main() {
     await tester.pump();
   }
 
-  /// Puts the cursor over the row; returns the gesture so it can be moved away
+  /// Returns the gesture, so a test can move the cursor away again.
   Future<TestGesture> hoverTile(WidgetTester tester) async {
     final TestGesture gesture = await tester.createGesture(
       kind: PointerDeviceKind.mouse,
     );
+    // Added outside the row, so the move onto it is a real enter.
     await gesture.addPointer(location: Offset.zero);
     addTearDown(gesture.removePointer);
 
@@ -71,7 +75,7 @@ void main() {
     return gesture;
   }
 
-  /// The fill the highlight animates towards
+  /// The fill the highlight animates towards, not the one on screen mid-way.
   Color? highlightOf(WidgetTester tester) {
     final AnimatedContainer container = tester.widget<AnimatedContainer>(
       find.byType(AnimatedContainer),
@@ -119,8 +123,8 @@ void main() {
 
     await pumpTile(tester, isExpandedNotifier: notifier);
 
-    /// The body stays in the tree while collapsed — what says whether it
-    /// shows is the height of the space it takes, not the size of the text
+    /// The body stays in the tree while collapsed: whether it shows is told
+    /// by the height it takes, not by the size of its text.
     expect(tester.getSize(find.byType(AnimatedCrossFade)).height, 0);
 
     await tester.tap(find.text(title));

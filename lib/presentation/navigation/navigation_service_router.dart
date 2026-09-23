@@ -3,6 +3,7 @@ import 'package:application_base/presentation/navigation/navigation_service.dart
 import 'package:application_base/presentation/navigation/navigation_service_pro.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meta/meta.dart';
 
 /// [NavigationServicePro] backed by the global `navigatorKey` via AutoRoute.
 ///
@@ -11,6 +12,7 @@ import 'package:injectable/injectable.dart';
 @LazySingleton(as: NavigationServicePro)
 final class NavigationServiceRouter implements NavigationServicePro {
   ///
+  @visibleForTesting
   NavigationServiceRouter();
 
   ///

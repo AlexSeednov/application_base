@@ -6,13 +6,11 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meta/meta.dart';
 
-/// Connectivity changes are no longer communicated to Android apps
-/// in the background starting with Android O (8.0).
-/// You should always check for connectivity status when your app is resumed.
-/// The broadcast is only useful when your application is in the foreground.
+/// Tracks the device's network links and reports them to [NetworkSubject].
 ///
-/// On iOS simulators, the connectivity types stream might not update
-/// when Wi-Fi status changes.
+/// Since Android 8 the change stream is silent in the background, so call
+/// [getConnectivity] when the app resumes. On iOS simulators the stream may
+/// miss Wi-Fi changes.
 @lazySingleton
 final class ConnectivityService {
   ///
@@ -28,10 +26,10 @@ final class ConnectivityService {
   ///
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
-  /// Timer for special delay after connection lost
+  /// Pending re-check of a link reported as lost.
   Timer? _timer;
 
-  /// Delay before checking connectivity availability
+  /// How long a lost link waits before it is confirmed.
   final Duration _timerDelay = const Duration(seconds: 3);
 
   /// Any transport other than [ConnectivityResult.none] counts as a link.
@@ -51,7 +49,7 @@ final class ConnectivityService {
   ///
   bool get isWiFi => _connectivityList.contains(ConnectivityResult.wifi);
 
-  ///
+  /// Idempotent: a second call keeps the existing subscription.
   Future<void> prepare() async {
     if (_subscription != null) return;
     _subscription = Connectivity().onConnectivityChanged.listen(_onUpdate);
@@ -68,7 +66,8 @@ final class ConnectivityService {
     _timer = null;
   }
 
-  ///
+  /// Re-reads the links and publishes the result at once, without the delay
+  /// a stream update gets.
   Future<void> getConnectivity() async {
     final List<ConnectivityResult> actualConnectivityList = await Connectivity()
         .checkConnectivity();
@@ -100,12 +99,10 @@ final class ConnectivityService {
     if (isConnectivityAvailable) {
       _check();
     } else {
-      /// Starting with iOS 12, the implementation uses NWPathMonitor to obtain
-      /// the enabled connectivity types. We noticed that this observer can give
-      /// multiple or unreliable results. For example, reporting connectivity
-      /// "none" followed by connectivity "wifi" right after reconnecting.
-      ///
-      /// Because of it will check connectivity after small delay
+      /// On iOS 12+ the plugin relies on `NWPathMonitor`, which can report
+      /// "none" and then "wifi" right after a reconnect. A loss is therefore
+      /// re-checked against the latest state after [_timerDelay] instead of
+      /// being reported at once.
       logInfo(info: 'Connectivity become not available, will check it');
 
       _timer?.cancel();

@@ -1,6 +1,7 @@
 import 'package:application_base/data/remote/utility/url_launcher.dart';
 import 'package:application_base/data/remote/utility/url_launcher_pro.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meta/meta.dart';
 
 /// [UrlLauncherPro] backed by the static [UrlLauncher].
 ///
@@ -8,6 +9,7 @@ import 'package:injectable/injectable.dart';
 @LazySingleton(as: UrlLauncherPro)
 final class UrlLauncherRouter implements UrlLauncherPro {
   ///
+  @visibleForTesting
   UrlLauncherRouter();
 
   ///

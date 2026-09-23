@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'package:application_base/data/remote/entity/response_entity.dart';
 import 'package:application_base/data/remote/service/network_logger_service.dart';
 
-/// Methods for safe work with entities
+/// JSON parsing that logs a failure instead of throwing it.
 abstract final class SafeService {
-  /// Safe parse JSON with list from string
+  /// Parses a JSON array body with [parseFunction], item by item.
+  ///
+  /// A broken item is logged and skipped, so one bad record does not lose the
+  /// whole list. An empty body, or one that is not a valid JSON list, gives
+  /// `[]`.
   static List<T> parseList<T>(
     ResponseEntity data,
     T Function(Map<String, dynamic> json) parseFunction,
@@ -20,19 +24,18 @@ abstract final class SafeService {
         try {
           result.add(parseFunction(element! as Map<String, dynamic>));
         } catch (e) {
-          /// Error with one of items in list, log it
           logJsonParsingError(data: data, info: e.toString());
         }
       }
       return result;
     } catch (e) {
-      /// Log it
       logJsonParsingError(data: data, info: e.toString());
     }
     return [];
   }
 
-  /// Safe parse JSON from string
+  /// Parses a JSON object body with [parseFunction]; `null` on an empty body
+  /// or a logged failure.
   static T? parse<T>(
     ResponseEntity data,
     T Function(Map<String, dynamic> json) parseFunction,
@@ -42,7 +45,6 @@ abstract final class SafeService {
     try {
       return parseFunction(jsonDecode(data.body) as Map<String, dynamic>);
     } catch (e) {
-      /// Log it
       logJsonParsingError(data: data, info: e.toString());
     }
     return null;

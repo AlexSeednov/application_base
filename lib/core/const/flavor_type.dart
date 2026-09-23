@@ -1,13 +1,16 @@
+/// Build flavor the application runs as.
 ///
+/// Sealed, so a new flavor turns every exhaustive `switch` over the flavors
+/// into a compile error instead of a silent change.
 sealed class FlavorType {
-  /// Flavor name for logger
+  /// Short label of the flavor, shown in the debug banner.
   final String name = '';
 }
 
 /// Development release version with test functionality
 final class FlavorDevelopment implements FlavorType {
   /// Short on purpose: the name is what the debug banner shows, and the
-  /// banner's ribbon is narrow — a long word gets cut off by its own corner
+  /// banner's ribbon is narrow — a long word gets cut off by its own corner.
   @override
   final String name = 'Dev';
 }

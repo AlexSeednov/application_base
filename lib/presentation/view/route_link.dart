@@ -10,21 +10,22 @@ import 'package:url_launcher/link.dart';
 
 /// A tap target that on the web is also a real link: the URL shows on hover,
 /// the browser context menu offers "Open in new tab" and "Copy link address",
-/// Ctrl/Cmd+click and the middle button open the target in a new tab.
+/// and Ctrl/Cmd+click or the middle button opens the target in a new tab.
 ///
-/// The link is either a page of the app (an absolute in-app path) or an
-/// external URL. An external one gets `target="_blank"`: the browser opens it
-/// in a new tab on its own, the way the app opens such links itself.
+/// The link is either an absolute in-app path or an external URL. An external
+/// one gets `target="_blank"`, so the browser opens it in a new tab, the way
+/// the app opens such links itself.
 ///
-/// A plain click stays with the app and goes to [onClick] — the same push as
-/// before: the page gets whatever data the view model already holds, and the
-/// tab stack is not rebuilt from the URL. Only a click with a modifier key is
-/// handed to the link: the browser opens the new tab itself. Without a
-/// `followLink` signal from the app the plugin cancels the in-tab navigation
-/// on its own (`url_launcher_web`, `LinkTriggerSignals`), so a plain click
-/// never reloads the page.
+/// A plain click stays with the app and goes to [onClick]: the page gets
+/// whatever data the view model already holds, and the tab stack is not
+/// rebuilt from the URL. Only a click with a modifier key is handed to the
+/// link, and the browser opens the new tab itself. Without a `followLink`
+/// call from the app the plugin cancels the in-tab navigation on its own
+/// (`url_launcher_web`, `LinkTriggerSignals`), so a plain click never reloads
+/// the page.
 ///
-/// Outside the web, and without a [path], it is a plain [EmptyButton].
+/// Outside the web, or without a [path] or an [onClick], it is a plain
+/// [EmptyButton].
 final class RouteLink extends StatelessWidget {
   ///
   const RouteLink({
@@ -67,9 +68,8 @@ final class RouteLink extends StatelessWidget {
     );
   }
 
-  /// The middle button over a link is the browser's: it opens the link in a
-  /// new tab. The page autoscroll must not start on the same click, so the
-  /// click is taken from it here.
+  /// Over a link the middle button is the browser's — it opens a new tab — so
+  /// the click is claimed here, and the page autoscroll does not start on it.
   void _claimMiddleButton(BuildContext context, PointerDownEvent event) {
     if (event.buttons != kMiddleMouseButton) return;
 

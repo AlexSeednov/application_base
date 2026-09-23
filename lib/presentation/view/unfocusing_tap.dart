@@ -6,7 +6,7 @@ final class UnfocusingTap extends StatelessWidget {
   ///
   const UnfocusingTap({required this.child, super.key});
 
-  /// Main screen child
+  ///
   final Widget child;
 
   ///

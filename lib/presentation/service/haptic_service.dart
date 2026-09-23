@@ -35,7 +35,7 @@ abstract interface class HapticService {
   /// top of it would double up.
   Future<void> longPress();
 
-  /// A job coming good: a job finished, a file saved, a form accepted.
+  /// Something coming good: a job finished, a file saved, a form accepted.
   Future<void> success();
 
   /// Something refused: a wrong code, a job that could not be done.
@@ -104,7 +104,7 @@ final class HapticServicePlatform with LoggingMixin implements HapticService {
     HapticFeedback.heavyImpact,
   ], gap: _successGap);
 
-  /// Three equal hard beats: a flat «no», nothing rising about it.
+  /// Three equal hard beats: a flat "no", nothing rising about it.
   @override
   Future<void> failure() => _sequence([
     HapticFeedback.heavyImpact,

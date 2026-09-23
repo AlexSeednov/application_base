@@ -1,3 +1,153 @@
+## 0.4.3
+
+* **`ApplicationLocale`** (`presentation/utility/application_locale.dart`) —
+  the locale callback for `MaterialApp.localeListResolutionCallback`, moved in
+  from Medita. It resolves the locale by Flutter's own algorithm and makes it
+  the default locale of `intl`, so `DateFormat` and `NumberFormat` format in
+  the language of the interface rather than the device's. Left to themselves
+  they take the device locale: a Russian-only application on an English phone
+  showed English months and decimal points beside Russian text, and the patch
+  was a locale pinned into every formatter call — to be undone for each
+  language added. The callback runs on start-up and on every change of the
+  system languages, and logs the locale it settles on.
+
+  Brings `intl` in as a dependency, as a range: `flutter_localizations` pins
+  it to the version its SDK ships, and an exact version here would fight that
+  pin on every Flutter upgrade.
+
+* **README in Russian** — `README.ru.md`, a full translation of `README.md`,
+  with a language switcher at the top of both. The English file stays the
+  source of truth, and every README change is made in both files at once.
+
+* **README checked against the code and brought up to date.** The
+  *NavigationServicePro* section told an application to bind
+  `NavigationServiceRouter` and `UrlLauncherRouter` in its own DI, while the
+  package module has registered both all along — following it registered them
+  twice. The doc comments of both contracts said the same and are corrected
+  too. The rest: the navigation helpers listed as they are (no
+  `openDefaultScreen`, `Future<void>` returns, `popTopScreen`, `navigatePath`,
+  `currentRouteName`), `UrlLauncher.sendEmail` under its real name, the Flavor
+  setter example importing the file that declares the setter, the GetIt
+  example registering through an annotation instead of by hand, the current
+  Flutter / Dart / iOS / macOS minimums and package version, the hive versions
+  of the storage example with the `analyzer` override they need, `Web` in the
+  features list, `ExpansionTilePro` among the widgets, and the typos.
+
+* **README: *API interaction* and *Online / offline state change checker*
+  written.** Both sections had been "TBD" since the package began. They now
+  cover the request service an application extends, the request types and
+  what each field of a request decides, which network event every outcome of
+  `sendBase` reports and why a `null` needs no error of its own at the call
+  site, the per-call widenings, `SafeService`, and how the offline mode turns
+  on and off — the ping, its period, the interface re-check on resume — with
+  `ConnectionRestoreMixin` for reloading a screen once the connection is back.
+
+* **README edited for readability, in both languages.** The sections from
+  *API interaction* on — the request service, online / offline, haptics, the
+  store listing, the locale and the whole *Web* section — read as one dense
+  essay each, and the Russian translation made them heavier still. They are
+  restructured: one thought per sentence, the wiring first and the reasoning
+  after it as a separate paragraph or list, the mechanics of `ScrollActionPro`
+  and of the middle-button hold reduced to a pointer at the doc comments that
+  already describe them. The calques the Russian text had picked up in
+  translation are replaced with plain Russian. The headings *Online / offline
+  state change checker* and *Application lifecycle state change checker* are
+  now *Online and offline* and *Application lifecycle*, the features list
+  matches the headings, `UnfocusingTap`, `OpacityPro` and `EnabledPro` got the
+  one-line description they lacked, and `MacOS` is spelled `macOS`.
+
+* **Uploads run with the long timeout.** `RequestPostFormData` and
+  `RequestPostFile` take `durationType` like every other request and default
+  it to `long`. `longTimeout` has always been documented as the one for heavy
+  requests such as a photo upload, yet the upload types could not select it:
+  they always ran with the normal 20 seconds, which a large photo on a slow
+  mobile link does not fit. The only change for existing callers is that a slow
+  upload waits 30 seconds instead of 20 before the offline mode takes over;
+  a caller that wants the old limit passes `RequestDurationType.normal`.
+
+* **Every comment in the package reviewed** — `lib/`, `bin/`, `test/`,
+  `pubspec.yaml` and both analysis options. Comments that retold the code are
+  gone, wordy ones are cut down to the reason they carry, the missing reasons
+  are added (the offline-mode state machine, the upload timeouts, the CLI's
+  exit codes, among others), every declaration has its doc comment, and the
+  few that were in Russian are in English now. Comments that contradicted the
+  code are corrected. The rule set consumers include lost its per-rule links
+  and template noise (828 → 376 lines) but keeps the reason for every rule it
+  disables. No code changes, apart from `intl` moving below `injectable` in
+  `pubspec.yaml` for `sort_pub_dependencies`.
+
+* `NavigationServiceRouter` and `UrlLauncherRouter` constructors are marked
+  `@visibleForTesting`, like every other service of the package: getIt owns
+  the instance, and a second one belongs in a test only.
+
+* **The connection restore is announced once.** `NetworkServiceBase` flipped
+  back to online only when its own `NetworkRestore` came back through the
+  subject, which delivers asynchronously: two successes in flight — or a
+  success and a ping — each found the offline mode still on and each
+  announced a restore, and every screen with `ConnectionRestoreMixin`
+  reloaded that many times. A ping while online announced one too. The state
+  now flips at the moment of the decision, and a ping while online changes
+  nothing.
+
+* **The ping timer survives a re-prepared service.** A `NetworkServiceBase`
+  disposed while offline and prepared again still counted itself offline, so
+  a failed start-up ping skipped the timer and nothing brought the
+  application back online but a lucky request. The timer now starts on every
+  entry into the offline mode, and a disposed service no longer changes state
+  when a ping in flight lands.
+
+* **`EnabledPro` keeps the state of its child.** Toggling `isEnabled` swapped
+  an `IgnorePointer` in and out around the child, which moved it in the tree
+  and reset it — the text of a field, a scroll offset, a running animation.
+  The wrapper now stays and only its `ignoring` flag changes.
+
+* **`UrlLauncher.sendEmail` never throws**, like the other helpers: a failure
+  is logged and answered with `false`. **`sendSms` encodes its text** — a raw
+  `&`, `#` or `%` cut the message short.
+
+* **A cipher key that could not be stored no longer costs the data.** When a
+  locked keychain or an unavailable Android Keystore swallowed the write,
+  `SecureStorageUtility` still handed out the new key, the boxes of the
+  session were written to disk with it, and the next launch — with no key to
+  read them — could not open them. The key is now read back after the write;
+  when it is missing, `getCipher` returns `null`, the failure is logged, and
+  `StorageService` keeps the boxes of that session in memory.
+
+* **Uploads go through the application's client and stream from the file.**
+  `RequestPostFormData` and `RequestPostFile` were sent with `request.send()`,
+  a throwaway client of their own, so a client set through `client` — a
+  wrapper that watches statuses for the whole application — never saw an
+  upload. `RequestPostFile` also wrote the whole file into the request before
+  sending it; the body is now read from the file while the client sends it,
+  and a connection that fails to open never opens the file at all.
+
+* **`LoggerConfigService` is registered eagerly** (`@singleton`). getIt runs
+  the dispose hook of a lazy singleton only once somebody resolved it, and
+  the top-level logging setters write around the service, so logging state
+  set only through them leaked from one test into the next.
+
+* **`pushPath(path:)`** replaces `pushNamed(routeName:)`, which has always
+  taken a path, not a route name. `pushNamed` stays as a deprecated alias.
+
+* **`popScreen` is `@awaitNotRequired`**: the future only tells when the pop
+  is done, and a caller that just leaves the screen has nothing to wait for.
+
+* **`getit_check`**: a getIt call in a `late` field initializer is a lazy
+  edge — it runs on first access — and no longer turns a cycle into a false
+  HIGH. `getIt.get<T>()`, `getIt.getAsync<T>()`, `GetIt.I<T>()`,
+  `GetIt.instance<T>()` and `GetIt.I.get<T>()` are recognised beside
+  `getIt<T>()`, so cycles written with them are no longer missed.
+
+  **Three severities instead of two.** HIGH used to mean "at least one eager
+  edge", and the report called every such cycle a guaranteed stack overflow —
+  but a cycle with a lazy edge in it is created safely: the lazy call does not
+  run while the participants are built. HIGH is now a cycle whose every edge
+  is eager, the certain overflow; a mix of eager and lazy edges is MEDIUM,
+  dangerous only when a constructor on the cycle calls a method that takes the
+  lazy edge; lazy edges only stay LOW. Making one edge of a HIGH cycle lazy —
+  the fix the hint gives — now takes the cycle out of HIGH. The exit code is
+  unchanged: 1 on any cycle.
+
 ## 0.4.2
 
 * **`ExpansionTilePro`** (`presentation/view/expansion_tile_pro.dart`) — an

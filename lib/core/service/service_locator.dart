@@ -4,13 +4,12 @@ import 'package:injectable/injectable.dart';
 /// Common instance for service locator
 final GetIt getIt = GetIt.instance;
 
-/// Injectable micro-package module.
+/// Injectable micro-package module of the package.
 ///
-/// build_runner collects every `@injectable` service of the package into
-/// `service_locator.module.dart` (the `ApplicationBasePackageModule` class).
-/// Consumers wire it via `externalPackageModulesBefore` in their
-/// `@InjectableInit` — there is no manual registration
-/// (`ServiceLocatorBase.prepare`) anymore; getIt is the single source of
-/// singleton ownership.
+/// build_runner collects every injectable service of the package into
+/// `service_locator.module.dart` (`ApplicationBasePackageModule`), and the
+/// application wires it through `externalPackageModulesBefore` in its
+/// `@InjectableInit`. getIt alone owns the singletons: there is no manual
+/// registration to call.
 @InjectableInit.microPackage()
 void initApplicationBasePackage() {}

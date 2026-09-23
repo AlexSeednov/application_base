@@ -1,8 +1,6 @@
 import 'package:application_base/core/const/flavor_type.dart';
 
-/// The current application flavor
-///
-/// **Important:** do not change after base set up
+/// Set once on start-up and never changed afterwards.
 FlavorType? _flavor;
 
 ///
