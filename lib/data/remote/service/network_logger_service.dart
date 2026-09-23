@@ -3,7 +3,7 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:application_base/data/remote/const/request_type.dart';
 import 'package:application_base/data/remote/entity/response_entity.dart';
 
-/// Can send sensitive data to remote logger or not
+/// Whether request and response bodies may reach the logs.
 ///
 /// **isDebug** by default. Facade over
 /// [LoggerConfigService.canLogSensitiveData]; kept here so the existing import
@@ -16,7 +16,7 @@ bool get canLogSensitiveData => loggerState.canLogSensitiveData;
 // ignore: avoid_positional_boolean_parameters
 set canLogSensitiveData(bool value) => loggerState.canLogSensitiveData = value;
 
-/// Logging request information
+/// [body] is dropped unless [canLogSensitiveData] allows it.
 void logRequestInfo({
   required RequestType request,
   String? body,
@@ -28,11 +28,11 @@ void logRequestInfo({
   logInfo(info: information);
 }
 
-/// Logging request error
+///
 void logRequestError({required RequestType request, required String error}) =>
     logError(error: 'Request ${request.type} ${request.path}\n$error');
 
-/// Logging response
+/// The body is dropped unless [canLogSensitiveData] allows it.
 void logResponseInfo({required ResponseEntity response}) {
   String information =
       'Request ${response.request}\n'
@@ -43,7 +43,8 @@ void logResponseInfo({required ResponseEntity response}) {
   logInfo(info: information);
 }
 
-/// Error in response
+/// Logs a response with an unexpected status; the body is dropped unless
+/// [canLogSensitiveData] allows it.
 void logResponseError({required ResponseEntity response}) {
   String error =
       'Request ${response.request}\n'
@@ -55,7 +56,7 @@ void logResponseError({required ResponseEntity response}) {
   logError(error: error);
 }
 
-/// Error on JSON parsing
+/// The raw body is dropped unless [canLogSensitiveData] allows it.
 void logJsonParsingError({required ResponseEntity data, required String info}) {
   String error =
       'Request ${data.request}\n'

@@ -6,26 +6,30 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meta/meta.dart';
 
-/// Singleton for working with secure local storage
+/// Hive storage whose boxes share one AES cipher, its key kept in the
+/// platform secure storage.
 @lazySingleton
 final class StorageService with LoggingMixin {
   ///
   @visibleForTesting
   StorageService();
 
-  /// Name for logger
+  ///
   @override
   String logName = 'Storage Service';
 
-  /// Service ready to work
+  ///
   bool _isReady = false;
 
   ///
   late HiveAesCipher _cipher;
 
-  /// Initialize storage and open data box
-  /// [cipherKey] - secret key for local secure storage
-  /// [registerAdapters] - function to register all Hive adapters
+  /// Initializes Hive and the cipher; call once before [open]. A second call
+  /// is logged and ignored.
+  ///
+  /// [cipherKey] names the secure-storage entry that holds the AES key; it is
+  /// not the key itself. [registerAdapters] runs after Hive is initialized
+  /// and before any box opens.
   Future<void> prepare({
     required String cipherKey,
     required void Function() registerAdapters,
@@ -35,7 +39,6 @@ final class StorageService with LoggingMixin {
       return;
     }
 
-    /// Initialize Hive
     await Hive.initFlutter(
       null,
       HiveStorageBackendPreference.native,
@@ -44,39 +47,36 @@ final class StorageService with LoggingMixin {
     );
     registerAdapters();
 
-    /// Prepare storage cipher
     _cipher = await SecureStorageUtility.getCipher(key: cipherKey);
 
     logNamedInfo(info: 'prepared');
     _isReady = true;
   }
 
-  /// Open secure box from local storage
+  /// Opens the encrypted box [name]; needs [prepare] to have run.
   Future<Box<E>> open<E>(String name) =>
       Hive.openBox(name, encryptionCipher: _cipher);
 
-  /// Safe get data or create if data does not exist
+  /// The single record a box keeps at index 0.
+  ///
+  /// An empty box or a `null` record is replaced with [emptyData], which is
+  /// returned right away.
   E getData<E>(Box<E> box, E emptyData) {
-    /// Check local data
     if (box.isEmpty) {
-      /// Where is now local data, create a new one
-      /// The write is flushed by Hive on its own; the caller only needs the
-      /// in-memory value back.
+      /// Not awaited: Hive flushes the write on its own; the caller only needs
+      /// the in-memory value back.
       unawaited(box.add(emptyData));
       logNamedInfo(info: '${box.name} - create new local data');
       return emptyData;
     }
 
-    /// Has some data, check it correctness
     if (box.getAt(0) == null) {
-      /// Something wrong, recreate data
       logNamedError(error: '${box.name} - null data in local storage');
       unawaited(box.putAt(0, emptyData));
       logNamedInfo(info: '${box.name} - replaced new local data');
       return emptyData;
     }
 
-    /// Data is ok, get it
     logNamedInfo(info: '${box.name} - get data from local storage');
     return box.getAt(0)!;
   }

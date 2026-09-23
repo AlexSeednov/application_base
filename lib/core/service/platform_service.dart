@@ -3,13 +3,13 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 
 /// `isTouchInput` belongs with the other platform questions, and re-exporting
-/// it here spares every caller the conditional clause the bridge needs
+/// it here spares every caller the conditional clause the bridge needs.
 export 'package:application_base/core/utility/touch_input.dart'
     if (dart.library.js_interop)
         'package:application_base/core/utility/touch_input_web.dart';
 
-/// Note: using `Platform` on web throws exception,
-/// so web checking must be the first
+// `Platform` throws on the web, so every getter below rules the web out
+// before touching it.
 
 ///
 enum AvailablePlatform {

@@ -1,19 +1,20 @@
-///
+/// An outcome of a request or a change of the connection, published through
+/// `NetworkSubject`.
 sealed class NetworkEvent {
   ///
   NetworkEvent({this.data});
 
-  ///
+  /// A payload for the listener to tell events of one type apart.
   final Object? data;
 }
 
-/// Request sent successfully, got response with expected status code
+/// A response with an expected status.
 final class NetworkSuccess extends NetworkEvent {
   ///
   NetworkSuccess({super.data});
 }
 
-/// Internet or backend connection successfully restore
+/// The backend answers again; turns the offline mode off.
 final class NetworkRestore extends NetworkEvent {
   ///
   NetworkRestore({super.data});
@@ -25,39 +26,44 @@ final class NetworkConnectionAvailable extends NetworkEvent {
   NetworkConnectionAvailable({super.data});
 }
 
-/// There is no internet connection or backend is down. Also emitted on
-/// request timeouts — a timeout from the backend is treated as a temporary
-/// loss of connection and triggers the offline mode.
+/// No Internet or the backend is unreachable; turns the offline mode on.
+///
+/// Also emitted on a timeout, a 504 and an SSL failure: for the user each is
+/// the same temporary loss of connection.
 final class NetworkConnectionLost extends NetworkEvent {
   ///
   NetworkConnectionLost({super.data});
 }
 
-/// Got 401 HTTP status
+/// Got 401 HTTP status.
 final class NetworkUnauthorized extends NetworkEvent {
   ///
   NetworkUnauthorized({super.data});
 }
 
-/// Got 404 HTTP status
+/// Got 404 HTTP status.
+///
+/// Emitted only through `RequestType.expectedErrorMap`: an unmapped 404
+/// arrives as [NetworkUnexpectedResponse].
 final class NetworkNotFound extends NetworkEvent {
   ///
   NetworkNotFound({super.data});
 }
 
-/// Got a response with unexpected HTTP status
+/// A response whose status is neither expected nor mapped to an event.
 final class NetworkUnexpectedResponse extends NetworkEvent {
   ///
   NetworkUnexpectedResponse({super.data});
 }
 
-/// Got an error while sending request
+/// Sending failed with an error that is not a connection problem.
 final class NetworkUnexpectedError extends NetworkEvent {
   ///
   NetworkUnexpectedError({super.data});
 }
 
-///
+/// A project-specific event, e.g. an outdated-client status mapped through
+/// `RequestType.expectedErrorMap`.
 final class NetworkCustomEvent extends NetworkEvent {
   ///
   NetworkCustomEvent({super.data});

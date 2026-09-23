@@ -54,7 +54,8 @@ final class LifecycleService {
     _actualState = state;
 
     if (state == AppLifecycleState.resumed) {
-      /// Need to check connectivity
+      /// Since Android 8.0 a background app receives no connectivity changes,
+      /// so the link is re-read on every return to the foreground.
       unawaited(_connectivityService.getConnectivity());
     }
     _lifecycleSubject.add(state);

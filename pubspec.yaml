@@ -1,23 +1,26 @@
-# Last full SDK + dependency audit - 05.07.2026
+# Last full audit of the SDK and dependencies: 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
 version: 0.4.3
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
-  # Flutter SDK supported versions
-  # Pinned packages
+  # Minimum Flutter SDK. The packages it pins:
   # https://github.com/flutter/flutter/blob/3.44.4/packages/flutter/pubspec.yaml
-  # https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
+  # Release notes: https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
   flutter: '>=3.44.4'
 
-  # Dart SDK supported versions
+  # Minimum Dart SDK. The one each Flutter release ships:
   # https://docs.flutter.dev/release/archive
-  # https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
+  # Release notes: https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
   sdk: '>=3.12.2'
 
 dependencies:
-  # analyzer 14 is held back by injectable_generator (<14.0.0)
+  # Not supported: Web
+  #
+  # Used only by the getit_check executable, never by lib/. A regular
+  # dependency because a consumer's `dart run` sees no dev_dependencies of
+  # this package. Held below 14 by injectable_generator (<14.0.0).
   analyzer: ^13.0.0
 
   # All platform supported
@@ -29,7 +32,7 @@ dependencies:
   # All platform supported
   cross_file: ^0.3.5+4
 
-  # Base SDK
+  # All platform supported
   flutter:
     sdk: flutter
 
@@ -50,19 +53,20 @@ dependencies:
 
   # Not supported: Linux | Web | Windows
   #
-  # Store listing of the application, see ReviewService. Compiles everywhere —
-  # a platform without an implementation simply registers no plugin, and the
-  # service gates itself on the platform before it calls anything
+  # Opens the store listing for StoreService. Compiles everywhere: a platform
+  # without an implementation registers no plugin, and the service checks the
+  # platform before any call.
   in_app_review: ^2.0.12
+
+  # All platform supported
+  injectable: ^3.0.0
 
   # All platform supported
   #
   # A range, not an exact version: flutter_localizations pins intl to the one
-  # its SDK ships, and an application depending on both takes that pin
+  # its SDK ships, and an exact version here would fight that pin on every
+  # Flutter upgrade.
   intl: ^0.20.2
-
-  # All platform supported
-  injectable: ^3.0.0
 
   # All platform supported
   logger: ^2.7.0
@@ -81,14 +85,15 @@ dependencies:
 
   # All platform supported
   #
-  # Random identifiers of the records an application stores locally
+  # Random identifiers of the records an application stores locally (UuidPro).
   uuid: ^4.6.0
 
-  # Web only — browser API bindings, reached strictly through conditional
-  # imports (`if (dart.library.js_interop)`), never imported directly
+  # Not supported: Android | iOS | Linux | macOS | Windows
+  #
+  # Browser API bindings, reached only through conditional imports
+  # (`if (dart.library.js_interop)`), never imported directly.
   web: ^1.1.1
 
-#
 dev_dependencies:
   # dart run build_runner build
   build_runner: ^2.15.0
@@ -100,13 +105,9 @@ dev_dependencies:
   # dart run build_runner build
   injectable_generator: ^3.1.0
 
-# Executables exposed by the package — invoked via `dart run application_base:<name>`.
+# Run from a consumer's root: dart run application_base:<name>
 executables:
-  # dart run application_base:getit_check
+  # Finds cyclic getIt dependencies, see the README
   getit_check:
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:

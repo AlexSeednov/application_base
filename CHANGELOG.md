@@ -51,6 +51,17 @@
   upload waits 30 seconds instead of 20 before the offline mode takes over;
   a caller that wants the old limit passes `RequestDurationType.normal`.
 
+* **Every comment in the package reviewed** — `lib/`, `bin/`, `test/`,
+  `pubspec.yaml` and both analysis options. Comments that retold the code are
+  gone, wordy ones are cut down to the reason they carry, the missing reasons
+  are added (the offline-mode state machine, the upload timeouts, the CLI's
+  exit codes, among others), every declaration has its doc comment, and the
+  few that were in Russian are in English now. Comments that contradicted the
+  code are corrected. The rule set consumers include lost its per-rule links
+  and template noise (828 → 376 lines) but keeps the reason for every rule it
+  disables. No code changes, apart from `intl` moving below `injectable` in
+  `pubspec.yaml` for `sort_pub_dependencies`.
+
 * `NavigationServiceRouter` and `UrlLauncherRouter` constructors are marked
   `@visibleForTesting`, like every other service of the package: getIt owns
   the instance, and a second one belongs in a test only.

@@ -7,14 +7,15 @@ import 'package:rxdart/rxdart.dart';
 
 export 'package:application_base/data/remote/const/network_event.dart';
 
-///
+/// The application-wide bus of [NetworkEvent]s: requests, connectivity and
+/// the offline mode publish here.
 @lazySingleton
 final class NetworkSubject {
   ///
   @visibleForTesting
   NetworkSubject();
 
-  ///
+  /// A [PublishSubject]: a late listener gets no past events.
   final _networkSubject = PublishSubject<NetworkEvent>();
 
   ///

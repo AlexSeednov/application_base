@@ -1,32 +1,34 @@
-// Analyzer for cyclic dependencies introduced through getIt.
+// Finds cyclic dependencies introduced through getIt.
 //
-// Run from your project root:
+// Run from the project root:
 //   dart run application_base:getit_check
-//   dart run application_base:getit_check --verbose   # dump every registered
+//   dart run application_base:getit_check --verbose   # every registered
 //                                                     # class and its edges
-//   dart run application_base:getit_check --no-color  # disable ANSI colors
-//   dart run application_base:getit_check --ascii     # use ASCII-only glyphs
+//   dart run application_base:getit_check --no-color  # no ANSI colors
+//   dart run application_base:getit_check --ascii     # ASCII-only glyphs
 //
-// Scans lib/, finds classes registered in DI through injectable annotations
+// Scans lib/ for classes registered through injectable annotations
 // (@lazySingleton / @singleton / @injectable and the constructor forms
-// @LazySingleton(as: X) / @Singleton(as: X) / @Injectable(as: X)), collects
-// every getIt<T>() call inside them, builds a directed graph, then looks for
-// cycles via Tarjan's SCC + DFS, and prints them with severity.
+// @LazySingleton(as: X) / @Singleton(as: X) / @Injectable(as: X)), turns
+// every getIt<T>() call inside them into an edge of a directed graph, finds
+// the cycles (Tarjan's SCC, then a DFS inside each component) and prints
+// them by severity.
 //
-// EAGER edge — getIt<X>() in a field initializer or in the body / initializers
-//               of a constructor. A cycle with at least one eager edge =
-//               instant stack overflow when the first participant is created.
-// LAZY  edge — getIt<X>() in the body of a method/getter/setter (also in
-//               static field initializers, since they run on first access).
-//               A cycle made only of lazy edges may still bite, but only if
-//               the calls overlap in time.
+// EAGER edge — getIt<X>() in a field initializer or in the body /
+//               initializers of a constructor. A cycle with at least one
+//               eager edge overflows the stack as soon as its first
+//               participant is created.
+// LAZY  edge — getIt<X>() in the body of a method/getter/setter, or in a
+//               static field initializer (it runs on first access). A cycle
+//               of lazy edges only bites when the calls overlap in time.
 //
-// Current limitations:
-// - getIt calls inside mixins are not attributed to the classes that include
-//   them via `with` (can be added later).
-// - The analysis is purely static and does not account for control flow
-//   (if/?:): every reached getIt<T>() call is counted as a potential
-//   dependency.
+// Limitations:
+// - getIt calls inside mixins are not attributed to the classes that apply
+//   them with `with`.
+// - Only the call form getIt<T>() is seen: getIt.get<T>(), GetIt.I<T>() and
+//   the like are not.
+// - The analysis is static and ignores control flow (if / ?:): every
+//   getIt<T>() call reached counts as a dependency.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -38,11 +40,17 @@ import 'package:analyzer/source/line_info.dart';
 
 // MARK: Const
 
+/// Resolved against the working directory: the tool runs from the project
+/// root.
 const _libDir = 'lib';
 
+/// The forms without arguments.
 const _shorthandAnnotations = {'lazySingleton', 'singleton', 'injectable'};
+/// The constructor forms, which may register the class under another type
+/// with `as:`.
 const _classAnnotations = {'LazySingleton', 'Singleton', 'Injectable'};
 
+/// Skipped: generated code holds no annotated classes of its own.
 const _generatedSuffixes = [
   '.g.dart',
   '.gr.dart',
@@ -51,63 +59,94 @@ const _generatedSuffixes = [
   '.freezed.dart',
 ];
 
-// Hard cap on simple cycles enumerated inside a single SCC. Dense SCCs in
-// large graphs can have exponentially many cycles; after this many we stop
-// and append a warning.
+/// Cap on the cycles listed per SCC: a dense one can hold exponentially many,
+/// so the search stops here and the report says it is truncated.
 const _maxCyclesPerScc = 1000;
 
-// Print a thin horizontal divider after every N cycles inside one severity
-// group to break up visual monotony of long lists.
+/// A thin divider goes after every this many cycles of one severity, so a
+/// long list stays easy to scan.
 const _cycleGroupChunk = 5;
 
-// Total visible width of section headers and the summary box.
+/// Visible width of the section headers and of the summary box.
 const _bannerWidth = 64;
 
 // MARK: Output styling
 
+///
 var _useColor = true;
+/// Off with `--ascii`, for terminals without UTF-8.
 var _useUnicode = true;
 
+/// [code] is an SGR parameter list, such as `1;31` for bold red.
 String _ansi(String text, String code) =>
     _useColor ? '\x1B[${code}m$text\x1B[0m' : text;
 
+///
 String _bold(String s) => _ansi(s, '1');
+///
 String _dim(String s) => _ansi(s, '2');
+///
 String _red(String s) => _ansi(s, '31');
+///
 String _yellow(String s) => _ansi(s, '33');
+///
 String _cyan(String s) => _ansi(s, '36');
+///
 String _boldRed(String s) => _ansi(s, '1;31');
+///
 String _boldYellow(String s) => _ansi(s, '1;33');
+///
 String _boldGreen(String s) => _ansi(s, '1;32');
+///
 String _boldCyan(String s) => _ansi(s, '1;36');
 
+/// Each glyph has an ASCII fallback for `--ascii`.
 String get _gArrowDown => _useUnicode ? '▼' : 'v';
+///
 String get _gBar => _useUnicode ? '│' : '|';
+///
 String get _gArrow => _useUnicode ? '→' : '->';
+///
 String get _gHintMark => _useUnicode ? '▸' : '>';
+///
 String get _gHLine => _useUnicode ? '─' : '-';
+///
 String get _gBoxTL => _useUnicode ? '┌' : '+';
+///
 String get _gBoxBL => _useUnicode ? '└' : '+';
+///
 String get _gHeavy => _useUnicode ? '═' : '=';
+///
 String get _gCheck => _useUnicode ? '✓' : 'OK';
+///
 String get _gLoop => _useUnicode ? '↺' : '<-';
+///
 String get _gWarn => _useUnicode ? '⚠' : '[!]';
 
 // MARK: Data
 
+/// When a getIt call runs; see the file header.
 enum _EdgeKind { eager, lazy }
 
+/// HIGH: the cycle has an eager edge. LOW: lazy edges only.
 enum _Severity { high, low }
 
+/// One `getIt<T>()` call inside a registered class.
 final class _Ref {
+  ///
   _Ref({required this.target, required this.kind, required this.line});
 
+  /// The type argument of the call, the name it asks getIt for.
   final String target;
+  ///
   final _EdgeKind kind;
+  ///
   final int line;
 }
 
+/// A class registered in DI, with the getIt calls inside it.
 final class _ClassInfo {
+  ///
   _ClassInfo({
     required this.className,
     required this.registeredAs,
@@ -115,15 +154,23 @@ final class _ClassInfo {
     required this.line,
   });
 
+  ///
   final String className;
+  /// The `as:` type of the annotation, else the class itself: the name
+  /// getIt knows it by and the node it becomes in the graph.
   final String registeredAs;
+  ///
   final String filePath;
+  ///
   final int line;
+  ///
   final List<_Ref> refs = [];
 }
 
 // MARK: Base functions
 
+/// Exits with 0 on a clean graph, 1 on any cycle and 2 without `lib/`, so a
+/// CI step can gate on it.
 void main(List<String> args) {
   final verbose = args.contains('--verbose') || args.contains('-v');
   _useColor =
@@ -156,6 +203,8 @@ void main(List<String> args) {
   final classes = <_ClassInfo>[];
   var parseErrors = 0;
   for (final file in files) {
+    // One unreadable file must not hide the cycles in the rest: it is
+    // counted and skipped.
     try {
       classes.addAll(_analyzeFile(file));
     } catch (e) {
@@ -175,9 +224,8 @@ void main(List<String> args) {
     }
   }
 
-  // Graph: registeredAs -> { target: edgeKind }.
-  // If both eager and lazy edges exist between the same pair, eager wins
-  // (it represents the worst case for cycle severity).
+  // registeredAs -> {target: edge kind}. Of an eager and a lazy edge between
+  // the same pair, eager wins: severity goes by the worst case.
   final graph = <String, Map<String, _EdgeKind>>{};
   for (final cls in classes) {
     final adj = graph.putIfAbsent(cls.registeredAs, () => {});
@@ -195,6 +243,7 @@ void main(List<String> args) {
   final cycles = <List<String>>[];
   var truncatedSccs = 0;
   for (final scc in sccs) {
+    // A single node is a cycle only through an edge to itself.
     if (scc.length == 1) {
       if ((graph[scc.first] ?? const {}).containsKey(scc.first)) {
         cycles.add([scc.first, scc.first]);
@@ -206,7 +255,7 @@ void main(List<String> args) {
     if (found.truncated) truncatedSccs++;
   }
 
-  // Stable ordering: severity desc, then by cycle length asc.
+  // HIGH before LOW; within each, shorter cycles first.
   cycles.sort((a, b) {
     final sa = _severity(a, graph);
     final sb = _severity(b, graph);
@@ -214,7 +263,8 @@ void main(List<String> args) {
     return a.length.compareTo(b.length);
   });
 
-  // Hot-spot map: how many cycles each class participates in.
+  // How many cycles each class is in. toSet(): a cycle repeats its first
+  // node at the end.
   final hotMap = <String, int>{};
   for (final cycle in cycles) {
     for (final node in cycle.toSet()) {
@@ -273,11 +323,12 @@ void main(List<String> args) {
 
 // MARK: Output helpers
 
+///
 void _printSectionHeader(String label, int count, _Severity sev) {
   final color = sev == _Severity.high ? _boldRed : _boldYellow;
   final word = count == 1 ? 'cycle' : 'cycles';
   final title = '$label severity — $count $word';
-  // visible width of the title in the banner (no ANSI)
+  // Measured before coloring: ANSI codes take no columns.
   final visibleTitleLen = title.length;
   const leftLen = 3;
   final rightLen = math.max(3, _bannerWidth - visibleTitleLen - 2 - leftLen);
@@ -289,6 +340,7 @@ void _printSectionHeader(String label, int count, _Severity sev) {
     ..writeln();
 }
 
+/// [startIdx] carries the numbering on from the HIGH group to the LOW one.
 void _printCycleGroup(
   List<List<String>> cycles,
   int startIdx,
@@ -313,6 +365,7 @@ void _printCycleGroup(
   }
 }
 
+///
 void _printCycle(
   int idx,
   List<String> cycle,
@@ -323,7 +376,7 @@ void _printCycle(
 ) {
   final length = cycle.length - 1;
 
-  // Compute max visible name length (including hot tag) for path alignment.
+  // The widest name with its hot tag, so the file locations line up.
   var maxNameLen = 0;
   for (var i = 0; i < length; i++) {
     final n = cycle[i];
@@ -365,13 +418,12 @@ void _printCycle(
       ..writeln('      $coloredArrow');
   }
 
-  // The loop-back node — same as cycle[0]. No path, just a short marker.
+  // The closing node repeats cycle[0]: a marker instead of its location.
   final back = cycle.last;
   stdout
     ..writeln('    ${_bold(back)}  ${_dim('$_gLoop loops back')}')
     ..writeln();
 
-  // Per-severity fix hint.
   if (sev == _Severity.high) {
     stdout
       ..writeln(
@@ -395,6 +447,8 @@ void _printCycle(
   }
 }
 
+/// The graph is keyed by the registered name, so only the first class of
+/// each duplicated name takes part in the analysis.
 void _printDuplicates(Map<String, List<_ClassInfo>> duplicates) {
   stdout
     ..writeln()
@@ -415,6 +469,7 @@ void _printDuplicates(Map<String, List<_ClassInfo>> duplicates) {
   });
 }
 
+///
 void _printSummary({
   required int filesScanned,
   required int parseErrors,
@@ -442,6 +497,7 @@ void _printSummary({
       ['Duplicates', _yellow('$duplicates')],
   ];
 
+  // Fits the longest label, `getIt<T> references`, with room to spare.
   const labelWidth = 22;
   const titleText = ' Summary ';
   const innerWidth = _bannerWidth - 2;
@@ -467,6 +523,7 @@ void _printSummary({
 
 // MARK: Functions
 
+///
 bool _isAnalyzable(File f) {
   final path = f.path;
   if (!path.endsWith('.dart')) return false;
@@ -476,6 +533,8 @@ bool _isAnalyzable(File f) {
   return true;
 }
 
+/// Parses without resolving: fast, needs no package config and survives
+/// syntax errors — but every type is known by its name only.
 Iterable<_ClassInfo> _analyzeFile(File file) {
   final content = file.readAsStringSync();
   final result = parseString(
@@ -488,6 +547,8 @@ Iterable<_ClassInfo> _analyzeFile(File file) {
   return visitor.classes;
 }
 
+/// The name [node] is registered under, or null without a registration
+/// annotation. Annotations match by name, an import prefix dropped.
 String? _detectRegistration(ClassDeclaration node) {
   final className = node.namePart.typeName.lexeme;
   for (final annotation in node.metadata) {
@@ -515,13 +576,14 @@ String? _detectRegistration(ClassDeclaration node) {
   return null;
 }
 
+/// Strips type arguments and an import prefix: `p.Foo<Bar>` becomes `Foo`.
 String _baseTypeName(String source) {
   var s = source.split('<').first.trim();
   if (s.contains('.')) s = s.split('.').last;
   return s;
 }
 
-// Tarjan's strongly connected components.
+/// Tarjan's strongly connected components of [graph].
 List<List<String>> _tarjanScc(Map<String, Map<String, _EdgeKind>> graph) {
   final indices = <String, int>{};
   final lowlinks = <String, int>{};
@@ -567,20 +629,24 @@ List<List<String>> _tarjanScc(Map<String, Map<String, _EdgeKind>> graph) {
   return out;
 }
 
+///
 final class _SccCyclesResult {
+  ///
   _SccCyclesResult({required this.cycles, required this.truncated});
 
+  ///
   final List<List<String>> cycles;
+  /// Whether the search stopped at [_maxCyclesPerScc].
   final bool truncated;
 }
 
-// Enumerates all elementary (simple) cycles inside one strongly connected
-// component. For each chosen `start`, DFS only descends through nodes whose
-// name is lexicographically >= start; this guarantees every cycle is reported
-// exactly once (with its lex-smallest node as the entry point) — the same
-// uniqueness trick Johnson's algorithm uses.
-//
-// To stay safe on dense SCCs, the search aborts at [_maxCyclesPerScc] cycles.
+/// Every elementary cycle inside one strongly connected component, each with
+/// its first node repeated at the end.
+///
+/// From each `start` the DFS descends only through names that sort at or
+/// after it, so every cycle is found exactly once, entered at its smallest
+/// node — the uniqueness trick of Johnson's algorithm. The search stops at
+/// [_maxCyclesPerScc] cycles to stay safe on dense components.
 _SccCyclesResult _findAllSimpleCyclesInScc(
   List<String> scc,
   Map<String, Map<String, _EdgeKind>> graph,
@@ -625,6 +691,7 @@ _SccCyclesResult _findAllSimpleCyclesInScc(
   return _SccCyclesResult(cycles: cycles, truncated: truncated);
 }
 
+///
 _Severity _severity(
   List<String> cycle,
   Map<String, Map<String, _EdgeKind>> graph,
@@ -637,6 +704,7 @@ _Severity _severity(
   return _Severity.low;
 }
 
+/// The `--verbose` listing: every registered class with its edges.
 void _dumpGraph(
   Map<String, _ClassInfo> registry,
   Map<String, Map<String, _EdgeKind>> graph,
@@ -644,7 +712,7 @@ void _dumpGraph(
 ) {
   final names = registry.keys.toList()..sort();
 
-  // Width to align target arrows nicely across all entries.
+  // The widest class label, so the file locations line up.
   var maxClassLen = 0;
   for (final name in names) {
     final cls = registry[name]!;
@@ -655,6 +723,7 @@ void _dumpGraph(
     if (visible.length > maxClassLen) maxClassLen = visible.length;
   }
 
+  // The 33 below is the width of the left rule and the title together.
   stdout
     ..writeln()
     ..writeln(
@@ -691,6 +760,7 @@ void _dumpGraph(
     final targets = adj.keys.toList()..sort();
     for (final t in targets) {
       final isEager = adj[t] == _EdgeKind.eager;
+      // 'lazy ' is padded to the width of 'eager'.
       final kindStr = isEager ? _boldRed('eager') : _yellow('lazy ');
       stdout.writeln('    $kindStr ${_dim(_gArrow)} ${_bold(t)}');
     }
@@ -699,13 +769,19 @@ void _dumpGraph(
 
 // MARK: Visitor
 
+/// Collects the registered classes of one file.
 class _Collector extends RecursiveAstVisitor<void> {
+  ///
   _Collector(this.filePath, this.lineInfo);
 
+  ///
   final String filePath;
+  ///
   final LineInfo lineInfo;
+  ///
   final classes = <_ClassInfo>[];
 
+  /// The kind of each member decides the kind of the edges found in it.
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     final registered = _detectRegistration(node);
@@ -715,15 +791,14 @@ class _Collector extends RecursiveAstVisitor<void> {
       className: node.namePart.typeName.lexeme,
       registeredAs: registered,
       filePath: filePath,
-      // Use the name token offset so the reported line points at the class
-      // identifier itself, not at the start of the leading doc comment.
+      // The name token, not the node: the node starts at the doc comment.
       line: lineInfo.getLocation(node.namePart.typeName.offset).lineNumber,
     );
 
     for (final member in node.body.members) {
       if (member is FieldDeclaration) {
-        // Static fields are lazy: their initializers run on first access,
-        // not during construction of a class instance.
+        // A static field initializer runs on first access, not when an
+        // instance is built.
         final kind = member.isStatic ? _EdgeKind.lazy : _EdgeKind.eager;
         final v = _GetItVisitor(kind, lineInfo);
         member.fields.accept(v);
@@ -746,13 +821,19 @@ class _Collector extends RecursiveAstVisitor<void> {
   }
 }
 
+/// Records every `getIt<T>()` call in the subtree it visits, all of [kind].
 class _GetItVisitor extends RecursiveAstVisitor<void> {
+  ///
   _GetItVisitor(this.kind, this.lineInfo);
 
+  ///
   final _EdgeKind kind;
+  ///
   final LineInfo lineInfo;
+  ///
   final refs = <_Ref>[];
 
+  /// A call without a type argument names no dependency and is skipped.
   void _capture(TypeArgumentList? typeArgs, int offset) {
     if (typeArgs == null || typeArgs.arguments.isEmpty) return;
     final first = typeArgs.arguments.first;
@@ -772,6 +853,7 @@ class _GetItVisitor extends RecursiveAstVisitor<void> {
     );
   }
 
+  /// Only a bare `getIt<T>()`: a call with a target is some other method.
   @override
   void visitMethodInvocation(MethodInvocation node) {
     if (node.methodName.name == 'getIt' && node.target == null) {
@@ -780,6 +862,7 @@ class _GetItVisitor extends RecursiveAstVisitor<void> {
     super.visitMethodInvocation(node);
   }
 
+  /// The same call when it parses as a function-expression invocation.
   @override
   void visitFunctionExpressionInvocation(FunctionExpressionInvocation node) {
     final func = node.function;

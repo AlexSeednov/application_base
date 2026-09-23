@@ -24,8 +24,8 @@ abstract interface class NavigationServicePro {
   /// Rebuilds the whole stack with [route] as its single entry.
   Future<void> replaceAll(PageRouteInfo<dynamic> route);
 
-  /// Pops until [route] already exists in the stack, otherwise pushes it
-  /// (cross-sector navigation).
+  /// Pops back to [route] when the stack already holds it, otherwise pushes
+  /// it (cross-sector navigation).
   Future<void> navigate(PageRouteInfo<dynamic> route);
 
   /// Pops the top screen of the visible stack unless it is the only entry

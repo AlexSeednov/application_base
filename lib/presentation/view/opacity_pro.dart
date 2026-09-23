@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-///
+/// Animates [child] between full opacity and [minOpacity].
 final class OpacityPro extends StatelessWidget {
   ///
   const OpacityPro({
@@ -11,7 +11,7 @@ final class OpacityPro extends StatelessWidget {
     super.key,
   });
 
-  ///
+  /// Material's opacity for disabled content.
   static const double minOpacityDefault = 0.38;
 
   ///
@@ -20,7 +20,7 @@ final class OpacityPro extends StatelessWidget {
   ///
   final bool isFullyOpaque;
 
-  /// Minimum opacity value ([isFullyOpaque] is true)
+  /// Opacity while not [isFullyOpaque].
   final double minOpacity;
 
   ///

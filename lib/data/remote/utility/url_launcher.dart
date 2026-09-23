@@ -4,10 +4,11 @@ import 'package:application_base/data/remote/utility/location_navigation.dart'
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-///
+/// Static helpers over `url_launcher`; every launch returns **true** on
+/// success.
 abstract final class UrlLauncher {
-  /// Check and try to open a link.
-  /// Return **true** on success
+  /// Opens [link] with [mode], falling back to the in-app browser view.
+  /// Return **true** on success; never throws.
   static Future<bool> launchLink(
     String? link, {
     LaunchMode mode = LaunchMode.externalApplication,
@@ -22,9 +23,8 @@ abstract final class UrlLauncher {
 
       if (await launchUrlString(link, mode: mode)) return true;
 
-      /// Maybe a problem with selected launch mode
+      /// The requested mode may be unsupported for this link or platform.
       if (mode != LaunchMode.inAppBrowserView) {
-        /// Try to open in app browser
         logInfo(info: 'Error on launching the link $link via $mode');
         if (await launchUrlString(link, mode: LaunchMode.inAppBrowserView)) {
           return true;
@@ -92,7 +92,7 @@ abstract final class UrlLauncher {
     return false;
   }
 
-  /// Try to open email application with prepeared email.
+  /// Try to open email application with prepared email.
   /// Return **true** on success
   static Future<bool> sendEmail({
     required String to,
@@ -117,7 +117,8 @@ abstract final class UrlLauncher {
   /// Return **true** on success
   static Future<bool> sendSms(String text) => launchLink('sms:?body=$text');
 
-  ///
+  /// Percent-encodes a `mailto:` query: `Uri.queryParameters` would encode a
+  /// space as `+`, which mail clients show literally.
   static String? encodeQueryParameters(Map<String, String> params) => params
       .entries
       .map(

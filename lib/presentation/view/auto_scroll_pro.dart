@@ -9,31 +9,29 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
-/// Middle-button autoscroll: the press anchors the page, the mouse then sets
-/// the direction and the speed of the scrolling, and a click ends it — the
-/// mode a browser gives a plain page for free.
+/// Middle-button autoscroll, as a browser gives a plain page: the press sets
+/// an anchor, the mouse's travel from it sets the direction and speed, and a
+/// click ends it.
 ///
-/// On the web the browser cannot give it: Flutter draws the application into
-/// a canvas, the document holds no scrollable element of its own, and the
-/// mode has nothing to move. So it is rebuilt here, over the application:
-/// wrap the whole of it, above the navigator, and the anchor mark and the
-/// pointer block cover the pages, the sheets and the dialogs alike.
+/// On the web the browser cannot provide it: Flutter draws the application
+/// into a canvas, and the document has no scrollable element of its own to
+/// move. Wrap the whole application, above the navigator, so the anchor mark
+/// and the pointer block cover pages, sheets and dialogs alike.
 ///
-/// The scrolling goes out the way the wheel does — a synthesized
-/// [PointerScrollEvent] aimed at the anchor — rather than as a write into a
-/// scroll position: the framework then picks the scrollable itself, the one
-/// the user aimed at, keeps its physics, and hands the movement to the parent
-/// when a nested list has nowhere left to go. Only when nothing under the
-/// anchor scrolls at all does the route's primary position take the step
-/// directly — the same position the keyboard scrolls.
+/// The scrolling goes out as a synthesized [PointerScrollEvent] aimed at the
+/// anchor, like the wheel, rather than as a write into a scroll position: the
+/// framework then picks the scrollable the user aimed at, keeps its physics,
+/// and hands the movement to the parent once a nested list runs out. Only when
+/// nothing under the anchor scrolls does the route's primary position — the
+/// one the keyboard scrolls — take the step directly.
 ///
-/// Nothing but the user ends the mode: a click, the wheel or Escape. The
-/// cursor leaving the window and the window losing the focus leave it on —
-/// the aim simply stops being updated, and the page keeps going the way it
-/// was last aimed, exactly as the browser's own mode does.
+/// Only the user ends the mode: a click, the wheel or Escape. The cursor
+/// leaving the window or the window losing the focus leaves it on: the aim
+/// stops updating and the page keeps going the way it was last aimed, as in
+/// the browser's own mode.
 ///
-/// A platform without a middle button never starts the mode, so the widget is
-/// inert on a phone.
+/// A platform without a middle button never starts the mode, so on a phone
+/// the widget is inert.
 final class AutoScrollPro extends StatefulWidget {
   ///
   const AutoScrollPro({required this.child, super.key});
@@ -46,9 +44,9 @@ final class AutoScrollPro extends StatefulWidget {
   State<AutoScrollPro> createState() => _AutoScrollProState();
 }
 
-/// Lets a widget take a middle click for itself, so the mode does not start
-/// on it. `RouteLink` does exactly that: over a link the button belongs to
-/// the browser, which opens it in a new tab.
+/// Lets a widget claim a middle click, so the mode does not start on it.
+/// `RouteLink` does: over a link the middle button belongs to the browser,
+/// which opens the link in a new tab.
 final class AutoScrollScope extends InheritedWidget {
   ///
   const AutoScrollScope({
@@ -64,17 +62,18 @@ final class AutoScrollScope extends InheritedWidget {
   static AutoScrollScope? maybeOf(BuildContext context) =>
       context.getInheritedWidgetOfExactType<AutoScrollScope>();
 
-  ///
+  /// [maybeOf] reads the scope without subscribing, so there is no one to
+  /// notify.
   @override
   bool updateShouldNotify(AutoScrollScope oldWidget) => false;
 }
 
-/// The mode's own state: where it is anchored, where the mouse is, and what
-/// carries the step.
+///
 final class _AutoScrollProState extends State<AutoScrollPro>
     with SingleTickerProviderStateMixin {
-  /// Distance from the anchor the page stands still within. The same travel
-  /// turns the press into a drag: past it the release ends the mode.
+  /// Radius around the anchor within which the page stands still. Past it,
+  /// a held button also turns the press into a drag, whose release ends the
+  /// mode.
   static const double _deadZone = 12;
 
   /// Scrolling speed per pixel of travel beyond [_deadZone], px/s.
@@ -86,31 +85,30 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   /// Diameter of the anchor mark.
   static const double _anchorSize = 30;
 
-  /// Upper bound of the frame the step is measured over. The mode outlives a
-  /// hidden tab, where the frames stop and the clock does not: without the
-  /// bound the first frame back would carry the whole pause and throw the
-  /// page across the list in one step.
+  /// Longest frame a step accounts for. The mode outlives a hidden tab, where
+  /// the frames stop and the clock does not: unbounded, the first frame back
+  /// would carry the whole pause and throw the page across the list at once.
   static const Duration _maxFrame = Duration(milliseconds: 100);
 
-  /// Marks the wheel events the mode sends itself, so it does not read its
-  /// own scrolling as the user's wheel and stop on the first frame. A real
+  /// Marks the wheel events the mode sends itself, so it does not take its
+  /// own scrolling for the user's wheel and stop on the first frame. A real
   /// embedder numbers its events from zero up.
   static const int _syntheticEmbedderId = -1;
 
   /// Opens the pointer block for the mode's own events.
   final _GateLatch _latch = _GateLatch();
 
-  /// Built up front: created on first use, it would be created inside
-  /// [dispose] of an application that never entered the mode, where the
-  /// ancestor lookup of the ticker mode is no longer safe.
+  /// Created in [initState], not on first use: [dispose] touches it, and in
+  /// an application that never entered the mode it would be created there,
+  /// where looking up the `TickerMode` ancestor is no longer safe.
   late final Ticker _ticker;
 
-  /// Where the mode is anchored, in the coordinates of the window — those of
-  /// the pointer events and of the hit test; `null` — the mode is off.
+  /// The anchor in window coordinates, those of the pointer events and the
+  /// hit test; `null` — the mode is off.
   Offset? _anchor;
 
-  /// The same point in the coordinates of this widget: the mark is drawn in
-  /// them, and a wrapper above may well have shifted the two apart.
+  /// The anchor in this widget's coordinates, where the mark is drawn: a
+  /// wrapper above may shift the two apart.
   Offset _anchorMark = Offset.zero;
 
   /// Latest position of the mouse.
@@ -120,7 +118,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   /// anchor; `null` — the wheel goes out instead.
   ScrollPosition? _fallback;
 
-  /// The click a link has taken for itself.
+  /// The pointer whose click a link has claimed.
   int? _claimedPointer;
 
   /// Whether the button that started the mode is still down.
@@ -157,8 +155,6 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     final bool isOn = _anchor != null;
 
     return AutoScrollScope(
-      /// A link takes the click for itself: over it the middle button opens a
-      /// new tab, and the mode must not start on the same press.
       claimPointer: (pointer) => _claimedPointer = pointer,
       child: Listener(
         onPointerDown: _onPointerDown,
@@ -167,9 +163,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
         onPointerUp: _onPointerUp,
         onPointerSignal: _onPointerSignal,
 
-        /// The stack stands whether the mode is on or off: moving the
+        /// The stack stays whether the mode is on or off: moving the
         /// application to another depth of the tree would rebuild it from
-        /// scratch and lose every scroll offset on the way.
+        /// scratch and lose every scroll offset.
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -183,9 +179,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
                 ),
               ),
 
-              /// Topmost, and translucent: the cursor of the direction wins
-              /// over the ones of the application, and the hit test still
-              /// reaches the block below.
+              /// Topmost, so the direction cursor wins over the application's
+              /// own; translucent, so the hit test still reaches the block
+              /// below.
               Positioned.fill(
                 child: MouseRegion(
                   cursor: _cursor,
@@ -223,7 +219,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   void _onPointerHover(PointerHoverEvent event) => _track(event.position);
 
   /// A release ends the mode only when it closes a drag: a plain click leaves
-  /// the mode on, the way the button behaves in a browser.
+  /// the mode on, as the button does in a browser.
   void _onPointerUp(PointerUpEvent event) {
     if (_anchor == null) return;
 
@@ -231,8 +227,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     if (_isDragged) _stop();
   }
 
-  /// The wheel is the user taking over: the mode steps aside. Its own events
-  /// are marked and pass by.
+  /// The user's wheel ends the mode; its own events are marked and pass by.
   void _onPointerSignal(PointerSignalEvent event) {
     if (_anchor == null || event.embedderId == _syntheticEmbedderId) return;
 
@@ -251,9 +246,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     return true;
   }
 
-  /// Starts the mode — unless there is nothing to scroll under the anchor, in
-  /// which case the click is left alone, as a browser leaves a page that does
-  /// not scroll.
+  /// Starts the mode, unless there is nothing to scroll under the anchor:
+  /// then the click is left alone, as a browser leaves a page that does not
+  /// scroll.
   void _start(Offset anchor) {
     final bool hasScrollable = _hasViewportAt(anchor);
     final ScrollPosition? fallback = hasScrollable ? null : _primaryPosition();
@@ -270,7 +265,7 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     _latch.isBlocking = true;
 
     /// The browser answers the middle button on its own — over a link with a
-    /// new tab — and the click that ends the mode must do nothing but that.
+    /// new tab — and the click that ends the mode must do nothing else.
     holdMiddleButtonDefault(isHeld: true);
     HardwareKeyboard.instance.addHandler(_onKey);
     _ticker.start();
@@ -298,8 +293,8 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     setState(() => _anchor = null);
   }
 
-  /// Follows the mouse: the travel from the anchor drives both the speed and
-  /// the cursor, and past the dead zone the held button reads as a drag.
+  /// The travel from the anchor drives the speed and the cursor; past the
+  /// dead zone a held button reads as a drag.
   void _track(Offset position) {
     final Offset? anchor = _anchor;
     if (anchor == null) return;
@@ -336,8 +331,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   Offset _velocityFor(Offset travel) =>
       Offset(_axisVelocity(travel.dx), _axisVelocity(travel.dy));
 
-  /// Speed along one axis: the dead zone keeps a resting mouse still, and
-  /// past it the speed grows with the travel, as the browser mode does.
+  /// Speed along one axis: zero within the dead zone, so a resting mouse
+  /// keeps the page still, and growing with the travel past it, as in the
+  /// browser mode.
   double _axisVelocity(double travel) {
     final double distance = travel.abs() - _deadZone;
     if (distance <= 0) return 0;
@@ -345,9 +341,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     return math.min(distance * _speedFactor, _maxSpeed) * travel.sign;
   }
 
-  /// Hands the step to the application: either into the fallback position, or
-  /// as the wheel — one event per axis, since a scrollable reads only the
-  /// component of its own axis and a single event reaches a single scrollable.
+  /// Writes the step into the fallback position, or sends it as the wheel:
+  /// one event per axis, since a scrollable reads only the component of its
+  /// own axis and a single event reaches a single scrollable.
   void _scrollBy(Offset step, Offset anchor) {
     final ScrollPosition? fallback = _fallback;
     if (fallback != null) {
@@ -359,8 +355,8 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     if (step.dx != 0) _sendWheel(anchor, Offset(step.dx, 0));
   }
 
-  /// A position that has left the tree takes no step: it has neither an
-  /// offset nor dimensions to move between.
+  /// Skips a position that has left the tree: it has no offset or dimensions
+  /// to move between.
   void _scrollFallback(ScrollPosition position, double step) {
     if (step == 0) return;
     if (!position.hasPixels || !position.hasContentDimensions) return;
@@ -368,10 +364,10 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     position.pointerScroll(step);
   }
 
-  /// A wheel event of the framework's own kind, aimed at the anchor: the
-  /// scrollable is picked by the hit test, exactly as for the real wheel. The
-  /// block opens for the length of the dispatch — hit testing runs inside it,
-  /// so no rebuild comes between.
+  /// A wheel event of the framework's own kind, aimed at the anchor, so the
+  /// hit test picks the scrollable as it does for the real wheel. The block
+  /// opens only for the dispatch: hit testing runs inside it, so no rebuild
+  /// comes in between.
   void _sendWheel(Offset position, Offset delta) {
     _latch.isOpen = true;
     GestureBinding.instance.handlePointerEvent(
@@ -386,9 +382,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     _latch.isOpen = false;
   }
 
-  /// Whether a scrollable sits under the anchor at all — whether the wheel
-  /// has anywhere to go. The mode has not started yet, so the hit test
-  /// reaches the application itself.
+  /// Whether any scrollable sits under [position] for the wheel to reach.
+  /// The mode has not started yet, so the hit test reaches the application
+  /// itself.
   bool _hasViewportAt(Offset position) {
     final HitTestResult result = HitTestResult();
     GestureBinding.instance.hitTestInView(
@@ -400,9 +396,9 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     return result.path.any((entry) => entry.target is RenderAbstractViewport);
   }
 
-  /// The route's primary position — the one the keyboard scrolls. It is
-  /// handed out below the navigator, so it is read from the focused context
-  /// rather than from this one, which stands above.
+  /// The route's primary position, the one the keyboard scrolls. It is
+  /// provided below the navigator, so it is read from the focused context:
+  /// this widget stands above.
   ScrollPosition? _primaryPosition() {
     final BuildContext? focused = FocusManager.instance.primaryFocus?.context;
     if (focused == null) return null;
@@ -419,8 +415,8 @@ final class _AutoScrollProState extends State<AutoScrollPro>
     return isReady ? position : null;
   }
 
-  /// The cursor of the current direction — the eight of them around the
-  /// anchor, and the mode's own all-scroll inside the dead zone.
+  /// The cursor of the direction: one of eight around the anchor, and the
+  /// mode's own all-scroll inside the dead zone.
   MouseCursor _cursorFor(Offset travel) {
     final bool isHorizontal = travel.dx.abs() > _deadZone;
     final bool isVertical = travel.dy.abs() > _deadZone;
@@ -448,8 +444,8 @@ final class _AutoScrollProState extends State<AutoScrollPro>
   }
 }
 
-/// The state of the pointer block, read at hit-test time: the mode opens its
-/// own block for a single dispatch, and a rebuild in the middle of sending an
+/// The state of the pointer block, read at hit-test time: the mode opens the
+/// block for a single dispatch, and a rebuild in the middle of sending an
 /// event would come too late.
 final class _GateLatch {
   /// Whether the mode is on and the application stands behind the block.
@@ -459,10 +455,9 @@ final class _GateLatch {
   bool isOpen = false;
 }
 
-/// Keeps the pointer off the application while the mode is on: a click ends
-/// the mode and does nothing else, as it does in a browser, so it must not
-/// press the button under the cursor. Hover leaves the application for the
-/// same reason — nothing under the mode lights up.
+/// Keeps the pointer off the application while the mode is on: a click then
+/// only ends the mode, as in a browser, and must not press the button under
+/// the cursor. For the same reason nothing under the mode shows hover.
 final class _PointerGate extends SingleChildRenderObjectWidget {
   ///
   const _PointerGate({required this.latch, required super.child});
@@ -493,9 +488,9 @@ final class _RenderPointerGate extends RenderProxyBox {
   ///
   _GateLatch latch;
 
-  /// Blocked, the box answers the hit itself and leaves its child out of the
-  /// path — the way an absorbing pointer does, and without hiding the box
-  /// from the listener above it.
+  /// When blocking, the box takes the hit itself and leaves its child out of
+  /// the path, as [AbsorbPointer] does; unlike [IgnorePointer], the
+  /// [Listener] above still sees it.
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
     if (!latch.isBlocking || latch.isOpen) {
@@ -528,8 +523,8 @@ final class _AutoScrollAnchorPainter extends CustomPainter {
   ///
   const _AutoScrollAnchorPainter();
 
-  /// Fixed colours: the mark belongs to the browser mode rather than to the
-  /// theme of the application, and it is drawn over pages of either one.
+  /// Fixed colours, not the theme's: the mark mimics the browser's and is
+  /// drawn over light and dark pages alike.
   static const Color _fill = Color(0xF2FFFFFF);
 
   ///

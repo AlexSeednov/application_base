@@ -18,12 +18,12 @@ final class BannerPro extends StatelessWidget {
   Widget build(BuildContext context) {
     if (flavor is FlavorProduction) return application;
 
-    /// The banner is drawn before the application, so there is no
-    /// `Directionality` above it yet — it has to bring its own
+    /// The banner sits above the application, where no `Directionality`
+    /// exists yet, so it brings its own.
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Banner(
-        // The flavor name is not a user-facing string and stays untranslated
+        // The flavor name is not user-facing and stays untranslated.
         message: flavor.name,
         location: BannerLocation.topEnd,
         child: application,

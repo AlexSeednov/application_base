@@ -5,18 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
-/// Page scrolling keys on top of Flutter's own map: on the web Flutter maps
-/// the arrows, PageUp/PageDown and Space itself, but neither Home/End and
-/// Shift+Space nor any of the combinations a browser on macOS scrolls a page
-/// with. Flutter's own Apple map is no help with the latter: on the web
-/// `defaultShortcuts` answers with the web map whatever the host OS is, and
-/// where the Apple map does apply it moves Cmd+arrow by a line rather than to
-/// the ends of the page.
+/// Page-scrolling keys on top of Flutter's defaults.
+///
+/// On the web Flutter maps the arrows, PageUp/PageDown and Space, but not
+/// Home/End, Shift+Space or the combinations a macOS browser scrolls a page
+/// with. Its Apple map does not help: on the web `defaultShortcuts` returns
+/// the web map whatever the host OS, and where the Apple map applies, it
+/// moves Cmd+arrow by a line instead of to the ends of the page.
 ///
 /// The maps go into `MaterialApp.shortcuts` / `actions` and extend the
-/// defaults: there they sit above the text-editing shortcuts, so a focused
-/// text field handles its keys first. The actions replace the framework's own
-/// [ScrollAction] as well — see [ScrollActionPro] for what a held key does
+/// defaults. There they sit above the text-editing shortcuts, so a focused
+/// text field handles its keys first. The actions also replace the
+/// framework's [ScrollAction]; see [ScrollActionPro] for what a held key does
 /// without it.
 abstract final class KeyboardShortcutsPro {
   ///
@@ -42,20 +42,18 @@ abstract final class KeyboardShortcutsPro {
         KeyboardScrollIntent(KeyboardScrollKind.pageUp),
   };
 
-  /// What a browser on macOS scrolls a page with — Cmd+arrow to the ends of
-  /// the page, Option+arrow by a screen — bound on the Apple platforms alone:
-  /// the same combinations are Alt+arrow elsewhere, where Alt+left/right is
-  /// the browser's own back/forward.
+  /// The keys a macOS browser scrolls a page with: Cmd+arrow to the ends,
+  /// Option+arrow by a screen. Apple platforms only: elsewhere the same keys
+  /// are Alt+arrow, and Alt+left/right is the browser's back/forward.
   ///
-  /// Cmd+left/right is deliberately absent: Safari, Chrome and Firefox all
-  /// walk the history with it, and a key the application does not handle is
-  /// left to the browser. Bound to a horizontal scroll it would take
-  /// back/forward away from the user.
+  /// No Cmd+left/right: Safari, Chrome and Firefox walk the history with it,
+  /// and a key the application does not handle is left to the browser. Bound
+  /// to a horizontal scroll, it would take back/forward away from the user.
   ///
-  /// The horizontal pair goes through the framework's own [ScrollIntent],
-  /// since [KeyboardScrollAction] moves the vertical scrollable of the page;
-  /// [ScrollActionPro] takes the axis from the intent and moves whatever is
-  /// focused — a carousel, in practice.
+  /// The horizontal pair goes through the framework's [ScrollIntent]:
+  /// [KeyboardScrollAction] moves only the page's vertical scrollable, while
+  /// [ScrollActionPro] takes the axis from the intent and moves the focused
+  /// scrollable — in practice, a carousel.
   static const Map<ShortcutActivator, Intent> _appleShortcuts = {
     SingleActivator(LogicalKeyboardKey.arrowUp, meta: true):
         KeyboardScrollIntent(KeyboardScrollKind.toStart),
@@ -81,8 +79,8 @@ abstract final class KeyboardShortcutsPro {
     ),
   };
 
-  /// Whether the modifiers are laid out the Apple way — on the web the
-  /// platform follows the host OS, which is what decides that.
+  /// Whether the host lays out modifiers the Apple way. On the web
+  /// [defaultTargetPlatform] follows the host OS, so this holds there too.
   static bool get _isApple =>
       defaultTargetPlatform == TargetPlatform.macOS ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -119,22 +117,21 @@ final class KeyboardScrollIntent extends Intent {
   final KeyboardScrollKind kind;
 }
 
-/// Scrolls on [ScrollIntent] — the arrows, PageUp/PageDown and the space bar
-/// — in place of the framework's own [ScrollAction].
+/// Replaces the framework's [ScrollAction] for [ScrollIntent]: the arrows,
+/// PageUp/PageDown and Space.
 ///
-/// The framework aims every press at the offset the page happens to hold at
-/// that moment and animates there over 100ms with an eased curve. A held key
-/// repeats every 30–60ms, so each repeat cancels the previous animation
-/// somewhere in its slow opening and starts a new one from there: the page
-/// crawls at a fraction of a step per press. Here a repeat adds its step to
-/// the aim the previous press set, and the page walks towards that aim on
-/// every frame — see [_HeldScroll] — so holding a key scrolls a full step per
-/// repeat, the way a browser page does.
+/// The framework animates each press over 100ms with an eased curve, from
+/// the offset the page holds at that moment. A held key repeats every
+/// 30–60ms, so each repeat cancels the previous animation early in its slow
+/// start: the page crawls at a fraction of a step per press. Here a repeat
+/// adds its step to the target of the previous press and [_HeldScroll] moves
+/// the page towards it every frame, so a held key scrolls a full step per
+/// repeat, as a browser page does.
 final class ScrollActionPro extends ScrollAction {
-  /// The framework's own answer says yes to any client of the route
-  /// controller and to a scrollable of any axis; [invoke] then finds nothing
-  /// to move, and the key is spent on standing still. The same lookup for
-  /// both, so a key the action cannot use is left to whoever is next.
+  /// The framework's check accepts any client of the route controller and a
+  /// scrollable of either axis; [invoke] then finds nothing to move and the
+  /// key is swallowed. Both use the same lookup here, so a key this action
+  /// cannot use passes on to the next handler.
   @override
   bool isEnabled(ScrollIntent intent, [BuildContext? context]) =>
       _scrollableOf(context, axisDirectionToAxis(intent.direction)) != null;
@@ -150,8 +147,8 @@ final class ScrollActionPro extends ScrollAction {
 
     final ScrollPosition position = scrollable.position;
 
-    /// The physics of a locked list refuse the offset, and the page below it
-    /// must not take the key instead.
+    /// Physics of a locked list refuse the offset; the key still stops here
+    /// rather than scrolling the page around the list.
     final ScrollPhysics? physics = scrollable.resolvedPhysics;
     if (physics != null && !physics.shouldAcceptUserOffset(position)) return;
 
@@ -165,16 +162,16 @@ final class ScrollActionPro extends ScrollAction {
   }
 }
 
-/// Scrolls on [KeyboardScrollIntent]; the scrollable is the vertical one the
-/// arrows would move, see [_scrollableOf].
+/// Handles [KeyboardScrollIntent] on the vertical scrollable the arrows would
+/// move, see [_scrollableOf].
 ///
 /// Inside a text field the keys stay with the field: Home/End move the caret
-/// and Shift+Space is a plain space typed with Shift held. The web
-/// text-editing shortcuts do not intercept these combinations, so the check
-/// lives here. The Apple ones they do — Cmd/Option+arrow is handed to the
-/// browser from inside a field — and the check covers them all the same.
+/// and Shift+Space types a space. The web text-editing shortcuts do not
+/// intercept these keys, so the check lives here. They do intercept the
+/// Apple ones (from inside a field Cmd/Option+arrow go to the browser); the
+/// check covers those all the same.
 final class KeyboardScrollAction extends ContextAction<KeyboardScrollIntent> {
-  /// Share of the viewport per key press — as the built-in page step.
+  /// Share of the viewport per screen step, as in the framework's page step.
   static const double _pageFraction = 0.8;
 
   ///
@@ -190,8 +187,8 @@ final class KeyboardScrollAction extends ContextAction<KeyboardScrollIntent> {
 
     final double page = position.viewportDimension * _pageFraction;
 
-    /// A screen step is held down as often as any other, so it goes through
-    /// the same aim; the ends of the page are a fixed target and need none.
+    /// Screen steps are held like any other key, so they add up on the
+    /// target; the ends of the page are fixed targets and need no adding up.
     switch (intent.kind) {
       case KeyboardScrollKind.pageUp:
         _HeldScroll.step(position, -page);
@@ -215,14 +212,14 @@ final class KeyboardScrollAction extends ContextAction<KeyboardScrollIntent> {
   }
 }
 
-/// The scrollable a key moves, looked up the way the framework's [ScrollAction]
-/// does it: the scrollable around the focused widget, and without one — the
-/// route's [PrimaryScrollController] with exactly one position. Two things are
-/// asked for on top: the [axis], since the nearest scrollable of the other
-/// axis would otherwise answer and refuse the step, leaving a page with a
-/// carousel in focus unscrollable; and a finished layout, since a position
-/// without one has neither an offset nor dimensions to move between. `null` —
-/// nothing to move.
+/// The scrollable a key moves; `null` — nothing to move.
+///
+/// Looked up as the framework's [ScrollAction] does: the scrollable around
+/// the focused widget, else the route's [PrimaryScrollController] if it has
+/// exactly one position. On top of that it requires:
+/// - the [axis]: otherwise the nearest scrollable of the other axis answers
+///   and refuses the step, and a page with a carousel in focus cannot scroll;
+/// - a finished layout: before it a position has no offset or dimensions.
 ScrollableState? _scrollableOf(BuildContext? context, Axis axis) {
   if (context == null) return null;
 
@@ -241,129 +238,124 @@ ScrollableState? _scrollableOf(BuildContext? context, Axis axis) {
   return primary == null ? null : _laidOut(primary);
 }
 
-///
+/// [scrollable] once laid out; `null` before that.
 ScrollableState? _laidOut(ScrollableState scrollable) =>
     _HeldScroll.isReady(scrollable.position) ? scrollable : null;
 
-/// The aim of the keys, and the page drawn towards it.
+/// The target of the scrolling keys, and the follow that moves the page to it.
 ///
-/// A press does not animate the page: it moves the aim, and a single ticker —
-/// started with the first press, stopped once the page has arrived — draws
-/// the page after it, frame by frame, with a pull that is critically damped
-/// and tuned to the pace the key repeats at. Held down, the page trails the
-/// aim by a fixed distance and therefore holds exactly the speed the repeats
-/// ask for; released, it closes that distance and stops. Nothing is lost on
-/// the way: the page always ends where the presses aimed it.
+/// A press moves the target instead of animating the page. One ticker —
+/// started by the first press, stopped once the page arrives — pulls the page
+/// towards the target every frame, critically damped and tuned to the pace
+/// the key repeats at. While the key is held, the page trails the target by a
+/// fixed distance and so moves at exactly the speed the repeats ask for; on
+/// release it closes the gap and stops. Nothing is lost: the page always ends
+/// where the presses aimed.
 ///
-/// An animation per press cannot do that, and that is why one is no longer
-/// started. Each is a ticker of its own, and a ticker reports zero elapsed
-/// time on its first tick: the frame that starts an animation leaves the page
-/// exactly where it was. A key repeating every two or three frames therefore
-/// spent every other frame standing still, and a repeat arriving off the beat
-/// re-timed the animation under it. The page covered the whole distance — in
-/// visible jerks.
+/// No animation per press: each runs its own ticker, and a ticker reports zero
+/// elapsed time on its first tick, so the frame that starts an animation
+/// leaves the page in place. With a key repeating every two or three frames,
+/// every other frame stands still, and a repeat off the beat re-times the
+/// running animation: the page covers the distance in visible jerks.
 ///
-/// The pull is measured against the pace because the pace is what the page is
-/// following. Pulled harder than the repeats arrive, the page runs up to each
-/// step and waits for the next one, which is the jerking again in a milder
-/// form; pulled softer, it drifts ever further behind. Both ends are visible:
-/// with the repeats of a slow key half a second apart, a pull tuned to a fast
-/// one turns each step into a separate lurch.
+/// The pull follows the pace because the pace is what the page follows.
+/// Pulled harder, the page runs up to each step and waits for the next — a
+/// milder form of the same jerk; pulled softer, it falls ever further behind.
+/// No fixed pull fits every key: one tuned to a fast key turns each step of a
+/// slow one, with repeats half a second apart, into a separate lurch.
 abstract final class _HeldScroll {
-  /// How hard the page is pulled towards the aim, in pulls per interval of
-  /// the repeats. The pull is critically damped — it never overshoots — and
-  /// at this strength the page settles about four intervals after the key.
+  /// Pull strength towards the target, per repeat interval. Critically
+  /// damped, so it never overshoots; at this strength the page settles about
+  /// four intervals after the last press.
   static const double _followFactor = 1.2;
 
-  /// The pace assumed for a press that stands alone: the response of a single
-  /// step, and the pace a hold starts adapting from.
+  /// The pace assumed for a lone press: it sets how fast a single step lands,
+  /// and a hold starts adapting from it.
   static const Duration _freshInterval = Duration(milliseconds: 28);
 
-  /// Slowest pace the follow adapts to. Slower than this the page is being
-  /// scrolled press by press rather than by a held key, and a pull that soft
-  /// would leave every one of those presses drifting.
+  /// Slowest pace the follow adapts to. Slower presses are separate presses,
+  /// not a held key, and a pull that soft would leave each of them drifting.
   static const Duration _maxInterval = Duration(milliseconds: 200);
 
-  /// Longest gap between two presses that still counts as a pace. An OS waits
-  /// about half a second before the first repeat, and that wait says nothing
-  /// about how fast the ones after it will come.
+  /// Longest gap between two presses that still counts as a pace. The OS
+  /// waits about half a second before the first repeat, and that wait says
+  /// nothing about how fast the repeats after it come.
   static const Duration _holdWindow = Duration(milliseconds: 250);
 
   /// Weight of the newest gap in the pace, the rest being the pace so far.
   /// Two or three repeats settle it, and a single late one does not throw it.
   static const double _paceWeight = 0.6;
 
-  /// Distance at which the page is put on the aim exactly and the follow
-  /// ends: a pull of this kind never quite arrives on its own.
+  /// Distance under which the page snaps onto the target and the follow ends:
+  /// a damped pull never quite arrives on its own.
   static const double _snapDistance = 0.5;
 
   /// Speed under which the page counts as standing still, px/ms. Distance
-  /// alone would end the follow as the page flies through the aim.
+  /// alone would end the follow while the page flies through the target.
   static const double _snapSpeed = 0.03;
 
-  /// Upper bound of the frame the follow is measured over. The frames stop
-  /// with a hidden tab and the clock does not: the first frame back would
-  /// otherwise carry the whole pause at once.
+  /// Longest frame the follow accounts for. A hidden tab stops the frames but
+  /// not the clock, so the first frame back would otherwise carry the whole
+  /// pause at once.
   static const Duration _maxFrame = Duration(milliseconds: 100);
 
-  /// How far ahead of the page the aim may run, in viewports. A safety valve:
-  /// however many repeats arrive while the application is busy, the page
-  /// cannot end up owing seconds of scrolling after the key is up.
+  /// How far the target may run ahead of the page, in viewports. However many
+  /// repeats pile up while the application is busy, the page never owes
+  /// seconds of scrolling after the key is released.
   static const double _maxBacklog = 3;
 
-  /// Longest a run may go without a frame before it is taken as gone. A
-  /// ticker whose frames were dropped from under it — a test binding stops
-  /// them between tests — says it is active and never ticks again, and the
-  /// next press would wait on it forever.
+  /// Longest a run may go without a frame before it counts as dead. A ticker
+  /// whose frames stop coming (a test binding stops them between tests) still
+  /// reports itself active and never ticks again, and the next press would
+  /// wait on it forever.
   static const Duration _tickWindow = Duration(milliseconds: 200);
 
-  /// Carries the follow: built with the run and let go with it, since the
-  /// keys move one page at a time.
+  /// Drives the follow; created with a run and disposed with it. One is
+  /// enough: the keys move one page at a time.
   static Ticker? _ticker;
 
-  /// The page being followed; `null` — the follow is over. Cleared with it, so
-  /// that a page which has left the tree is not held alive by an old aim.
+  /// The page being followed; `null` — no follow. Cleared when the follow
+  /// ends, so a stale target does not keep a removed page alive.
   static ScrollPosition? _position;
 
   /// Where the page is headed.
   static double _target = 0;
 
-  /// Speed of the page, px/ms, carried between the frames of a run: it is the
-  /// state a damped pull is made of, and what keeps the page from stopping at
-  /// every step of a held key.
+  /// Page speed, px/ms, carried across the frames of a run: the damped pull
+  /// needs it as state, and it keeps the page from stopping at every step of
+  /// a held key.
   static double _velocity = 0;
 
   /// The pace the presses arrive at, ms.
   static double _interval = 0;
 
-  /// Elapsed time of the run when the aim last moved. The pace is measured on
-  /// the clock of the ticker — the one the follow itself runs on — so it is
-  /// counted in frames rather than in wall time, and a repeat that arrives
-  /// between two frames is measured from the frame it is answered on.
+  /// Run time when the target last moved. The pace is measured on the
+  /// ticker's clock, the one the follow runs on: in frames rather than wall
+  /// time, so a repeat that arrives between two frames takes the time of the
+  /// last one.
   static Duration _aimTick = Duration.zero;
 
-  /// The offset the follow last left the page at, to tell its own movement
-  /// from everyone else's.
+  /// Offset the follow last wrote, to tell its own movement from anyone
+  /// else's.
   static double _written = 0;
 
   /// Elapsed time of the previous frame of the follow.
   static Duration _lastTick = Duration.zero;
 
-  /// When the run last had a frame, by the clock rather than by the ticker:
-  /// it is the ticker itself that is being checked for signs of life.
+  /// Wall time of the run's last frame. Wall clock rather than the ticker's:
+  /// it is the ticker itself being checked for signs of life.
   static DateTime _lastFrame = DateTime.fromMillisecondsSinceEpoch(0);
 
-  /// Whether the position has been laid out: any other has neither an offset
-  /// nor dimensions.
+  /// Whether the position has been laid out; before that it has no offset or
+  /// dimensions.
   static bool isReady(ScrollPosition position) =>
       position.hasPixels &&
       position.hasContentDimensions &&
       position.hasViewportDimension;
 
-  /// One step of a held or single key press: the aim moves on, the page
-  /// follows. A repeat adds to the aim the previous press set rather than to
-  /// the offset the page has reached by then — the distance between the two
-  /// is the follow trailing the key, not a step lost.
+  /// Moves the target by [increment] for a single or repeated press. A repeat
+  /// adds to the previous target, not to the offset the page has reached: the
+  /// gap between the two is the follow trailing the key, not a lost step.
   static void step(ScrollPosition position, double increment) {
     final double backlog = position.viewportDimension * _maxBacklog;
     final double base = identical(_position, position)
@@ -379,20 +371,19 @@ abstract final class _HeldScroll {
     );
   }
 
-  /// A move to a fixed target — the ends of the page. Held down it repeats
-  /// against an aim that no longer changes, and the follow carries on to it.
+  /// Moves towards a fixed [target] — an end of the page. Repeats of a held
+  /// key aim at the same target, and the follow carries on to it.
   static void settle(ScrollPosition position, double target) =>
       _aim(position, target);
 
-  /// Points the follow at [target], takes the pace of the presses, and puts
-  /// the page in motion.
+  /// Points the follow at [target], updates the pace, and starts the ticker
+  /// unless a run is under way.
   static void _aim(ScrollPosition position, double target) {
     final DateTime now = DateTime.now();
 
-    /// A press that arrives with the page already at rest starts a run of its
-    /// own, and the pace of whatever was pressed before it says nothing about
-    /// the pace of this one — an OS waits about half a second before the
-    /// first repeat of a held key.
+    /// A press with the page at rest starts a run of its own: the pace of
+    /// earlier presses says nothing about this one, since the OS waits about
+    /// half a second before the first repeat of a held key.
     final bool isFollowing =
         (_ticker?.isActive ?? false) &&
         now.difference(_lastFrame) < _tickWindow;
@@ -414,9 +405,9 @@ abstract final class _HeldScroll {
     _ticker = Ticker(_onTick)..start();
   }
 
-  /// The pace after a gap of [sinceAim] between two presses. A gap too long
-  /// to be a repeat leaves the pace of a single step: the key is being
-  /// pressed by hand.
+  /// The pace after a gap of [sinceAim] since the previous press. A gap too
+  /// long for a repeat means the key is pressed by hand, and resets the pace
+  /// to that of a single step.
   static double _paced(Duration sinceAim) {
     if (sinceAim > _holdWindow) return _freshInterval.inMilliseconds.toDouble();
 
@@ -427,9 +418,8 @@ abstract final class _HeldScroll {
         );
   }
 
-  /// One frame of the follow. Both the pull and the speed are per unit of
-  /// time, so the page moves the same distance per second on a 60 and on a
-  /// 120 Hz screen.
+  /// One frame of the follow. The pull and the speed are per unit of time, so
+  /// the page moves as fast on a 60 Hz screen as on a 120 Hz one.
   static void _onTick(Duration elapsed) {
     final Duration frame = elapsed - _lastTick;
     _lastTick = elapsed;
@@ -442,15 +432,15 @@ abstract final class _HeldScroll {
     }
     if (frame <= Duration.zero) return;
 
-    /// Someone else has moved the page — a drag, the wheel, a jump to a
-    /// focused widget: the keys step aside rather than fight for the offset.
+    /// Something else moved the page (a drag, the wheel, a jump to a focused
+    /// widget): the follow yields rather than fight over the offset.
     if ((position.pixels - _written).abs() > precisionErrorTolerance) {
       _stop();
       return;
     }
 
-    /// A lazy list grows its extent as it builds, and shrinks it when its
-    /// content goes: the aim is kept on the page it is aimed at.
+    /// A lazy list grows its extent as it builds and shrinks it as content
+    /// goes, so the target is clamped to the current extent every frame.
     final double target = _target.clamp(
       position.minScrollExtent,
       position.maxScrollExtent,
@@ -467,9 +457,9 @@ abstract final class _HeldScroll {
     final double time =
         step.inMicroseconds / Duration.microsecondsPerMillisecond;
 
-    /// The exact answer of a critically damped pull over the frame, rather
-    /// than a step of it: a frame is long next to the pull, and stepping it
-    /// would leave the page wobbling on a slow one.
+    /// The exact solution of the critically damped pull over the frame, not a
+    /// numeric step: a frame is long next to the pull, and stepping would
+    /// leave the page wobbling on a slow frame.
     final double pull = _followFactor / _interval;
     final double decay = math.exp(-pull * time);
     final double slope = _velocity + pull * distance;
@@ -479,18 +469,18 @@ abstract final class _HeldScroll {
     position.pointerScroll(target + (distance + slope * time) * decay - before);
     _written = position.pixels;
 
-    /// The page has nowhere left to go — the end of a list the key is still
+    /// The page did not move: it is at the end of a list the key is still
     /// held against.
     if (_written == before) _stop();
   }
 
-  /// Whether the page is still in the tree — the follow outlives by a frame
-  /// or two the route it was started on, and an offset written into a page
-  /// that has gone is written into a disposed notifier.
+  /// Whether the page is still in the tree. The follow can outlive its route
+  /// by a frame or two, and an offset written into a removed page goes into a
+  /// disposed notifier.
   ///
-  /// The context is taken from the notification one and not from the storage
-  /// one: the latter is the `State` of the scrollable itself and throws once
-  /// it is unmounted, which is the very case being asked about.
+  /// Checks [ScrollContext.notificationContext], not
+  /// [ScrollContext.storageContext]: the latter is the scrollable's own
+  /// `State`, which throws once unmounted — the very case being checked.
   static bool _isAlive(ScrollPosition position) =>
       isReady(position) &&
       (position.context.notificationContext?.mounted ?? false);

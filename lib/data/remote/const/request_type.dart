@@ -2,7 +2,7 @@ import 'package:application_base/data/remote/const/network_event.dart';
 import 'package:application_base/data/remote/const/request_duration_type.dart';
 import 'package:cross_file/cross_file.dart';
 
-/// API request type with all necessary data
+/// A typed API request: method, path, body and how its response is judged.
 sealed class RequestType {
   ///
   RequestType({
@@ -20,15 +20,13 @@ sealed class RequestType {
   /// Path for request without address and base API segment
   final String path;
 
-  /// Body for request
+  ///
   Object? get body;
 
-  /// Expected response statuse list in API endpoint
+  /// Statuses that count as success.
   ///
   /// Empty — the default — means "any 2xx", the same definition of success as
-  /// `ResponseEntity.isOk`. Before, the default was `[200]` alone, so a `201
-  /// Created` from a POST was reported as an unexpected response even though
-  /// `ResponseEntity.isOk` called the very same reply a success.
+  /// `ResponseEntity.isOk`, so a `201 Created` from a POST is a success too.
   ///
   /// Fill the list in only when the exact status carries meaning — for example
   /// to take over a `404` instead of letting the unified path report it. A
@@ -38,13 +36,18 @@ sealed class RequestType {
   /// pass them to `RequestServiceBase.sendBase` as `extraExpectedStatusList`.
   final List<int> expectedStatusList;
 
-  /// Expected response pair `HTTP status -> Network event` map in API endpoint
+  /// The event to publish for a failed status instead of
+  /// [NetworkUnexpectedResponse].
+  ///
+  /// A 401 and a 504 are handled before this map and cannot be remapped.
   final Map<int, NetworkEvent> expectedErrorMap;
 
-  /// Do not show error on silence mode
+  /// Keeps this request's events off `NetworkSubject`, e.g. for a ping.
+  ///
+  /// A lost connection and a 401 are published anyway: that state is global.
   final bool silence;
 
-  /// Average request duration type
+  /// Picks the request's timeout.
   final RequestDurationType durationType;
 }
 
@@ -59,7 +62,7 @@ final class RequestGet extends RequestType {
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'GET');
 
-  /// Body for request
+  ///
   @override
   final Object? body = null;
 }
@@ -76,7 +79,7 @@ final class RequestPost extends RequestType {
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'POST');
 
-  /// Body for request
+  ///
   @override
   final String? body;
 }
@@ -99,18 +102,18 @@ final class RequestPostFormData extends RequestType {
     super.durationType = RequestDurationType.long,
   }) : super(type: 'POST form data');
 
-  /// Body for request in JSON
+  /// Form fields; each value is sent as its `toString()`.
   @override
   final Map<String, dynamic>? body;
 
-  ///
+  /// Drops `null` fields, which would otherwise be sent as the string `null`.
   final bool ignoreNullFields;
 
-  /// Field name and path to local file
+  /// Files keyed by form field name.
   final Map<String, XFile> files;
 }
 
-/// Uploading file as binary data using octet-stream
+/// A file uploaded as a raw `application/octet-stream` body.
 ///
 /// Runs with the long timeout by default, for the same reason as
 /// [RequestPostFormData].
@@ -125,10 +128,10 @@ final class RequestPostFile extends RequestType {
     super.durationType = RequestDurationType.long,
   }) : super(type: 'POST file as binary data');
 
-  /// Path to a local file
+  ///
   final XFile file;
 
-  /// Request has no body
+  /// Always `null`: [file] is streamed as the body instead.
   @override
   Object? get body => null;
 }
@@ -145,7 +148,7 @@ final class RequestPut extends RequestType {
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'PUT');
 
-  /// Body for request
+  ///
   @override
   final String? body;
 }
@@ -162,7 +165,7 @@ final class RequestPatch extends RequestType {
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'PATCH');
 
-  /// Body for request
+  ///
   @override
   final String? body;
 }
@@ -179,7 +182,7 @@ final class RequestDelete extends RequestType {
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'DELETE');
 
-  /// Body for request
+  ///
   @override
   final String? body;
 }

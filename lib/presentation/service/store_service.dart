@@ -45,7 +45,8 @@ final class StoreService with LoggingMixin {
   /// so it is set here instead of travelling with every [openListing].
   set appStoreId(String? value) => _appStoreId = value;
 
-  /// Open the store page of the application.
+  /// A no-op where [isAvailable] is false, and on iOS and macOS until
+  /// [appStoreId] is set (logged).
   Future<void> openListing() async {
     if (!isAvailable) return;
 

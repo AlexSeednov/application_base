@@ -35,8 +35,9 @@ final class AccessVM extends ChangeNotifier implements ValueListenable<bool> {
   void revokeAccess({bool needNotify = true}) =>
       _changeGrantedState(isAccessGranted: false, needNotify: needNotify);
 
-  /// Auto route to authorization screen and auto return to current route
-  /// after success authorization on [needNotify] is true
+  /// With [needNotify] the router re-evaluates its guards: a revoke sends the
+  /// user to the authorization route, a grant resumes the navigation the
+  /// guard held back.
   void _changeGrantedState({
     required bool isAccessGranted,
     required bool needNotify,

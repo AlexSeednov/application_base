@@ -4,7 +4,7 @@ import 'package:application_base/core/service/service_locator.dart';
 import 'package:application_base/domain/subject/network_subject.dart';
 import 'package:meta/meta.dart';
 
-///
+/// Calls [onConnectionRestore] each time the app goes back online.
 base mixin ConnectionRestoreMixin {
   /// Nullable rather than `late`: [disposeConnection] is routinely reached
   /// through an early return that never ran [prepareConnection], and a `late`

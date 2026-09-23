@@ -8,13 +8,18 @@ import 'package:flutter_test/flutter_test.dart';
 /// meanings elsewhere, Alt+left/right being the browser's own back/forward, so
 /// [KeyboardShortcutsPro] binds them on the Apple platforms alone.
 void main() {
+  ///
   const double windowHeight = 600;
+  ///
   const Size windowSize = Size(800, windowHeight);
+  ///
   const int itemCount = 60;
+  ///
   const double itemHeight = 40;
 
-  /// What the page can scroll, and the screen step of a keyboard scroll.
+  /// How far the page can scroll.
   const double extent = itemCount * itemHeight - windowHeight;
+  /// A screen step: 80% of the viewport, as [KeyboardScrollAction] pages.
   const double screen = windowHeight * 0.8;
 
   ///
@@ -39,6 +44,8 @@ void main() {
         actions: KeyboardShortcutsPro.actions,
         home: Scaffold(
           body: ListView.builder(
+            // Nothing is focused: the keys find the list through the route's
+            // primary scroll controller.
             primary: true,
             itemCount: itemCount,
             itemBuilder: (_, index) =>
@@ -66,7 +73,6 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ///
   testWidgets('Cmd+arrow goes to the ends of the page', (tester) async {
     await pump(tester);
 
@@ -77,7 +83,7 @@ void main() {
     );
 
     /// The framework's own Apple map moves Cmd+arrow by a single line; the
-    /// binding here has to replace it, not to join it.
+    /// binding here must replace it, not join it.
     expect(offsetOf(tester), extent);
 
     await press(
@@ -89,7 +95,6 @@ void main() {
     expect(offsetOf(tester), 0);
   }, variant: apple);
 
-  ///
   testWidgets('Option+arrow moves by a screen', (tester) async {
     await pump(tester);
 
@@ -106,7 +111,6 @@ void main() {
     expect(offsetOf(tester), closeTo(0, 1));
   }, variant: apple);
 
-  ///
   testWidgets('the Apple keys are left to the browser elsewhere', (
     tester,
   ) async {

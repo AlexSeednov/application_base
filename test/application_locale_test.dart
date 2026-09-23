@@ -8,10 +8,10 @@ import 'package:intl/intl.dart';
 /// on an English phone, and follows the system to another language it
 /// supports.
 void main() {
-  ///
+  /// No English: the device language of the tests is not among them.
   const List<Locale> supportedLocales = [Locale('ru'), Locale('de')];
 
-  ///
+  /// A bare [WidgetsApp]: only its locale resolution is under test.
   Widget application() => WidgetsApp(
     color: const Color(0xFF000000),
     supportedLocales: supportedLocales,
@@ -19,6 +19,7 @@ void main() {
     builder: (_, _) => const SizedBox.shrink(),
   );
 
+  // A global: every test starts and ends with it unset.
   setUp(() => Intl.defaultLocale = null);
 
   tearDown(() => Intl.defaultLocale = null);

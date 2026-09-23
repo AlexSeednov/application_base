@@ -5,17 +5,14 @@ import 'package:application_base/presentation/service/lifecycle_service.dart';
 
 /// Entry point for the package's own start-up, separate from DI wiring.
 abstract final class ApplicationBase {
-  /// Post-DI package initialization.
+  /// Sets the flavor and starts the package's services.
   ///
-  /// Service registration is now performed by the injectable module
-  /// `ApplicationBasePackageModule` (wired via `externalPackageModulesBefore`
-  /// in the consumer's `@InjectableInit`), so this method must be called AFTER
-  /// the consumer's `getIt.init()` — it resolves `getIt<LifecycleService>()`.
+  /// Call it after the consumer's `getIt.init()`: registration belongs to the
+  /// injectable module `ApplicationBasePackageModule`, and this method
+  /// resolves [LifecycleService] from getIt.
   static void prepare({FlavorType? currentFlavor}) {
-    /// Set flavor
     if (currentFlavor != null) flavor = currentFlavor;
 
-    /// Prepare services
     getIt<LifecycleService>().prepare();
   }
 }

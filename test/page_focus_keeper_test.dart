@@ -13,7 +13,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// parking its focus on the root scope, and page scrolling with the keyboard
 /// stops working until the next click. [PageFocusKeeper] puts the focus back.
 void main() {
+  /// The pushed page, the one whose scrolling is checked.
   const Key page = ValueKey('page');
+  ///
   const Size windowSize = Size(800, 600);
 
   /// Page scrolling is mapped onto the plain arrows in a browser; the desktop
@@ -22,6 +24,7 @@ void main() {
     TargetPlatform.macOS,
   );
 
+  ///
   Widget body(Key key) => Scaffold(
     body: CustomScrollView(
       key: key,
@@ -36,6 +39,7 @@ void main() {
     ),
   );
 
+  ///
   double offsetOf(WidgetTester tester) => tester
       .state<ScrollableState>(
         find.descendant(
@@ -46,8 +50,8 @@ void main() {
       .position
       .pixels;
 
-  /// Application with a page pushed on top of the first one, as a card opens
-  /// the page of its product
+  /// An application with a second page pushed over the first, the way a card
+  /// opens the page of its product.
   Future<void> pump(WidgetTester tester, {required bool isStranded}) async {
     await tester.binding.setSurfaceSize(windowSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -74,7 +78,7 @@ void main() {
   }
 
   /// The focusout of the view: the element that held the browser focus has
-  /// been removed with the page it belonged to
+  /// gone with the page it belonged to.
   Future<void> loseViewFocus(WidgetTester tester) async {
     WidgetsBinding.instance.handleViewFocusChanged(
       ViewFocusEvent(
@@ -86,7 +90,6 @@ void main() {
     await tester.pump();
   }
 
-  ///
   testWidgets('the page keeps scrolling after the focus is stranded', (
     tester,
   ) async {
@@ -98,11 +101,10 @@ void main() {
 
     expect(offsetOf(tester), greaterThan(0));
 
-    /// And the focus is back on the page that was open, not on the one below
+    /// And the focus is back on the page that was open, not on the one below.
     expect(primaryFocus?.context, isNotNull);
   }, variant: desktop);
 
-  ///
   testWidgets('the page left for the address bar keeps its focus parked', (
     tester,
   ) async {

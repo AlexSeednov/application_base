@@ -1,7 +1,8 @@
 import 'package:application_base/presentation/view/opacity_pro.dart';
 import 'package:flutter/material.dart';
 
-///
+/// Fades [child] to [disabledOpacity] and blocks its pointer input while not
+/// [isEnabled].
 final class EnabledPro extends StatelessWidget {
   ///
   const EnabledPro({
@@ -14,7 +15,7 @@ final class EnabledPro extends StatelessWidget {
   ///
   final bool isEnabled;
 
-  /// Opacity value in disabled state ([isEnabled] is false)
+  /// Opacity while not [isEnabled].
   final double disabledOpacity;
 
   ///

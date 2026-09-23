@@ -1,19 +1,13 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
-#
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
-#
-# https://dart.dev/tools/analysis#the-analysis-options-file
+# The rule set applications on this stack include with
+#   include: package:application_base/analysis_options.yaml
+# A rule's documentation: https://dart.dev/tools/linter-rules/<rule>.
+# `Experimental.` marks a rule the SDK may still change or drop — the first
+# suspect when analysis breaks after an SDK upgrade.
 analyzer:
-  # Generated code is never hand-edited or reviewed by the analyzer. Excluding
-  # it also silences invalid_use_of_visible_for_testing_member on the
-  # injectable-generated modules (*.module.dart / *.config.dart), which call
-  # the @visibleForTesting service constructors.
+  # Generated code is not ours to fix. Excluding it also silences
+  # invalid_use_of_visible_for_testing_member in the injectable modules
+  # (*.module.dart / *.config.dart): they call the @visibleForTesting service
+  # constructors.
   exclude:
     - '**/*.g.dart'
     - '**/*.gr.dart'
@@ -27,802 +21,357 @@ analyzer:
     strict-inference: true
     strict-raw-types: true
 
-# To get a preview of the proposed changes run
-# dart fix --dry-run
-#
-# To apply the changes run
-# dart fix --apply
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at
-  # https://dart-lang.github.io/linter/lints/index.html.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
 
-    #
-    # Error rules https://dart.dev/tools/linter-rules#error-rules
-    #
+    # Error rules: https://dart.dev/tools/linter-rules#error-rules
 
-    # https://dart.dev/tools/linter-rules/always_use_package_imports
     always_use_package_imports: true
-
-    # https://dart.dev/tools/linter-rules/avoid_dynamic_calls
     avoid_dynamic_calls: true
-
-    # https://dart.dev/tools/linter-rules/avoid_empty_else
     avoid_empty_else: true
 
-    # https://dart.dev/tools/linter-rules/avoid_futureor_void
-    # Experimental
+    # Experimental.
     avoid_futureor_void: true
 
-    # https://dart.dev/tools/linter-rules/avoid_print
     avoid_print: true
 
-    # https://dart.dev/tools/linter-rules/avoid_relative_lib_imports
-    # More specific then always_use_package_imports
+    # Narrower than always_use_package_imports, enabled above.
     avoid_relative_lib_imports: false
 
-    # https://dart.dev/tools/linter-rules/avoid_slow_async_io
     avoid_slow_async_io: true
-
-    # https://dart.dev/tools/linter-rules/avoid_type_to_string
     avoid_type_to_string: true
-
-    # https://dart.dev/tools/linter-rules/avoid_types_as_parameter_names
     avoid_types_as_parameter_names: true
-
-    # https://dart.dev/tools/linter-rules/avoid_web_libraries_in_flutter
     avoid_web_libraries_in_flutter: true
-
-    # https://dart.dev/tools/linter-rules/cancel_subscriptions
     cancel_subscriptions: true
-
-    # https://dart.dev/tools/linter-rules/close_sinks
     close_sinks: true
-
-    # https://dart.dev/tools/linter-rules/collection_methods_unrelated_type
     collection_methods_unrelated_type: true
-
-    # https://dart.dev/tools/linter-rules/comment_references
     comment_references: true
-
-    # https://dart.dev/tools/linter-rules/control_flow_in_finally
     control_flow_in_finally: true
-
-    # https://dart.dev/tools/linter-rules/deprecated_member_use_from_same_package
     deprecated_member_use_from_same_package: true
 
-    # https://dart.dev/tools/linter-rules/diagnostic_describe_all_properties
-    # Only pays off where the Flutter Inspector property view is part of how
-    # the UI is actually debugged. The price is debugFillProperties boilerplate
-    # on every Diagnosticable, paid whether or not anyone reads it.
+    # Pays off only where the UI is debugged through the Flutter Inspector
+    # property view. Everywhere else it is debugFillProperties boilerplate on
+    # every Diagnosticable, paid whether anyone reads it or not.
     diagnostic_describe_all_properties: false
 
-    # https://dart.dev/tools/linter-rules/discarded_futures
-    # Does not complement unawaited_futures the way it looks like it should.
-    # A forgotten await inside an async body is already caught by that rule,
-    # and an async callback handed to a synchronous higher-order function -
-    # where the future really is dropped - goes unreported by this one.
-    # What it does report is the deliberate kind: cancelling a subscription or
-    # closing a sink in dispose, a storage write left to flush on its own, a
-    # navigation call. Those live in synchronous functions where awaiting is
-    # not an option, so the only available fix is to spell out unawaited().
-    # That is ceremony, not risk.
+    # Does not complement unawaited_futures the way it seems to. A missing await
+    # in an async body is already caught there, and an async callback handed to
+    # a synchronous higher-order function — where the future really is lost —
+    # goes unreported here. What it reports is the deliberate kind: cancelling a
+    # subscription or closing a sink in dispose, a storage write left to flush
+    # on its own, a navigation call. Those sit in synchronous functions, so the
+    # only fix is to spell out unawaited(): ceremony, not risk.
     discarded_futures: false
 
-    # https://dart.dev/tools/linter-rules/empty_statements
     empty_statements: true
-
-    # https://dart.dev/tools/linter-rules/hash_and_equals
     hash_and_equals: true
 
-    # https://dart.dev/tools/linter-rules/implicit_reopen
-    # Experimental
+    # Experimental.
     implicit_reopen: true
 
-    # https://dart.dev/tools/linter-rules/invalid_case_patterns
-    # Experimental
+    # Experimental.
     invalid_case_patterns: true
 
-    # https://dart.dev/tools/linter-rules/invalid_runtime_check_with_js_interop_types
     invalid_runtime_check_with_js_interop_types: true
-
-    # https://dart.dev/tools/linter-rules/literal_only_boolean_expressions
     literal_only_boolean_expressions: true
-
-    # https://dart.dev/tools/linter-rules/missing_code_block_language_in_doc_comment
     missing_code_block_language_in_doc_comment: true
-
-    # https://dart.dev/tools/linter-rules/no_adjacent_strings_in_list
     no_adjacent_strings_in_list: true
-
-    # https://dart.dev/tools/linter-rules/no_duplicate_case_values
     no_duplicate_case_values: true
-
-    # https://dart.dev/tools/linter-rules/no_logic_in_create_state
     no_logic_in_create_state: true
-
-    # https://dart.dev/tools/linter-rules/no_self_assignments
     no_self_assignments: true
-
-    # https://dart.dev/tools/linter-rules/no_wildcard_variable_uses
     no_wildcard_variable_uses: true
 
-    # https://dart.dev/tools/linter-rules/prefer_relative_imports
-    # Incompatible rules: always_use_package_imports, which is enabled above.
-    # This package is always imported through package: URIs.
+    # Incompatible with always_use_package_imports, enabled above: code is
+    # always imported through `package:` URIs.
     prefer_relative_imports: false
 
-    # https://dart.dev/tools/linter-rules/prefer_void_to_null
     prefer_void_to_null: true
-
-    # https://dart.dev/tools/linter-rules/switch_on_type
     switch_on_type: true
-
-    # https://dart.dev/tools/linter-rules/test_types_in_equals
     test_types_in_equals: true
-
-    # https://dart.dev/tools/linter-rules/throw_in_finally
     throw_in_finally: true
-
-    # https://dart.dev/tools/linter-rules/unintended_html_in_doc_comment
     unintended_html_in_doc_comment: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_statements
     unnecessary_statements: true
-
-    # https://dart.dev/tools/linter-rules/unrelated_type_equality_checks
     unrelated_type_equality_checks: true
 
-    # https://dart.dev/tools/linter-rules/unsafe_variance
-    # Experimental
-    # Fires on the ordinary shape of a generic widget or view model that takes
-    # a callback: a field typed `Widget Function(BuildContext, T, int)` puts T
-    # in a parameter position, which is unsound in theory and is what the whole
-    # Flutter builder idiom is built on in practice. There is no rewrite that
-    # keeps the API and satisfies the rule, so it would only ever be silenced.
+    # Experimental.
+    # Fires on the ordinary shape of a generic widget or view model that takes a
+    # callback: a field typed `Widget Function(BuildContext, T, int)` puts T in
+    # a parameter position — unsound in theory, the whole Flutter builder idiom
+    # in practice. No rewrite keeps the API and satisfies the rule, so it would
+    # only ever be silenced.
     unsafe_variance: false
 
-    # https://dart.dev/tools/linter-rules/use_build_context_synchronously
     use_build_context_synchronously: true
-
-    # https://dart.dev/tools/linter-rules/use_key_in_widget_constructors
     use_key_in_widget_constructors: true
-
-    # https://dart.dev/tools/linter-rules/valid_regexps
     valid_regexps: true
 
-    #
-    # Style rules https://dart.dev/tools/linter-rules#style-rules
-    #
+    # Style rules: https://dart.dev/tools/linter-rules#style-rules
 
-    # https://dart.dev/tools/linter-rules/always_declare_return_types
     always_declare_return_types: true
 
-    # https://dart.dev/tools/linter-rules/always_put_control_body_on_new_line
-    # Conflicts with the guard-clause style used throughout the codebase
-    # (`if (isOffline) return;`). The real hazard - a body that looks
-    # attached but is not - is already covered by
+    # Conflicts with the guard-clause style (`if (isOffline) return;`). The real
+    # hazard — a body that looks attached but is not — is covered by
     # curly_braces_in_flow_control_structures.
     always_put_control_body_on_new_line: false
 
-    # https://dart.dev/tools/linter-rules/always_put_required_named_parameters_first
     always_put_required_named_parameters_first: true
 
-    # https://dart.dev/tools/linter-rules/always_specify_types
-    # Incompatible rules: avoid_types_on_closure_parameters, omit_local_variable_types
-    # Mark as warning also fields with explicit typing
-    # Ex: final value = SomeType();
+    # Incompatible with avoid_types_on_closure_parameters (enabled) and
+    # omit_local_variable_types. It would also demand a type where the
+    # initializer already names it: `final value = SomeType();`.
     always_specify_types: false
 
-    # https://dart.dev/tools/linter-rules/annotate_overrides
     annotate_overrides: true
 
-    # https://dart.dev/tools/linter-rules/annotate_redeclares
-    # Experimental
+    # Experimental.
     annotate_redeclares: true
 
-    # https://dart.dev/tools/linter-rules/avoid_annotating_with_dynamic
     avoid_annotating_with_dynamic: true
-
-    # https://dart.dev/tools/linter-rules/avoid_bool_literals_in_conditional_expressions
     avoid_bool_literals_in_conditional_expressions: true
 
-    # https://dart.dev/tools/linter-rules/avoid_catches_without_on_clauses
-    # The data layer deliberately ends every request in a catch-all so that no
-    # exception escapes to the layers above (see the "null on error" contract).
+    # The data layer ends every request in a catch-all on purpose, so that no
+    # exception escapes to the layers above (the "null on error" contract).
     avoid_catches_without_on_clauses: false
 
-    # https://dart.dev/tools/linter-rules/avoid_catching_errors
     avoid_catching_errors: true
 
-    # https://dart.dev/tools/linter-rules/avoid_classes_with_only_static_members
-    # The package deliberately uses `abstract final class` namespaces
-    # (SafeService, SecureStorageUtility, ApplicationBase). The rule dates
-    # back to before `abstract final class` existed and would flag them.
+    # Would flag the `abstract final class` namespaces used on purpose
+    # (SafeService, SecureStorageUtility, ApplicationBase): the rule predates
+    # `abstract final class`.
     avoid_classes_with_only_static_members: false
 
-    # https://dart.dev/tools/linter-rules/avoid_double_and_int_checks
     avoid_double_and_int_checks: true
-
-    # https://dart.dev/tools/linter-rules/avoid_equals_and_hash_code_on_mutable_classes
     avoid_equals_and_hash_code_on_mutable_classes: true
 
-    # https://dart.dev/tools/linter-rules/avoid_escaping_inner_quotes
-    # Using prefer_single_quotes instead
+    # Quoting is left to prefer_single_quotes: an escaped inner `'` is fine.
     avoid_escaping_inner_quotes: false
 
-    # https://dart.dev/tools/linter-rules/avoid_field_initializers_in_const_classes
     avoid_field_initializers_in_const_classes: true
-
-    # https://dart.dev/tools/linter-rules/avoid_final_parameters
-    # Incompatible rules: prefer_final_parameters
     avoid_final_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_function_literals_in_foreach_calls
     avoid_function_literals_in_foreach_calls: true
-
-    # https://dart.dev/tools/linter-rules/avoid_implementing_value_types
     avoid_implementing_value_types: true
-
-    # https://dart.dev/tools/linter-rules/avoid_init_to_null
     avoid_init_to_null: true
-
-    # https://dart.dev/tools/linter-rules/avoid_js_rounded_ints
     avoid_js_rounded_ints: true
-
-    # https://dart.dev/tools/linter-rules/avoid_multiple_declarations_per_line
     avoid_multiple_declarations_per_line: true
-
-    # https://dart.dev/tools/linter-rules/avoid_positional_boolean_parameters
     avoid_positional_boolean_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_private_typedef_functions
     avoid_private_typedef_functions: true
-
-    # https://dart.dev/tools/linter-rules/avoid_redundant_argument_values
     avoid_redundant_argument_values: true
-
-    # https://dart.dev/tools/linter-rules/avoid_renaming_method_parameters
     avoid_renaming_method_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_return_types_on_setters
     avoid_return_types_on_setters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_returning_null_for_void
     avoid_returning_null_for_void: true
-
-    # https://dart.dev/tools/linter-rules/avoid_returning_this
     avoid_returning_this: true
 
-    # https://dart.dev/tools/linter-rules/avoid_setters_without_getters
-    #
-    # Sometimes we need to define setter for private parameters without public getter
+    # A write-only setter over private state is a legitimate API: set from
+    # outside, read only inside.
     avoid_setters_without_getters: false
 
-    # https://dart.dev/tools/linter-rules/avoid_shadowing_type_parameters
     avoid_shadowing_type_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_single_cascade_in_expression_statements
     avoid_single_cascade_in_expression_statements: true
-
-    # https://dart.dev/tools/linter-rules/avoid_types_on_closure_parameters
-    # Not blocked: the incompatible always_specify_types is disabled above.
     avoid_types_on_closure_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_unnecessary_containers
     avoid_unnecessary_containers: true
-
-    # https://dart.dev/tools/linter-rules/avoid_unused_constructor_parameters
     avoid_unused_constructor_parameters: true
-
-    # https://dart.dev/tools/linter-rules/avoid_void_async
     avoid_void_async: true
-
-    # https://dart.dev/tools/linter-rules/await_only_futures
     await_only_futures: true
-
-    # https://dart.dev/tools/linter-rules/camel_case_extensions
     camel_case_extensions: true
-
-    # https://dart.dev/tools/linter-rules/camel_case_types
     camel_case_types: true
-
-    # https://dart.dev/tools/linter-rules/cascade_invocations
     cascade_invocations: true
-
-    # https://dart.dev/tools/linter-rules/cast_nullable_to_non_nullable
     cast_nullable_to_non_nullable: true
-
-    # https://dart.dev/tools/linter-rules/combinators_ordering
     combinators_ordering: true
-
-    # https://dart.dev/tools/linter-rules/conditional_uri_does_not_exist
     conditional_uri_does_not_exist: true
-
-    # https://dart.dev/tools/linter-rules/constant_identifier_names
     constant_identifier_names: true
-
-    # https://dart.dev/tools/linter-rules/curly_braces_in_flow_control_structures
     curly_braces_in_flow_control_structures: true
-
-    # https://dart.dev/tools/linter-rules/dangling_library_doc_comments
     dangling_library_doc_comments: true
-
-    # https://dart.dev/tools/linter-rules/deprecated_consistency
     deprecated_consistency: true
-
-    # https://dart.dev/tools/linter-rules/directives_ordering
     directives_ordering: true
-
-    # https://dart.dev/tools/linter-rules/do_not_use_environment
     do_not_use_environment: true
-
-    # https://dart.dev/tools/linter-rules/document_ignores
     document_ignores: true
-
-    # https://dart.dev/tools/linter-rules/empty_catches
     empty_catches: true
-
-    # https://dart.dev/tools/linter-rules/empty_constructor_bodies
     empty_constructor_bodies: true
-
-    # https://dart.dev/tools/linter-rules/eol_at_end_of_file
     eol_at_end_of_file: true
-
-    # https://dart.dev/tools/linter-rules/exhaustive_cases
     exhaustive_cases: true
-
-    # https://dart.dev/tools/linter-rules/file_names
     file_names: true
-
-    # https://dart.dev/tools/linter-rules/flutter_style_todos
     flutter_style_todos: true
-
-    # https://dart.dev/tools/linter-rules/implementation_imports
     implementation_imports: true
-
-    # https://dart.dev/tools/linter-rules/implicit_call_tearoffs
     implicit_call_tearoffs: true
-
-    # https://dart.dev/tools/linter-rules/join_return_with_assignment
     join_return_with_assignment: true
-
-    # https://dart.dev/tools/linter-rules/leading_newlines_in_multiline_strings
     leading_newlines_in_multiline_strings: true
-
-    # https://dart.dev/tools/linter-rules/library_annotations
     library_annotations: true
-
-    # https://dart.dev/tools/linter-rules/library_names
     library_names: true
-
-    # https://dart.dev/tools/linter-rules/library_prefixes
     library_prefixes: true
-
-    # https://dart.dev/tools/linter-rules/library_private_types_in_public_api
     library_private_types_in_public_api: true
-
-    # https://dart.dev/tools/linter-rules/lines_longer_than_80_chars
     lines_longer_than_80_chars: true
-
-    # https://dart.dev/tools/linter-rules/matching_super_parameters
     matching_super_parameters: true
-
-    # https://dart.dev/tools/linter-rules/missing_whitespace_between_adjacent_strings
     missing_whitespace_between_adjacent_strings: true
 
-    # https://dart.dev/tools/linter-rules/no_default_cases
-    # Experimental
+    # Experimental.
     no_default_cases: true
 
-    # https://dart.dev/tools/linter-rules/no_leading_underscores_for_library_prefixes
     no_leading_underscores_for_library_prefixes: true
-
-    # https://dart.dev/tools/linter-rules/no_leading_underscores_for_local_identifiers
     no_leading_underscores_for_local_identifiers: true
-
-    # https://dart.dev/tools/linter-rules/no_literal_bool_comparisons
     no_literal_bool_comparisons: true
-
-    # https://dart.dev/tools/linter-rules/no_runtimetype_tostring
     no_runtimetype_tostring: true
-    # https://dart.dev/tools/linter-rules/non_constant_identifier_names
     non_constant_identifier_names: true
-
-    # https://dart.dev/tools/linter-rules/noop_primitive_operations
     noop_primitive_operations: true
-
-    # https://dart.dev/tools/linter-rules/null_check_on_nullable_type_parameter
     null_check_on_nullable_type_parameter: true
-
-    # https://dart.dev/tools/linter-rules/null_closures
     null_closures: true
 
-    # https://dart.dev/tools/linter-rules/omit_local_variable_types
-    # Not a conflict - the incompatible always_specify_types is disabled.
-    # Disabled by choice: the codebase annotates local variables explicitly.
+    # The codebase annotates local variables explicitly.
     omit_local_variable_types: false
 
-    # https://dart.dev/tools/linter-rules/omit_obvious_local_variable_types
-    # The codebase annotates local variables explicitly on purpose;
-    # see omit_local_variable_types below for the same decision.
+    # Same decision as omit_local_variable_types above.
     omit_obvious_local_variable_types: false
 
-    # https://dart.dev/tools/linter-rules/omit_obvious_property_types
-    # Incompatible rules: type_annotate_public_apis, which is enabled.
-    # Public API stays explicitly typed.
+    # Incompatible with type_annotate_public_apis, enabled below: public API
+    # stays explicitly typed.
     omit_obvious_property_types: false
 
-    # https://dart.dev/tools/linter-rules/one_member_abstracts
     one_member_abstracts: true
-
-    # https://dart.dev/tools/linter-rules/only_throw_errors
     only_throw_errors: true
-
-    # https://dart.dev/tools/linter-rules/overridden_fields
     overridden_fields: true
-
-    # https://dart.dev/tools/linter-rules/package_prefixed_library_names
     package_prefixed_library_names: true
-
-    # https://dart.dev/tools/linter-rules/parameter_assignments
     parameter_assignments: true
-
-    # https://dart.dev/tools/linter-rules/prefer_adjacent_string_concatenation
     prefer_adjacent_string_concatenation: true
-
-    # https://dart.dev/tools/linter-rules/prefer_asserts_in_initializer_lists
     prefer_asserts_in_initializer_lists: true
-
-    # https://dart.dev/tools/linter-rules/prefer_asserts_with_message
     prefer_asserts_with_message: true
-
-    # https://dart.dev/tools/linter-rules/prefer_collection_literals
     prefer_collection_literals: true
-
-    # https://dart.dev/tools/linter-rules/prefer_conditional_assignment
     prefer_conditional_assignment: true
-
-    # https://dart.dev/tools/linter-rules/prefer_const_constructors
     prefer_const_constructors: true
-
-    # https://dart.dev/tools/linter-rules/prefer_const_constructors_in_immutables
     prefer_const_constructors_in_immutables: true
-
-    # https://dart.dev/tools/linter-rules/prefer_const_declarations
     prefer_const_declarations: true
-
-    # https://dart.dev/tools/linter-rules/prefer_const_literals_to_create_immutables
     prefer_const_literals_to_create_immutables: true
-
-    # https://dart.dev/tools/linter-rules/prefer_constructors_over_static_methods
     prefer_constructors_over_static_methods: true
-
-    # https://dart.dev/tools/linter-rules/prefer_contains
     prefer_contains: true
 
-    # https://dart.dev/tools/linter-rules/prefer_double_quotes
-    # Incompatible rules: prefer_single_quotes
-    # Use only single quotes
+    # Incompatible with prefer_single_quotes, enabled below.
     prefer_double_quotes: false
 
-    # https://dart.dev/tools/linter-rules/prefer_expression_function_bodies
-    # Not in usage, because even in build functions
-    # need to use => instead of return
-    # and it's not so comfortable
+    # Would force `=>` on every single-return body, `build` methods included,
+    # where a block body often reads better.
     prefer_expression_function_bodies: false
 
-    # https://dart.dev/tools/linter-rules/prefer_final_fields
     prefer_final_fields: true
-
-    # https://dart.dev/tools/linter-rules/prefer_final_in_for_each
     prefer_final_in_for_each: true
-
-    # https://dart.dev/tools/linter-rules/prefer_final_locals
-    # Incompatible rules: unnecessary_final
     prefer_final_locals: true
-
-    # https://dart.dev/tools/linter-rules/prefer_for_elements_to_map_fromiterable
     prefer_for_elements_to_map_fromiterable: true
-    # https://dart.dev/tools/linter-rules/prefer_foreach
     prefer_foreach: true
-
-    # https://dart.dev/tools/linter-rules/prefer_function_declarations_over_variables
     prefer_function_declarations_over_variables: true
-
-    # https://dart.dev/tools/linter-rules/prefer_generic_function_type_aliases
     prefer_generic_function_type_aliases: true
-
-    # https://dart.dev/tools/linter-rules/prefer_if_elements_to_conditional_expressions
     prefer_if_elements_to_conditional_expressions: true
-
-    # https://dart.dev/tools/linter-rules/prefer_if_null_operators
     prefer_if_null_operators: true
-
-    # https://dart.dev/tools/linter-rules/prefer_initializing_formals
     prefer_initializing_formals: true
-
-    # https://dart.dev/tools/linter-rules/prefer_inlined_adds
     prefer_inlined_adds: true
-
-    # https://dart.dev/tools/linter-rules/prefer_int_literals
     prefer_int_literals: true
-
-    # https://dart.dev/tools/linter-rules/prefer_interpolation_to_compose_strings
     prefer_interpolation_to_compose_strings: true
-
-    # https://dart.dev/tools/linter-rules/prefer_is_empty
     prefer_is_empty: true
-
-    # https://dart.dev/tools/linter-rules/prefer_is_not_empty
     prefer_is_not_empty: true
-
-    # https://dart.dev/tools/linter-rules/prefer_is_not_operator
     prefer_is_not_operator: true
-
-    # https://dart.dev/tools/linter-rules/prefer_iterable_wheretype
     prefer_iterable_wheretype: true
-    # https://dart.dev/tools/linter-rules/prefer_mixin
     prefer_mixin: true
-
-    # https://dart.dev/tools/linter-rules/prefer_null_aware_method_calls
     prefer_null_aware_method_calls: true
-
-    # https://dart.dev/tools/linter-rules/prefer_null_aware_operators
     prefer_null_aware_operators: true
-
-    # https://dart.dev/tools/linter-rules/prefer_single_quotes
-    # Incompatible rules: prefer_double_quotes
     prefer_single_quotes: true
-
-    # https://dart.dev/tools/linter-rules/prefer_spread_collections
     prefer_spread_collections: true
-
-    # https://dart.dev/tools/linter-rules/prefer_typing_uninitialized_variables
     prefer_typing_uninitialized_variables: true
-
-    # https://dart.dev/tools/linter-rules/provide_deprecation_message
     provide_deprecation_message: true
 
-    # https://dart.dev/tools/linter-rules/public_member_api_docs
     # Enforces the project rule that every declaration carries a `///` comment.
     # An empty `///` satisfies it: the point is that adding a public member is a
     # deliberate act, not that every line needs prose.
     public_member_api_docs: true
 
-    # https://dart.dev/tools/linter-rules/recursive_getters
     recursive_getters: true
-
-    # https://dart.dev/tools/linter-rules/remove_deprecations_in_breaking_versions
     remove_deprecations_in_breaking_versions: true
-
-    # https://dart.dev/tools/linter-rules/require_trailing_commas
     require_trailing_commas: true
-
-    # https://dart.dev/tools/linter-rules/simplify_variable_pattern
     simplify_variable_pattern: true
-
-    # https://dart.dev/tools/linter-rules/sized_box_for_whitespace
     sized_box_for_whitespace: true
-
-    # https://dart.dev/tools/linter-rules/sized_box_shrink_expand
     sized_box_shrink_expand: true
-
-    # https://dart.dev/tools/linter-rules/slash_for_doc_comments
     slash_for_doc_comments: true
-
-    # https://dart.dev/tools/linter-rules/sort_child_properties_last
     sort_child_properties_last: true
-
-    # https://dart.dev/tools/linter-rules/sort_constructors_first
     sort_constructors_first: true
-
-    # https://dart.dev/tools/linter-rules/sort_unnamed_constructors_first
     sort_unnamed_constructors_first: true
 
-    # https://dart.dev/tools/linter-rules/specify_nonobvious_local_variable_types
-    # The house style annotates fields and signatures, where the type is part
-    # of what a reader has to know, and leaves locals to inference, where the
-    # initialiser is usually right there. This rule argues with that choice on
-    # every local it disagrees about, so it reports style rather than risk, and
-    # in that volume it buries the findings that matter.
-    # The property-level counterpart stays on: those types are API surface.
+    # Local types are a habit here, not a requirement: this rule would report
+    # style rather than risk, and at the volume it fires it buries the findings
+    # that matter. Types that are API surface — fields and signatures — stay
+    # enforced by specify_nonobvious_property_types and
+    # type_annotate_public_apis.
     specify_nonobvious_local_variable_types: false
 
-    # https://dart.dev/tools/linter-rules/specify_nonobvious_property_types
     specify_nonobvious_property_types: true
-
-    # https://dart.dev/tools/linter-rules/strict_top_level_inference
     strict_top_level_inference: true
-
-    # https://dart.dev/tools/linter-rules/tighten_type_of_initializing_formals
     tighten_type_of_initializing_formals: true
-
-    # https://dart.dev/tools/linter-rules/type_annotate_public_apis
     type_annotate_public_apis: true
-
-    # https://dart.dev/tools/linter-rules/type_init_formals
     type_init_formals: true
-
-    # https://dart.dev/tools/linter-rules/type_literal_in_constant_pattern
     type_literal_in_constant_pattern: true
-
-    # https://dart.dev/tools/linter-rules/unawaited_futures
     unawaited_futures: true
 
-    # https://dart.dev/tools/linter-rules/unnecessary_async
-    # Experimental
+    # Experimental.
     unnecessary_async: true
 
-    # https://dart.dev/tools/linter-rules/unnecessary_await_in_return
     unnecessary_await_in_return: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_brace_in_string_interps
     unnecessary_brace_in_string_interps: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_breaks
     unnecessary_breaks: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_const
     unnecessary_const: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_constructor_name
     unnecessary_constructor_name: true
 
-    # https://dart.dev/tools/linter-rules/unnecessary_final
-    # Incompatible rules: prefer_final_locals, prefer_final_parameters
+    # Incompatible with prefer_final_locals, enabled above.
     unnecessary_final: false
 
-    # https://dart.dev/tools/linter-rules/unnecessary_getters_setters
     unnecessary_getters_setters: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_ignore
     unnecessary_ignore: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_lambdas
     unnecessary_lambdas: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_late
     unnecessary_late: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_library_directive
     unnecessary_library_directive: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_library_name
     unnecessary_library_name: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_new
     unnecessary_new: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_null_aware_assignments
     unnecessary_null_aware_assignments: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_null_aware_operator_on_extension_on_nullable
     unnecessary_null_aware_operator_on_extension_on_nullable: true
 
-    # https://dart.dev/tools/linter-rules/unnecessary_null_checks
-    # Experimental
+    # Experimental.
     unnecessary_null_checks: true
 
-    # https://dart.dev/tools/linter-rules/unnecessary_null_in_if_null_operators
     unnecessary_null_in_if_null_operators: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_nullable_for_final_variable_declarations
     unnecessary_nullable_for_final_variable_declarations: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_overrides
     unnecessary_overrides: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_parenthesis
     unnecessary_parenthesis: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_raw_strings
     unnecessary_raw_strings: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_string_escapes
     unnecessary_string_escapes: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_string_interpolations
     unnecessary_string_interpolations: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_this
     unnecessary_this: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_to_list_in_spreads
     unnecessary_to_list_in_spreads: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_unawaited
     unnecessary_unawaited: true
-
-    # https://dart.dev/tools/linter-rules/unnecessary_underscores
     unnecessary_underscores: true
-
-    # https://dart.dev/tools/linter-rules/unreachable_from_main
     unreachable_from_main: true
-
-    # https://dart.dev/tools/linter-rules/use_colored_box
     use_colored_box: true
-
-    # https://dart.dev/tools/linter-rules/use_decorated_box
     use_decorated_box: true
-
-    # https://dart.dev/tools/linter-rules/use_enums
     use_enums: true
-
-    # https://dart.dev/tools/linter-rules/use_full_hex_values_for_flutter_colors
     use_full_hex_values_for_flutter_colors: true
-
-    # https://dart.dev/tools/linter-rules/use_function_type_syntax_for_parameters
     use_function_type_syntax_for_parameters: true
-
-    # https://dart.dev/tools/linter-rules/use_is_even_rather_than_modulo
     use_is_even_rather_than_modulo: true
 
-    # https://dart.dev/tools/linter-rules/use_late_for_private_fields_and_variables
-    # Experimental
+    # Experimental.
     use_late_for_private_fields_and_variables: true
 
-    # https://dart.dev/tools/linter-rules/use_named_constants
     use_named_constants: true
-
-    # https://dart.dev/tools/linter-rules/use_null_aware_elements
     use_null_aware_elements: true
-
-    # https://dart.dev/tools/linter-rules/use_raw_strings
     use_raw_strings: true
-
-    # https://dart.dev/tools/linter-rules/use_rethrow_when_possible
     use_rethrow_when_possible: true
-
-    # https://dart.dev/tools/linter-rules/use_setters_to_change_properties
     use_setters_to_change_properties: true
-
-    # https://dart.dev/tools/linter-rules/use_string_buffers
     use_string_buffers: true
-
-    # https://dart.dev/tools/linter-rules/use_string_in_part_of_directives
     use_string_in_part_of_directives: true
 
-    # https://dart.dev/tools/linter-rules/use_super_parameters
-    # Experimental
+    # Experimental.
     use_super_parameters: true
 
-    # https://dart.dev/tools/linter-rules/use_test_throws_matchers
     use_test_throws_matchers: true
-
-    # https://dart.dev/tools/linter-rules/use_to_and_as_if_applicable
     use_to_and_as_if_applicable: true
-
-    # https://dart.dev/tools/linter-rules/use_truncating_division
     use_truncating_division: true
-
-    # https://dart.dev/tools/linter-rules/var_with_no_type_annotation
     var_with_no_type_annotation: true
-
-    # https://dart.dev/tools/linter-rules/void_checks
     void_checks: true
 
-    #
-    # Pub rules https://dart.dev/tools/linter-rules#pub-rules
-    #
+    # Pub rules: https://dart.dev/tools/linter-rules#pub-rules
 
-    # https://dart.dev/tools/linter-rules/depend_on_referenced_packages
     depend_on_referenced_packages: true
-
-    # https://dart.dev/tools/linter-rules/package_names
     package_names: true
-
-    # https://dart.dev/tools/linter-rules/secure_pubspec_urls
     secure_pubspec_urls: true
-
-    # https://dart.dev/tools/linter-rules/sort_pub_dependencies
     sort_pub_dependencies: true

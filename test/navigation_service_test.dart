@@ -5,25 +5,31 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The helpers read the root router, and an app whose screens live in a
-/// nested router — a shell route with a stack of its own — has one page on
-/// the root for all of them: the shell. A pop aimed at the root then either
-/// does nothing or takes the shell off and leaves an empty window, and the
-/// current route of the root is the shell whatever screen is showing inside
-/// it. The helpers go through the top-most router instead; this pins that
-/// down, together with the two ways a nested stack must never end up: empty,
-/// or cleared on the way to a name it does not hold.
+/// When the screens live in a nested router — a shell route with a stack of
+/// its own — the root holds one page for all of them: the shell. A pop aimed
+/// at the root does nothing or takes the whole shell off and leaves an empty
+/// window, and the root names the shell as its current route whatever screen
+/// shows inside it. The helpers go through the top-most router instead. The
+/// suite pins that down, together with the two states a nested stack must
+/// never reach: empty, or cleared on the way to a name it does not hold.
 void main() {
+  ///
   const String homeName = 'Home';
+  ///
   const String shellName = 'Shell';
+  ///
   const String nestedName = 'Nested';
+  ///
   const String detailName = 'Detail';
 
+  ///
   const PageRouteInfo<void> shellRoute = PageRouteInfo<void>(shellName);
+  ///
   const PageRouteInfo<void> detailRoute = PageRouteInfo<void>(detailName);
 
   /// A root page with a shell over it: the shell's stack opens on `nested`
-  /// and can take `detail` on top.
+  /// and can take `detail` on top. Built on the package's [navigatorKey],
+  /// the one the helpers read.
   RootStackRouter buildRouter() => RootStackRouter.build(
     navigatorKey: navigatorKey,
     routes: [
@@ -46,6 +52,7 @@ void main() {
     ],
   );
 
+  ///
   Future<void> pumpApp(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp.router(routerConfig: buildRouter().config()),
@@ -65,9 +72,11 @@ void main() {
     expect(find.text(text), findsOneWidget);
   }
 
+  ///
   Future<void> openShell(WidgetTester tester) =>
       open(tester, shellRoute, 'nested');
 
+  ///
   Future<void> openDetail(WidgetTester tester) =>
       open(tester, detailRoute, 'detail');
 

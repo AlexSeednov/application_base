@@ -2,13 +2,14 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-/// Key for navigation without requiring context
+///
 final _navigatorKey = GlobalKey<NavigatorState>();
 
-/// Key for navigation without requiring context
+/// Key of the root navigator, to hand to the root router: every helper in
+/// this file navigates through it, with no context of its own.
 GlobalKey<NavigatorState> get navigatorKey => _navigatorKey;
 
-/// Actual application router
+/// The root router; `null` while no navigator is mounted.
 StackRouter? get actualRouter => actualContext?.router;
 
 /// Name of the screen on view: the current route of the top-most router.
@@ -18,10 +19,10 @@ StackRouter? get actualRouter => actualContext?.router;
 /// is the shell, whatever screen is showing inside it.
 String? get currentRouteName => actualRouter?.topRoute.name;
 
-/// Current context getter
+/// Context of the root navigator; `null`, and logged, while none is mounted.
 ///
-/// **Important:** do not use for theming
-/// because of it wouldn't be changed on theme changing
+/// Not for theming: a theme looked up through it ties the navigator, not the
+/// caller, to the theme, so the caller is not rebuilt when the theme changes.
 BuildContext? get actualContext {
   if (_navigatorKey.currentContext == null) {
     logError(error: 'Requested actual context is NULL');
@@ -34,9 +35,9 @@ BuildContext? get actualContext {
 ///
 /// Does nothing when the primary focus already sits on a scope — a route with
 /// no focused field. Unfocusing a scope moves the focus one scope up, and on
-/// the web that is what killed keyboard scrolling after any tap on the page
-/// background: Flutter's scroll action looks the scrollable up from the
-/// focused node, and above the route there is nothing to scroll.
+/// the web that kills keyboard scrolling after any tap on the page background:
+/// Flutter's scroll action looks the scrollable up from the focused node, and
+/// above the route there is nothing to scroll.
 void unfocus() {
   final FocusNode? node = FocusManager.instance.primaryFocus;
   if (node == null || node is FocusScopeNode) return;
@@ -44,12 +45,11 @@ void unfocus() {
   node.unfocus();
 }
 
-/// Runs [action] against the live router, or reports and does nothing.
+/// Runs [navigate] against the live router, or logs [action] and does
+/// nothing.
 ///
-/// Every helper below used to force-unwrap [actualRouter], which turned the
-/// "no mounted router" case into a crash right after [actualContext] had
-/// already logged it. Navigation is a side effect: when there is nowhere to
-/// navigate, skipping it and leaving a trace beats taking the app down.
+/// Navigation is a side effect: with no router mounted, skipping it and
+/// leaving a trace beats crashing on a null router.
 T? _withRouter<T>(String action, T Function(StackRouter router) navigate) {
   final StackRouter? router = actualRouter;
   if (router == null) {
@@ -65,19 +65,17 @@ Future<void> _withRouterAsync(
   Future<void> Function(StackRouter router) navigate,
 ) => _withRouter(action, navigate) ?? Future<void>.value();
 
-/// Adds a new entry to the screens stack.
-///
-/// Better to use for in-sector navigation.
-/// Use [navigateScreen] for cross-sector navigation.
-// Information(Alex): Can not return some value because of Future<smth>
-// doesn't work with await...
+/// Pushes [route] onto the stack, for navigation within a section; use
+/// [navigateScreen] to go to another section.
+// Information(Alex): returns no value, since a typed `Future<T>` result does
+// not work with `await` here.
 Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
     _withRouterAsync('push', (router) => router.push(route));
 
-/// Adds a new entry to the screens stack by using [routeName].
+/// Pushes the route at [routeName] onto the stack, for navigation within a
+/// section; use [navigatePath] to go to another section.
 ///
-/// Better to use for in-sector navigation.
-/// Use [navigatePath] for cross-sector navigation.
+/// [routeName] is a path, not a route name: it goes to `pushPath`.
 Future<void> pushNamed({required String routeName}) =>
     _withRouterAsync('pushNamed', (router) => router.pushPath(routeName));
 
@@ -88,14 +86,12 @@ Future<void> pushNamed({required String routeName}) =>
 /// screens in a nested router — a shell route that holds a stack of its own —
 /// the root navigator holds that one shell page, so a pop aimed at the root
 /// has nothing to pop and silently does nothing.
-// Optimize(Alex): пометить как awaitNotRequired с выходом meta 1.17
+// Optimize(Alex): mark as `awaitNotRequired` once meta 1.17 is out.
 Future<void> popScreen({bool? result}) =>
     _withRouterAsync('pop', (router) => router.maybePopTop(result));
 
-/// Calls pop on the controller with the top-most visible page.
-///
-/// The same call as [popScreen] since that one moved to the top-most router;
-/// kept so existing callers keep compiling.
+/// The same pop as [popScreen], without the future; kept so existing
+/// callers compile.
 void popTopScreen({bool? result}) =>
     _withRouter('popTop', (router) => router.maybePopTop(result));
 
@@ -171,32 +167,27 @@ void popUntilScreenWithName({required String routeName}) =>
       holder.popUntilRouteWithName(routeName);
     });
 
-/// Pops until provided [route], if it already exists in stack
-/// else adds it to the stack (good for web Apps).
+/// Pops back to [route] when the stack already holds it, otherwise pushes
+/// it: no duplicate entries, which suits web apps.
 ///
-/// Better to use for cross-sector navigation.
-/// Use [pushScreen] for in-sector navigation.
+/// For navigation to another section; within a section use [pushScreen].
 Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
     _withRouterAsync('navigate', (router) => router.navigate(route));
 
-/// Pops until given [path], if it already exists in stack
-/// otherwise adds it to the stack.
+/// Pops back to [path] when the stack already holds it, otherwise pushes it.
 ///
-/// Wrong path will be redirected if redirection rull is set in router or
-/// exception "Can not navigate to $path" will be thrown
-///
-/// Better to use for cross-sector navigation.
-/// Use [pushNamed] for in-sector navigation.
+/// For navigation to another section; within a section use [pushNamed]. A
+/// path no route matches follows the router's redirect route if it has one,
+/// and otherwise throws a `FlutterError` ("Can not navigate to …").
 Future<void> navigatePath({required String path}) =>
     _withRouterAsync('navigatePath', (router) => router.navigatePath(path));
 
-/// Removes last entry in stack and pushes provided [route].
-/// if last entry == provided route screen will just be updated
+/// Replaces the top entry with [route]; when the top entry already is
+/// [route], the screen is only updated.
 Future<void> replaceScreen({required PageRouteInfo<dynamic> route}) =>
     _withRouterAsync('replace', (router) => router.replace(route));
 
-/// This's like providing a completely new stack as it rebuilds the stack
-/// with the passed [route].
-/// Entry might just update if already exist
+/// Rebuilds the stack with [route] as its only entry; an entry already there
+/// may be updated in place rather than recreated.
 Future<void> replaceAllScreen({required PageRouteInfo<dynamic> route}) =>
     _withRouterAsync('replaceAll', (router) => router.replaceAll([route]));

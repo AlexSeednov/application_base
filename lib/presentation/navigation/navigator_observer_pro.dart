@@ -3,7 +3,8 @@ import 'package:application_base/core/service/logger_service.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
-///
+/// Logs every screen change, tab switches included, so the log of a bug
+/// report shows the path the user took.
 class NavigatorObserverPro extends AutoRouterObserver {
   ///
   NavigatorObserverPro();

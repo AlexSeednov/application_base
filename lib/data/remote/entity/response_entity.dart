@@ -10,13 +10,13 @@ final class ResponseEntity {
   ///
   final String body;
 
-  ///
+  /// The request it answers, as `METHOD url`, for the logs.
   final String request;
 
   ///
   final int statusCode;
 
-  /// Success status code
+  /// Any 2xx.
   bool get isOk => statusCode >= 200 && statusCode < 300;
 
   /// Every status outside the 2xx range
