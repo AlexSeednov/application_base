@@ -1,4 +1,6 @@
 import 'package:application_base/core/service/logger_service.dart';
+import 'package:application_base/data/remote/utility/link_download.dart'
+    if (dart.library.js_interop) 'package:application_base/data/remote/utility/link_download_web.dart';
 import 'package:application_base/data/remote/utility/location_navigation.dart'
     if (dart.library.js_interop) 'package:application_base/data/remote/utility/location_navigation_web.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -90,6 +92,28 @@ abstract final class UrlLauncher {
       logError(error: 'Error on launching the link $link via location: $error');
     }
     return false;
+  }
+
+  /// Download the file behind [link] instead of opening it.
+  /// Return **true** on success; never throws.
+  ///
+  /// On the web the file is saved without leaving the page, but only for a
+  /// link of the page's own origin: browsers ignore the download request for
+  /// any other origin and open the link in a new tab. A server can still force
+  /// the download from any origin with `Content-Disposition: attachment`.
+  ///
+  /// Outside the web the link goes to [launchLink]: the application that
+  /// handles the file decides whether to show or to save it. The same happens
+  /// on the web if the browser download fails to start.
+  static Future<bool> downloadLink(String? link) async {
+    if (link == null || link.isEmpty) return false;
+
+    try {
+      if (downloadViaAnchor(link)) return true;
+    } catch (error) {
+      logError(error: 'Error on downloading the link $link: $error');
+    }
+    return launchLink(link);
   }
 
   /// Try to open email application with prepared email.

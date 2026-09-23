@@ -1,3 +1,14 @@
+## 0.4.4
+
+* **`UrlLauncher.downloadLink`** — downloads the file behind a link instead of
+  opening it. On the web the link is clicked as an anchor with the `download`
+  attribute, so a file of the page's own origin is saved without leaving the
+  page. Browsers ignore the attribute for other origins and open such a link;
+  the anchor targets a new tab, so the page with the application stays in
+  place either way. Outside the web, and on the web if the anchor fails, the
+  link goes to `launchLink`. Moved in from Medita, where it lived as a
+  project-level bridge behind the "Download" action of chat images.
+
 ## 0.4.3
 
 * **`ApplicationLocale`** (`presentation/utility/application_locale.dart`) —

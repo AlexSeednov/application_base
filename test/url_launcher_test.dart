@@ -20,4 +20,18 @@ void main() {
   test('an sms that cannot be sent answers false', () async {
     expect(await UrlLauncher.sendSms('50% off & #1'), isFalse);
   });
+
+  /// Outside the web the download is a plain launch, so it fails the same way
+  test('a download that cannot be launched answers false', () async {
+    final bool isDownloaded = await UrlLauncher.downloadLink(
+      'https://example.com/image.jpg',
+    );
+
+    expect(isDownloaded, isFalse);
+  });
+
+  test('a download of no link answers false', () async {
+    expect(await UrlLauncher.downloadLink(null), isFalse);
+    expect(await UrlLauncher.downloadLink(''), isFalse);
+  });
 }

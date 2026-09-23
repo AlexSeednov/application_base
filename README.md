@@ -82,7 +82,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.4.3
+    version: 0.4.4
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -847,6 +847,12 @@ final bool emailResult = await UrlLauncher.sendEmail(
 `makeCall` and `sendSms` open the phone and messaging apps. On the web
 `launchLinkInSameTab` and `launchLinkViaLocation` open a link in the current
 browser tab instead of a new one.
+
+`downloadLink` saves the file behind a link instead of opening it. On the web
+this works for links of the page's own origin only: a link to another origin
+opens in a new tab, unless its server answers with
+`Content-Disposition: attachment`. Outside the web the link is simply
+launched.
 
 For testable link opening from view models use the `UrlLauncherPro` contract
 (`open` / `sendEmail` / `call` / `sendSms`) with its `UrlLauncherRouter`
