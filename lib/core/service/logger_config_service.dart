@@ -45,11 +45,13 @@ final LoggerState loggerState = LoggerState();
 /// Injectable handle over [loggerState].
 ///
 /// Gives getIt a seam over state it does not own: [reset] runs on
-/// `getIt.reset()`, so logging state does not leak between tests. Only once
-/// the service has been resolved, though — getIt skips the dispose hook of a
-/// lazy singleton nobody asked for. The storage itself stays outside DI for
-/// the early writes described on [LoggerState].
-@lazySingleton
+/// `getIt.reset()`, so logging state does not leak between tests. The storage
+/// itself stays outside DI for the early writes described on [LoggerState].
+///
+/// Registered eagerly: getIt skips the dispose hook of a lazy singleton nobody
+/// resolved, and the top-level logging setters write around this service, so
+/// a lazy one would let their state leak whenever only they were used.
+@singleton
 final class LoggerConfigService {
   ///
   @visibleForTesting

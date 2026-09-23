@@ -50,6 +50,11 @@ abstract base class NetworkServiceBase {
   ///
   bool _isPingInProgress = false;
 
+  /// Set by [dispose], cleared by [prepare]: a ping still in flight must not
+  /// move a disposed service into the offline mode and start a timer nobody
+  /// cancels.
+  bool _isDisposed = false;
+
   /// Subscribes to [NetworkSubject], starts watching the interface and pings
   /// the backend once; repeated calls are no-ops.
   ///
@@ -57,6 +62,7 @@ abstract base class NetworkServiceBase {
   /// through it.
   Future<void> prepare() async {
     if (_subscription != null) return;
+    _isDisposed = false;
     /// Subscribed before the interface is read: its first reading goes out
     /// on the subject, which replays nothing to a late listener.
     _subscription = _networkSubject.listen(onUpdate);
@@ -75,6 +81,7 @@ abstract base class NetworkServiceBase {
 
   ///
   void dispose() {
+    _isDisposed = true;
     unawaited(_subscription?.cancel());
     _subscription = null;
 
@@ -82,14 +89,17 @@ abstract base class NetworkServiceBase {
     _timer = null;
   }
 
-  /// A no-op while already offline: every failed request reports a lost
-  /// connection, and one offline mode needs one timer and one log line.
+  /// Starts the ping timer first, whatever the state: a service prepared
+  /// again after [dispose] may still count itself offline and needs the timer
+  /// back. The rest is a no-op while offline — every failed request reports a
+  /// lost connection, and one offline mode needs one log line.
   void _activateOfflineMode() {
+    if (_isDisposed) return;
+
+    _timer ??= Timer.periodic(pingPeriod, (_) => ping());
     if (isOffline) return;
 
     isOnlineNotifier.value = false;
-
-    _timer ??= Timer.periodic(pingPeriod, (_) => ping());
 
     logInfo(info: 'Offline mode activated');
   }
@@ -107,21 +117,24 @@ abstract base class NetworkServiceBase {
     logInfo(info: 'Offline mode deactivated');
   }
 
-  /// Any request that got an expected response proves the backend
-  /// reachable.
-  void _onlineMode() {
+  /// Leaves the offline mode and announces [NetworkRestore] — once per
+  /// offline period.
+  ///
+  /// The state flips here, before the event goes out: the subject delivers
+  /// asynchronously, and a second success arriving in between would otherwise
+  /// still find the offline mode and announce the restore again.
+  void _restore() {
     if (isOnline) return;
 
-    /// The restore goes out through the subject, so every listener, this
-    /// service included, learns of it from one event.
+    _deactivateOfflineMode();
     _networkSubject.add(NetworkRestore());
   }
 
   /// Whether the backend answers.
   ///
-  /// Send the request silent: a request that reports its own success
-  /// announces the restore a second time. Whatever it throws counts as no
-  /// answer.
+  /// Send the request silent: otherwise a backend that answers with an error
+  /// reaches the user as an error message on every ping period. Whatever it
+  /// throws counts as no answer.
   @mustBeOverridden
   Future<bool> sendPingRequest();
 
@@ -129,8 +142,8 @@ abstract base class NetworkServiceBase {
   /// match.
   ///
   /// Runs on the offline timer, when a link comes back, and on demand — a
-  /// retry button, say. A success announces [NetworkRestore] whatever the
-  /// current state; a call while another ping runs is skipped and leaves the
+  /// retry button, say. A success ends the offline mode and changes nothing
+  /// while online; a call while another ping runs is skipped and leaves the
   /// outcome to that one.
   Future<void> ping() async {
     final bool? result = await _checkBackendAvailability();
@@ -142,8 +155,7 @@ abstract base class NetworkServiceBase {
       return;
     }
 
-    /// Through the subject, as in `_onlineMode`.
-    _networkSubject.add(NetworkRestore());
+    _restore();
   }
 
   /// `true` when the backend answers, `false` when it does not, and `null`
@@ -180,7 +192,9 @@ abstract base class NetworkServiceBase {
   @mustBeOverridden
   @mustCallSuper
   void onUpdate(NetworkEvent event) => switch (event) {
-    NetworkSuccess() => _onlineMode(),
+    /// Any request that got an expected response proves the backend
+    /// reachable.
+    NetworkSuccess() => _restore(),
 
     NetworkConnectionAvailable() when isOffline => _confirmConnectionRestore(),
 

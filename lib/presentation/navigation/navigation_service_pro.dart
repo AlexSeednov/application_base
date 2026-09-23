@@ -8,7 +8,7 @@ import 'package:auto_route/auto_route.dart';
 /// assert navigation branches without pumping a widget tree.
 ///
 /// Only route-object (type-safe) navigation is exposed; string-path helpers
-/// (`pushNamed` / `navigatePath`) and low-level accessors (`actualContext` /
+/// (`pushPath` / `navigatePath`) and low-level accessors (`actualContext` /
 /// `actualRouter` / `unfocus`) stay in `navigation_service.dart`. The default
 /// `NavigationServiceRouter` implementation ships in
 /// `navigation_service_router.dart` and is registered by the package's

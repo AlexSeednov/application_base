@@ -27,7 +27,10 @@ final class EnabledPro extends StatelessWidget {
     return OpacityPro(
       isFullyOpaque: isEnabled,
       minOpacity: disabledOpacity,
-      child: isEnabled ? child : IgnorePointer(child: child),
+      /// Always wrapped, toggled by `ignoring`: swapping the wrapper in and out
+      /// changes the child's place in the tree and resets its state — a field's
+      /// text, a scroll offset, a running animation.
+      child: IgnorePointer(ignoring: !isEnabled, child: child),
     );
   }
 }

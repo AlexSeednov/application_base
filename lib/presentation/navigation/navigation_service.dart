@@ -1,6 +1,7 @@
 import 'package:application_base/core/service/logger_service.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 
 ///
 final _navigatorKey = GlobalKey<NavigatorState>();
@@ -72,12 +73,16 @@ Future<void> _withRouterAsync(
 Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
     _withRouterAsync('push', (router) => router.push(route));
 
-/// Pushes the route at [routeName] onto the stack, for navigation within a
+/// Pushes the route at [path] onto the stack, for navigation within a
 /// section; use [navigatePath] to go to another section.
-///
-/// [routeName] is a path, not a route name: it goes to `pushPath`.
+Future<void> pushPath({required String path}) =>
+    _withRouterAsync('pushPath', (router) => router.pushPath(path));
+
+/// The former name of [pushPath]: it has always taken a path, never a route
+/// name.
+@Deprecated('Use pushPath(path:) — it takes a path, not a route name')
 Future<void> pushNamed({required String routeName}) =>
-    _withRouterAsync('pushNamed', (router) => router.pushPath(routeName));
+    pushPath(path: routeName);
 
 /// Pops the last screen of the visible stack unless it is the only entry.
 ///
@@ -86,7 +91,10 @@ Future<void> pushNamed({required String routeName}) =>
 /// screens in a nested router — a shell route that holds a stack of its own —
 /// the root navigator holds that one shell page, so a pop aimed at the root
 /// has nothing to pop and silently does nothing.
-// Optimize(Alex): mark as `awaitNotRequired` once meta 1.17 is out.
+///
+/// Awaiting is optional: the future only tells when the pop is done, and a
+/// caller that just leaves the screen has nothing to wait for.
+@awaitNotRequired
 Future<void> popScreen({bool? result}) =>
     _withRouterAsync('pop', (router) => router.maybePopTop(result));
 
@@ -176,7 +184,7 @@ Future<void> navigateScreen({required PageRouteInfo<dynamic> route}) =>
 
 /// Pops back to [path] when the stack already holds it, otherwise pushes it.
 ///
-/// For navigation to another section; within a section use [pushNamed]. A
+/// For navigation to another section; within a section use [pushPath]. A
 /// path no route matches follows the router's redirect route if it has one,
 /// and otherwise throws a `FlutterError` ("Can not navigate to …").
 Future<void> navigatePath({required String path}) =>

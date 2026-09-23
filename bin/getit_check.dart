@@ -10,25 +10,33 @@
 // Scans lib/ for classes registered through injectable annotations
 // (@lazySingleton / @singleton / @injectable and the constructor forms
 // @LazySingleton(as: X) / @Singleton(as: X) / @Injectable(as: X)), turns
-// every getIt<T>() call inside them into an edge of a directed graph, finds
+// every getIt call inside them into an edge of a directed graph, finds
 // the cycles (Tarjan's SCC, then a DFS inside each component) and prints
 // them by severity.
 //
-// EAGER edge — getIt<X>() in a field initializer or in the body /
-//               initializers of a constructor. A cycle with at least one
-//               eager edge overflows the stack as soon as its first
-//               participant is created.
-// LAZY  edge — getIt<X>() in the body of a method/getter/setter, or in a
-//               static field initializer (it runs on first access). A cycle
-//               of lazy edges only bites when the calls overlap in time.
+// A getIt call is any of getIt<T>(), getIt.get<T>(), getIt.getAsync<T>(),
+// GetIt.I<T>(), GetIt.instance<T>() and GetIt.I.get<T>().
+//
+// EAGER edge — a getIt call in an instance field initializer or in the body /
+//               initializers of a constructor: it runs when an instance is
+//               built.
+// LAZY  edge — a getIt call in the body of a method/getter/setter, or in a
+//               static or `late` field initializer: it runs on first access.
+//
+// HIGH   — every edge of the cycle is eager: creating any participant
+//          overflows the stack.
+// MEDIUM — eager and lazy edges mixed: creation is safe, but a lazy call made
+//          while a participant is still being built — a constructor calling
+//          a method — closes the loop.
+// LOW    — lazy edges only: bites only when the calls overlap in time.
 //
 // Limitations:
 // - getIt calls inside mixins are not attributed to the classes that apply
 //   them with `with`.
-// - Only the call form getIt<T>() is seen: getIt.get<T>(), GetIt.I<T>() and
-//   the like are not.
+// - A locator under another name (`sl<T>()`, a field holding GetIt) is not
+//   seen.
 // - The analysis is static and ignores control flow (if / ?:): every
-//   getIt<T>() call reached counts as a dependency.
+//   getIt call reached counts as a dependency.
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -46,6 +54,7 @@ const _libDir = 'lib';
 
 /// The forms without arguments.
 const _shorthandAnnotations = {'lazySingleton', 'singleton', 'injectable'};
+
 /// The constructor forms, which may register the class under another type
 /// with `as:`.
 const _classAnnotations = {'LazySingleton', 'Singleton', 'Injectable'};
@@ -74,6 +83,7 @@ const _bannerWidth = 64;
 
 ///
 var _useColor = true;
+
 /// Off with `--ascii`, for terminals without UTF-8.
 var _useUnicode = true;
 
@@ -83,43 +93,61 @@ String _ansi(String text, String code) =>
 
 ///
 String _bold(String s) => _ansi(s, '1');
+
 ///
 String _dim(String s) => _ansi(s, '2');
+
 ///
 String _red(String s) => _ansi(s, '31');
+
 ///
 String _yellow(String s) => _ansi(s, '33');
+
 ///
 String _cyan(String s) => _ansi(s, '36');
+
 ///
 String _boldRed(String s) => _ansi(s, '1;31');
+
 ///
 String _boldYellow(String s) => _ansi(s, '1;33');
+
 ///
 String _boldGreen(String s) => _ansi(s, '1;32');
+
 ///
 String _boldCyan(String s) => _ansi(s, '1;36');
 
 /// Each glyph has an ASCII fallback for `--ascii`.
 String get _gArrowDown => _useUnicode ? '▼' : 'v';
+
 ///
 String get _gBar => _useUnicode ? '│' : '|';
+
 ///
 String get _gArrow => _useUnicode ? '→' : '->';
+
 ///
 String get _gHintMark => _useUnicode ? '▸' : '>';
+
 ///
 String get _gHLine => _useUnicode ? '─' : '-';
+
 ///
 String get _gBoxTL => _useUnicode ? '┌' : '+';
+
 ///
 String get _gBoxBL => _useUnicode ? '└' : '+';
+
 ///
 String get _gHeavy => _useUnicode ? '═' : '=';
+
 ///
 String get _gCheck => _useUnicode ? '✓' : 'OK';
+
 ///
 String get _gLoop => _useUnicode ? '↺' : '<-';
+
 ///
 String get _gWarn => _useUnicode ? '⚠' : '[!]';
 
@@ -128,8 +156,9 @@ String get _gWarn => _useUnicode ? '⚠' : '[!]';
 /// When a getIt call runs; see the file header.
 enum _EdgeKind { eager, lazy }
 
-/// HIGH: the cycle has an eager edge. LOW: lazy edges only.
-enum _Severity { high, low }
+/// How sure a cycle is to fail; see the file header. Declared from the worst,
+/// which is the order of the report.
+enum _Severity { high, medium, low }
 
 /// One `getIt<T>()` call inside a registered class.
 final class _Ref {
@@ -138,8 +167,10 @@ final class _Ref {
 
   /// The type argument of the call, the name it asks getIt for.
   final String target;
+
   ///
   final _EdgeKind kind;
+
   ///
   final int line;
 }
@@ -156,13 +187,17 @@ final class _ClassInfo {
 
   ///
   final String className;
+
   /// The `as:` type of the annotation, else the class itself: the name
   /// getIt knows it by and the node it becomes in the graph.
   final String registeredAs;
+
   ///
   final String filePath;
+
   ///
   final int line;
+
   ///
   final List<_Ref> refs = [];
 }
@@ -255,11 +290,11 @@ void main(List<String> args) {
     if (found.truncated) truncatedSccs++;
   }
 
-  // HIGH before LOW; within each, shorter cycles first.
+  // Worst severity first; within each, shorter cycles first.
   cycles.sort((a, b) {
     final sa = _severity(a, graph);
     final sb = _severity(b, graph);
-    if (sa != sb) return sa == _Severity.high ? -1 : 1;
+    if (sa != sb) return sa.index.compareTo(sb.index);
     return a.length.compareTo(b.length);
   });
 
@@ -273,12 +308,10 @@ void main(List<String> args) {
   }
 
   final totalRefs = classes.fold<int>(0, (a, c) => a + c.refs.length);
-  final highCycles = cycles
-      .where((c) => _severity(c, graph) == _Severity.high)
-      .toList();
-  final lowCycles = cycles
-      .where((c) => _severity(c, graph) == _Severity.low)
-      .toList();
+  final bySeverity = {
+    for (final sev in _Severity.values)
+      sev: cycles.where((c) => _severity(c, graph) == sev).toList(),
+  };
 
   if (verbose) _dumpGraph(registry, graph, hotMap);
 
@@ -293,18 +326,12 @@ void main(List<String> args) {
       );
     }
 
-    if (highCycles.isNotEmpty) {
-      _printCycleGroup(highCycles, 1, _Severity.high, graph, registry, hotMap);
-    }
-    if (lowCycles.isNotEmpty) {
-      _printCycleGroup(
-        lowCycles,
-        highCycles.length + 1,
-        _Severity.low,
-        graph,
-        registry,
-        hotMap,
-      );
+    var nextIdx = 1;
+    for (final sev in _Severity.values) {
+      final group = bySeverity[sev]!;
+      if (group.isEmpty) continue;
+      _printCycleGroup(group, nextIdx, sev, graph, registry, hotMap);
+      nextIdx += group.length;
     }
   }
 
@@ -314,8 +341,7 @@ void main(List<String> args) {
     registered: registry.length,
     references: totalRefs,
     duplicates: duplicates.length,
-    highCount: highCycles.length,
-    lowCount: lowCycles.length,
+    counts: {for (final e in bySeverity.entries) e.key: e.value.length},
   );
 
   exit(cycles.isEmpty ? 0 : 1);
@@ -325,7 +351,7 @@ void main(List<String> args) {
 
 ///
 void _printSectionHeader(String label, int count, _Severity sev) {
-  final color = sev == _Severity.high ? _boldRed : _boldYellow;
+  final color = _severityColor(sev);
   final word = count == 1 ? 'cycle' : 'cycles';
   final title = '$label severity — $count $word';
   // Measured before coloring: ANSI codes take no columns.
@@ -340,7 +366,7 @@ void _printSectionHeader(String label, int count, _Severity sev) {
     ..writeln();
 }
 
-/// [startIdx] carries the numbering on from the HIGH group to the LOW one.
+/// [startIdx] carries the numbering on from one severity group to the next.
 void _printCycleGroup(
   List<List<String>> cycles,
   int startIdx,
@@ -349,11 +375,7 @@ void _printCycleGroup(
   Map<String, _ClassInfo> registry,
   Map<String, int> hotMap,
 ) {
-  _printSectionHeader(
-    sev == _Severity.high ? 'HIGH' : 'LOW',
-    cycles.length,
-    sev,
-  );
+  _printSectionHeader(sev.name.toUpperCase(), cycles.length, sev);
   for (var i = 0; i < cycles.length; i++) {
     if (i > 0 && i % _cycleGroupChunk == 0) {
       stdout
@@ -424,28 +446,31 @@ void _printCycle(
     ..writeln('    ${_bold(back)}  ${_dim('$_gLoop loops back')}')
     ..writeln();
 
-  if (sev == _Severity.high) {
-    stdout
-      ..writeln(
-        '    ${_cyan(_gHintMark)} ${_dim('Hint: '
-        'break an eager edge — move the getIt<X>() call out of')}',
-      )
-      ..writeln(
-        '      ${_dim('a field initializer / constructor '
-        'body into a method body.')}',
-      );
-  } else {
-    stdout
-      ..writeln(
-        '    ${_cyan(_gHintMark)} ${_dim('Hint: only lazy edges — '
-        'safe at registration time, but verify')}',
-      )
-      ..writeln(
-        '      ${_dim('these methods can\'t call each other '
-        'on overlapping paths.')}',
-      );
-  }
+  final (String first, String second) = switch (sev) {
+    _Severity.high => (
+      'Hint: every edge is eager — make one lazy: move its',
+      'getIt<X>() call into a method body or a late field.',
+    ),
+    _Severity.medium => (
+      'Hint: safe to create, unless a constructor on the cycle',
+      'calls a method that takes a lazy edge — check that none does.',
+    ),
+    _Severity.low => (
+      'Hint: only lazy edges — safe at registration time, but verify',
+      'these methods can\'t call each other on overlapping paths.',
+    ),
+  };
+  stdout
+    ..writeln('    ${_cyan(_gHintMark)} ${_dim(first)}')
+    ..writeln('      ${_dim(second)}');
 }
+
+/// The color of a severity in headers and in the summary.
+String Function(String) _severityColor(_Severity sev) => switch (sev) {
+  _Severity.high => _boldRed,
+  _Severity.medium => _boldYellow,
+  _Severity.low => _boldCyan,
+};
 
 /// The graph is keyed by the registered name, so only the first class of
 /// each duplicated name takes part in the analysis.
@@ -476,14 +501,16 @@ void _printSummary({
   required int registered,
   required int references,
   required int duplicates,
-  required int highCount,
-  required int lowCount,
+  required Map<_Severity, int> counts,
 }) {
-  final cyclesTotal = highCount + lowCount;
+  final cyclesTotal = counts.values.fold<int>(0, (a, b) => a + b);
+  final bySeverity = [
+    for (final sev in _Severity.values)
+      _severityColor(sev)('${counts[sev]} ${sev.name.toUpperCase()}'),
+  ].join(_dim(', '));
   final cyclesNote = cyclesTotal == 0
       ? '${_boldGreen(_gCheck)} ${_boldGreen('clean')}'
-      : '${_dim('(')}${_boldRed('$highCount HIGH')}${_dim(', ')}'
-            '${_boldYellow('$lowCount LOW')}${_dim(')')}';
+      : '${_dim('(')}$bySeverity${_dim(')')}';
 
   final entries = <List<String>>[
     ['Files scanned', '$filesScanned'],
@@ -636,6 +663,7 @@ final class _SccCyclesResult {
 
   ///
   final List<List<String>> cycles;
+
   /// Whether the search stopped at [_maxCyclesPerScc].
   final bool truncated;
 }
@@ -696,12 +724,13 @@ _Severity _severity(
   List<String> cycle,
   Map<String, Map<String, _EdgeKind>> graph,
 ) {
-  for (var i = 0; i < cycle.length - 1; i++) {
-    if (graph[cycle[i]]?[cycle[i + 1]] == _EdgeKind.eager) {
-      return _Severity.high;
-    }
+  var eager = 0;
+  final edges = cycle.length - 1;
+  for (var i = 0; i < edges; i++) {
+    if (graph[cycle[i]]?[cycle[i + 1]] == _EdgeKind.eager) eager++;
   }
-  return _Severity.low;
+  if (eager == edges) return _Severity.high;
+  return eager > 0 ? _Severity.medium : _Severity.low;
 }
 
 /// The `--verbose` listing: every registered class with its edges.
@@ -776,8 +805,10 @@ class _Collector extends RecursiveAstVisitor<void> {
 
   ///
   final String filePath;
+
   ///
   final LineInfo lineInfo;
+
   ///
   final classes = <_ClassInfo>[];
 
@@ -797,9 +828,11 @@ class _Collector extends RecursiveAstVisitor<void> {
 
     for (final member in node.body.members) {
       if (member is FieldDeclaration) {
-        // A static field initializer runs on first access, not when an
-        // instance is built.
-        final kind = member.isStatic ? _EdgeKind.lazy : _EdgeKind.eager;
+        // A static or `late` field initializer runs on first access, not
+        // when an instance is built.
+        final kind = member.isStatic || member.fields.isLate
+            ? _EdgeKind.lazy
+            : _EdgeKind.eager;
         final v = _GetItVisitor(kind, lineInfo);
         member.fields.accept(v);
         info.refs.addAll(v.refs);
@@ -828,8 +861,10 @@ class _GetItVisitor extends RecursiveAstVisitor<void> {
 
   ///
   final _EdgeKind kind;
+
   ///
   final LineInfo lineInfo;
+
   ///
   final refs = <_Ref>[];
 
@@ -853,13 +888,32 @@ class _GetItVisitor extends RecursiveAstVisitor<void> {
     );
   }
 
-  /// Only a bare `getIt<T>()`: a call with a target is some other method.
+  /// Every call form of the file header. Types are not resolved, so the
+  /// locator is recognised by name: `getIt`, `GetIt.I`, `GetIt.instance`.
   @override
   void visitMethodInvocation(MethodInvocation node) {
-    if (node.methodName.name == 'getIt' && node.target == null) {
-      _capture(node.typeArguments, node.offset);
-    }
+    final String name = node.methodName.name;
+    final Expression? target = node.target;
+    final bool isGetItCall =
+        (target == null && name == 'getIt') ||
+        (_isGetItClass(target) && (name == 'I' || name == 'instance')) ||
+        ((name == 'get' || name == 'getAsync') && _isLocator(target));
+    if (isGetItCall) _capture(node.typeArguments, node.offset);
     super.visitMethodInvocation(node);
+  }
+
+  ///
+  static bool _isGetItClass(Expression? node) =>
+      node is SimpleIdentifier && node.name == 'GetIt';
+
+  /// `getIt`, `GetIt.I` or `GetIt.instance` as the target of `.get<T>()`.
+  static bool _isLocator(Expression? node) {
+    if (node is SimpleIdentifier) return node.name == 'getIt';
+    if (node is PrefixedIdentifier) {
+      return node.prefix.name == 'GetIt' &&
+          (node.identifier.name == 'I' || node.identifier.name == 'instance');
+    }
+    return false;
   }
 
   /// The same call when it parses as a function-expression invocation.

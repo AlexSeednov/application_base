@@ -300,7 +300,7 @@ abstract base class RequestServiceBase {
       }
     }
 
-    return Response.fromStream(await request.send());
+    return Response.fromStream(await _client.send(request));
   }
 
   ///
@@ -311,19 +311,13 @@ abstract base class RequestServiceBase {
   }) async {
     final XFile file = requestData.file;
 
-    final request = StreamedRequest('POST', uri);
+    final request = _FileRequest(uri, file);
 
     request.headers.addAll(headers);
     request.headers['Content-Type'] = 'application/octet-stream';
     request.contentLength = await file.length();
 
-    await file.openRead().forEach((chunk) => request.sink.add(chunk));
-
-    /// Not awaited: the close completes only once `request.send()` drains the
-    /// stream, so awaiting it here would hang.
-    unawaited(request.sink.close());
-
-    return Response.fromStream(await request.send());
+    return Response.fromStream(await _client.send(request));
   }
 
   /// The `Location` a GET to [uri] redirects to, without following it.
@@ -366,5 +360,26 @@ abstract base class RequestServiceBase {
       logError(error: 'Catch redirect $uri\n$error');
       return null;
     }
+  }
+}
+
+/// A POST whose body is read from [file] while the client sends it.
+///
+/// The file is opened only when the client listens, and read no faster than
+/// the socket takes it: a body written into a `StreamedRequest` up front sits
+/// whole in memory until `send()` reads it. On the web the browser client
+/// still reads the body into memory — the platform takes nothing else.
+final class _FileRequest extends BaseRequest {
+  ///
+  _FileRequest(Uri url, this.file) : super('POST', url);
+
+  ///
+  final XFile file;
+
+  ///
+  @override
+  ByteStream finalize() {
+    super.finalize();
+    return ByteStream(file.openRead());
   }
 }

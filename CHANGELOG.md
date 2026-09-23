@@ -80,6 +80,74 @@
   `@visibleForTesting`, like every other service of the package: getIt owns
   the instance, and a second one belongs in a test only.
 
+* **The connection restore is announced once.** `NetworkServiceBase` flipped
+  back to online only when its own `NetworkRestore` came back through the
+  subject, which delivers asynchronously: two successes in flight — or a
+  success and a ping — each found the offline mode still on and each
+  announced a restore, and every screen with `ConnectionRestoreMixin`
+  reloaded that many times. A ping while online announced one too. The state
+  now flips at the moment of the decision, and a ping while online changes
+  nothing.
+
+* **The ping timer survives a re-prepared service.** A `NetworkServiceBase`
+  disposed while offline and prepared again still counted itself offline, so
+  a failed start-up ping skipped the timer and nothing brought the
+  application back online but a lucky request. The timer now starts on every
+  entry into the offline mode, and a disposed service no longer changes state
+  when a ping in flight lands.
+
+* **`EnabledPro` keeps the state of its child.** Toggling `isEnabled` swapped
+  an `IgnorePointer` in and out around the child, which moved it in the tree
+  and reset it — the text of a field, a scroll offset, a running animation.
+  The wrapper now stays and only its `ignoring` flag changes.
+
+* **`UrlLauncher.sendEmail` never throws**, like the other helpers: a failure
+  is logged and answered with `false`. **`sendSms` encodes its text** — a raw
+  `&`, `#` or `%` cut the message short.
+
+* **A cipher key that could not be stored no longer costs the data.** When a
+  locked keychain or an unavailable Android Keystore swallowed the write,
+  `SecureStorageUtility` still handed out the new key, the boxes of the
+  session were written to disk with it, and the next launch — with no key to
+  read them — could not open them. The key is now read back after the write;
+  when it is missing, `getCipher` returns `null`, the failure is logged, and
+  `StorageService` keeps the boxes of that session in memory.
+
+* **Uploads go through the application's client and stream from the file.**
+  `RequestPostFormData` and `RequestPostFile` were sent with `request.send()`,
+  a throwaway client of their own, so a client set through `client` — a
+  wrapper that watches statuses for the whole application — never saw an
+  upload. `RequestPostFile` also wrote the whole file into the request before
+  sending it; the body is now read from the file while the client sends it,
+  and a connection that fails to open never opens the file at all.
+
+* **`LoggerConfigService` is registered eagerly** (`@singleton`). getIt runs
+  the dispose hook of a lazy singleton only once somebody resolved it, and
+  the top-level logging setters write around the service, so logging state
+  set only through them leaked from one test into the next.
+
+* **`pushPath(path:)`** replaces `pushNamed(routeName:)`, which has always
+  taken a path, not a route name. `pushNamed` stays as a deprecated alias.
+
+* **`popScreen` is `@awaitNotRequired`**: the future only tells when the pop
+  is done, and a caller that just leaves the screen has nothing to wait for.
+
+* **`getit_check`**: a getIt call in a `late` field initializer is a lazy
+  edge — it runs on first access — and no longer turns a cycle into a false
+  HIGH. `getIt.get<T>()`, `getIt.getAsync<T>()`, `GetIt.I<T>()`,
+  `GetIt.instance<T>()` and `GetIt.I.get<T>()` are recognised beside
+  `getIt<T>()`, so cycles written with them are no longer missed.
+
+  **Three severities instead of two.** HIGH used to mean "at least one eager
+  edge", and the report called every such cycle a guaranteed stack overflow —
+  but a cycle with a lazy edge in it is created safely: the lazy call does not
+  run while the participants are built. HIGH is now a cycle whose every edge
+  is eager, the certain overflow; a mix of eager and lazy edges is MEDIUM,
+  dangerous only when a constructor on the cycle calls a method that takes the
+  lazy edge; lazy edges only stay LOW. Making one edge of a HIGH cycle lazy —
+  the fix the hint gives — now takes the cycle out of HIGH. The exit code is
+  unchanged: 1 on any cycle.
+
 ## 0.4.2
 
 * **`ExpansionTilePro`** (`presentation/view/expansion_tile_pro.dart`) — an

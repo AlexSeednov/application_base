@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:application_base/core/mixin/logging_mixin.dart';
 import 'package:application_base/data/local/utility/secure_storage_utility.dart';
@@ -21,8 +22,9 @@ final class StorageService with LoggingMixin {
   ///
   bool _isReady = false;
 
-  ///
-  late HiveAesCipher _cipher;
+  /// `null` when the key could not be stored: the boxes of this session then
+  /// stay in memory.
+  HiveAesCipher? _cipher;
 
   /// Initializes Hive and the cipher; call once before [open]. A second call
   /// is logged and ignored.
@@ -48,14 +50,27 @@ final class StorageService with LoggingMixin {
     registerAdapters();
 
     _cipher = await SecureStorageUtility.getCipher(key: cipherKey);
+    if (_cipher == null) {
+      logNamedError(error: 'no stored cipher key, boxes stay in memory');
+    }
 
     logNamedInfo(info: 'prepared');
     _isReady = true;
   }
 
   /// Opens the encrypted box [name]; needs [prepare] to have run.
-  Future<Box<E>> open<E>(String name) =>
-      Hive.openBox(name, encryptionCipher: _cipher);
+  ///
+  /// Without a stored key the box lives in memory for this session: written
+  /// to disk under a key the next launch does not have, it would be
+  /// unreadable there. The next launch tries to store a key again.
+  Future<Box<E>> open<E>(String name) {
+    if (!_isReady) throw StateError('$logName: open() before prepare()');
+
+    final HiveAesCipher? cipher = _cipher;
+    if (cipher == null) return Hive.openBox(name, bytes: Uint8List(0));
+
+    return Hive.openBox(name, encryptionCipher: cipher);
+  }
 
   /// The single record a box keeps at index 0.
   ///
