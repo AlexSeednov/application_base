@@ -1,7 +1,7 @@
 # Last full SDK + dependency audit - 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.4.2
+version: 0.4.3
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -54,6 +54,12 @@ dependencies:
   # a platform without an implementation simply registers no plugin, and the
   # service gates itself on the platform before it calls anything
   in_app_review: ^2.0.12
+
+  # All platform supported
+  #
+  # A range, not an exact version: flutter_localizations pins intl to the one
+  # its SDK ships, and an application depending on both takes that pin
+  intl: ^0.20.2
 
   # All platform supported
   injectable: ^3.0.0

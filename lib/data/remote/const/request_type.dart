@@ -81,7 +81,11 @@ final class RequestPost extends RequestType {
   final String? body;
 }
 
+/// Multipart form with fields and files.
 ///
+/// Runs with the long timeout by default: an upload is the heavy request
+/// `RequestServiceBase.longTimeout` exists for, and the normal one cuts a
+/// photo off on a slow mobile link.
 final class RequestPostFormData extends RequestType {
   ///
   RequestPostFormData({
@@ -92,6 +96,7 @@ final class RequestPostFormData extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.durationType = RequestDurationType.long,
   }) : super(type: 'POST form data');
 
   /// Body for request in JSON
@@ -106,6 +111,9 @@ final class RequestPostFormData extends RequestType {
 }
 
 /// Uploading file as binary data using octet-stream
+///
+/// Runs with the long timeout by default, for the same reason as
+/// [RequestPostFormData].
 final class RequestPostFile extends RequestType {
   ///
   RequestPostFile({
@@ -114,6 +122,7 @@ final class RequestPostFile extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.durationType = RequestDurationType.long,
   }) : super(type: 'POST file as binary data');
 
   /// Path to a local file

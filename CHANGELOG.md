@@ -1,3 +1,60 @@
+## 0.4.3
+
+* **`ApplicationLocale`** (`presentation/utility/application_locale.dart`) —
+  the locale callback for `MaterialApp.localeListResolutionCallback`, moved in
+  from Medita. It resolves the locale by Flutter's own algorithm and makes it
+  the default locale of `intl`, so `DateFormat` and `NumberFormat` format in
+  the language of the interface rather than the device's. Left to themselves
+  they take the device locale: a Russian-only application on an English phone
+  showed English months and decimal points beside Russian text, and the patch
+  was a locale pinned into every formatter call — to be undone for each
+  language added. The callback runs on start-up and on every change of the
+  system languages, and logs the locale it settles on.
+
+  Brings `intl` in as a dependency, as a range: `flutter_localizations` pins
+  it to the version its SDK ships, and an exact version here would fight that
+  pin on every Flutter upgrade.
+
+* **README in Russian** — `README.ru.md`, a full translation of `README.md`,
+  with a language switcher at the top of both. The English file stays the
+  source of truth, and every README change is made in both files at once.
+
+* **README checked against the code and brought up to date.** The
+  *NavigationServicePro* section told an application to bind
+  `NavigationServiceRouter` and `UrlLauncherRouter` in its own DI, while the
+  package module has registered both all along — following it registered them
+  twice. The doc comments of both contracts said the same and are corrected
+  too. The rest: the navigation helpers listed as they are (no
+  `openDefaultScreen`, `Future<void>` returns, `popTopScreen`, `navigatePath`,
+  `currentRouteName`), `UrlLauncher.sendEmail` under its real name, the Flavor
+  setter example importing the file that declares the setter, the GetIt
+  example registering through an annotation instead of by hand, the current
+  Flutter / Dart / iOS / macOS minimums and package version, the hive versions
+  of the storage example with the `analyzer` override they need, `Web` in the
+  features list, `ExpansionTilePro` among the widgets, and the typos.
+
+* **README: *API interaction* and *Online / offline state change checker*
+  written.** Both sections had been "TBD" since the package began. They now
+  cover the request service an application extends, the request types and
+  what each field of a request decides, which network event every outcome of
+  `sendBase` reports and why a `null` needs no error of its own at the call
+  site, the per-call widenings, `SafeService`, and how the offline mode turns
+  on and off — the ping, its period, the interface re-check on resume — with
+  `ConnectionRestoreMixin` for reloading a screen once the connection is back.
+
+* **Uploads run with the long timeout.** `RequestPostFormData` and
+  `RequestPostFile` take `durationType` like every other request and default
+  it to `long`. `longTimeout` has always been documented as the one for heavy
+  requests such as a photo upload, yet the upload types could not select it:
+  they always ran with the normal 20 seconds, which a large photo on a slow
+  mobile link does not fit. The only change for existing callers is that a slow
+  upload waits 30 seconds instead of 20 before the offline mode takes over;
+  a caller that wants the old limit passes `RequestDurationType.normal`.
+
+* `NavigationServiceRouter` and `UrlLauncherRouter` constructors are marked
+  `@visibleForTesting`, like every other service of the package: getIt owns
+  the instance, and a second one belongs in a test only.
+
 ## 0.4.2
 
 * **`ExpansionTilePro`** (`presentation/view/expansion_tile_pro.dart`) — an

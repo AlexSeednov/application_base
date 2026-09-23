@@ -3,8 +3,9 @@
 /// Depending on this contract instead of the static `UrlLauncher` lets a
 /// project register a recording fake in tests and assert launch intents without
 /// hitting a platform channel. The default `UrlLauncherRouter` implementation
-/// ships in `url_launcher_router.dart` but is not registered — bind it in the
-/// consuming project's DI.
+/// ships in `url_launcher_router.dart` and is registered by the package's
+/// injectable module — a project takes the contract from getIt or its
+/// constructor and must not bind it a second time.
 ///
 /// Every method returns `true` on success and `false` on failure, mirroring
 /// `UrlLauncher`.

@@ -11,8 +11,9 @@ import 'package:auto_route/auto_route.dart';
 /// (`pushNamed` / `navigatePath`) and low-level accessors (`actualContext` /
 /// `actualRouter` / `unfocus`) stay in `navigation_service.dart`. The default
 /// `NavigationServiceRouter` implementation ships in
-/// `navigation_service_router.dart` but is not registered — bind it in the
-/// consuming project's DI.
+/// `navigation_service_router.dart` and is registered by the package's
+/// injectable module — a project takes the contract from getIt or its
+/// constructor and must not bind it a second time.
 abstract interface class NavigationServicePro {
   /// Adds [route] to the screens stack (in-sector navigation).
   Future<void> push(PageRouteInfo<dynamic> route);
