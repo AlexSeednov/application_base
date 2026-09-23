@@ -68,7 +68,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.4.3
+    version: 0.4.4
 ```
 
 Пакет регистрирует свои сервисы через модуль микропакета injectable.
@@ -842,6 +842,11 @@ final bool emailResult = await UrlLauncher.sendEmail(
 `makeCall` и `sendSms` открывают приложения телефона и сообщений. В вебе
 `launchLinkInSameTab` и `launchLinkViaLocation` открывают ссылку в текущей
 вкладке браузера, а не в новой.
+
+`downloadLink` скачивает файл по ссылке, а не открывает его. В вебе это
+работает только для ссылок с домена самой страницы. Ссылка на другой домен
+откроется в новой вкладке, если её сервер не отдаёт
+`Content-Disposition: attachment`. Вне веба ссылка просто открывается.
 
 Чтобы открытие ссылок из VM можно было тестировать, используйте вместо
 статического `UrlLauncher` контракт `UrlLauncherPro` (`open` / `sendEmail` /
