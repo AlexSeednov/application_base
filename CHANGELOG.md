@@ -42,6 +42,20 @@
   on and off — the ping, its period, the interface re-check on resume — with
   `ConnectionRestoreMixin` for reloading a screen once the connection is back.
 
+* **README edited for readability, in both languages.** The sections from
+  *API interaction* on — the request service, online / offline, haptics, the
+  store listing, the locale and the whole *Web* section — read as one dense
+  essay each, and the Russian translation made them heavier still. They are
+  restructured: one thought per sentence, the wiring first and the reasoning
+  after it as a separate paragraph or list, the mechanics of `ScrollActionPro`
+  and of the middle-button hold reduced to a pointer at the doc comments that
+  already describe them. The calques the Russian text had picked up in
+  translation are replaced with plain Russian. The headings *Online / offline
+  state change checker* and *Application lifecycle state change checker* are
+  now *Online and offline* and *Application lifecycle*, the features list
+  matches the headings, `UnfocusingTap`, `OpacityPro` and `EnabledPro` got the
+  one-line description they lacked, and `MacOS` is spelled `macOS`.
+
 * **Uploads run with the long timeout.** `RequestPostFormData` and
   `RequestPostFile` take `durationType` like every other request and default
   it to `long`. `longTimeout` has always been documented as the one for heavy

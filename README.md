@@ -25,9 +25,9 @@ For now includes:
 * [Logger](#logger)
 * [Navigation utilities](#navigation-utilities)
 * [API interaction](#api-interaction)
-* [Online / offline state change checker](#online--offline-state-change-checker)
-* [Application lifecycle state change checker](#application-lifecycle-state-change-checker)
-* [StorageService](#local-storage-service)
+* [Online and offline](#online-and-offline)
+* [Application lifecycle](#application-lifecycle)
+* [Local storage service](#local-storage-service)
 * [Url launcher](#url-launcher)
 * [Share](#share)
 * [Haptics](#haptics)
@@ -35,7 +35,7 @@ For now includes:
 * [Store listing](#store-listing)
 * [Identifiers](#identifiers)
 * [Application locale](#application-locale)
-* [Some useful widgets](#widgets)
+* [Widgets](#widgets)
 * [Web](#web)
 
 ## Supported platforms
@@ -43,7 +43,7 @@ For now includes:
 * Android
 * iOS
 * Linux - not tested yet
-* MacOS - not tested yet
+* macOS - not tested yet
 * Web
 * Windows - not tested yet
 
@@ -57,7 +57,7 @@ Flutter & dart versions compatibility
 * Flutter >=3.44.4
 * Dart >=3.12.2
 * iOS >=13.0 - url_launcher_ios ^6.3.5
-* MacOS >=10.15 - url_launcher_macos ^3.2.4
+* macOS >=10.15 - url_launcher_macos ^3.2.4
 * Android compileSDK 36 - Flutter ^3.35.0
 * Java 17 - connectivity_plus ^6.0.1
 * Android Gradle Plugin >=8.12.1 - connectivity_plus ^7.0.0
@@ -161,7 +161,7 @@ flavor = FlavorDevelopment();
 ```
 
 Note: it's highly recommended not to change the flavor while the application is 
-running. Just set it once when launching the application
+running. Set it once when launching the application.
 
 ## GetIt
 
@@ -289,7 +289,7 @@ void setUser() {
 }
 ```
 
-And use the logger wherever you need it
+And use the logger wherever you need it:
 
 ```dart
 logInfo(info: 'Interesting information');
@@ -429,7 +429,7 @@ String? get currentRouteName;
 void unfocus();
 ```
 
-Every screen and tab change is logged automatically via `NavigatorObserverPro`
+Every screen and tab change is logged automatically via `NavigatorObserverPro`.
 
 The navigator checks screen accessibility automatically via 
 `AuthenticationGuard` and `AccessVM`. For it you need to create
@@ -539,7 +539,7 @@ final class SettingsVM {
 ## API interaction
 
 Based on [http](https://pub.dev/packages/http). An application has one request
-service — a singleton extending `RequestServiceBase` — and every call to the
+service, a singleton extending `RequestServiceBase`, and every call to the
 backend goes through it:
 
 ```text
@@ -548,9 +548,10 @@ typed request → sendBase → ResponseEntity → Entity.parse → null on error
 
 ### Request service
 
-The application extends `RequestServiceBase` once. The one thing it must
-provide is `prepareUri` — how a path becomes an address. Headers (tokens and
-the like) are its business too: they are handed to `sendBase` on every call.
+The application extends `RequestServiceBase` once. The only thing it must
+provide is `prepareUri`: it turns a path into a full address. Headers (a token
+and the like) are also composed by the subclass and handed to `sendBase` on
+every call.
 
 ```dart
 @lazySingleton
@@ -571,21 +572,24 @@ final class RequestService extends RequestServiceBase {
 }
 ```
 
-`@disposeMethod` on the override is required: the base class is abstract and
-not registered itself, so only the concrete registration lets getIt close the
-HTTP client with its keep-alive connections on reset. The timeouts are getters
-— `shortTimeout` (3 s), `normalTimeout` (20 s), `longTimeout` (30 s) — to
-override where they do not fit. The `client` setter replaces the HTTP client
-(with a wrapper that intercepts a status for every request, say) and closes the
-previous one.
+What else the base class has:
+
+* `@disposeMethod` on the `dispose` override is required. The base class is
+  abstract and not registered in getIt, so on a getIt reset only the
+  registration of your subclass can close the HTTP client with its keep-alive
+  connections.
+* Timeouts: the getters `shortTimeout` (3 s), `normalTimeout` (20 s) and
+  `longTimeout` (30 s). Override the ones that do not fit.
+* The `client` setter replaces the HTTP client and closes the previous one.
+  For a wrapper that intercepts the status of every response, say.
 
 ### Requests
 
-A request is a value describing one call: `RequestGet`, `RequestPost`,
-`RequestPut`, `RequestPatch`, `RequestDelete`, and two uploads —
-`RequestPostFormData` (multipart fields plus `XFile`s) and `RequestPostFile`
-(one file streamed as `application/octet-stream`). `path` is the part after the
-base address, a body is a ready JSON string:
+A request is a value describing one call. The types: `RequestGet`,
+`RequestPost`, `RequestPut`, `RequestPatch`, `RequestDelete` and two file
+uploads: `RequestPostFormData` (multipart fields plus `XFile`s) and
+`RequestPostFile` (one file streamed as `application/octet-stream`). `path` is
+the part after the base address, `body` is a ready JSON string:
 
 ```dart
 final ResponseEntity? response = await getIt<RequestService>().send(
@@ -597,27 +601,28 @@ final ResponseEntity? response = await getIt<RequestService>().send(
 );
 ```
 
-What a request can say about itself:
+The fields of a request:
 
-* `expectedStatusList` — empty by default, which means any 2xx is a success.
-  Fill it in only when the exact status carries meaning, to take over a `404`
-  for instance; a non-empty list is matched exactly.
-* `expectedErrorMap` — `status → NetworkEvent`: the event a failure is reported
+* `expectedStatusList` — which statuses count as success. Empty by default,
+  and then any 2xx is a success. Fill it in only when the exact status
+  matters, to handle a `404` yourself for instance. A non-empty list is
+  matched exactly.
+* `expectedErrorMap` — `status → NetworkEvent`: the event to report a failure
   with instead of the generic `NetworkUnexpectedResponse`. An event can carry
-  `data` — which of several messages to show, say.
-* `silence` — the request reports neither its success nor its errors: a
-  background ping, a prefetch whose failure the user should not see. What
-  concerns the whole application still goes out — a lost connection, a `401`.
-* `durationType` — `short` / `normal` / `long`, the timeout the request runs
-  with. `normal` by default; the two uploads default to `long`, since an
-  upload is exactly the heavy request `longTimeout` is there for.
+  `data`, for instance which of several messages to show.
+* `silence` — the request reports neither its success nor its failure. This is
+  for a background ping or a prefetch whose failure the user should not see.
+  Events that concern the whole application (a lost connection, a `401`) still
+  go out.
+* `durationType` — `short` / `normal` / `long`: the timeout the request runs
+  with. `normal` by default, `long` for the two file uploads.
 
 ### The result
 
-`sendBase` never throws. It returns a `ResponseEntity` (`body`, `statusCode`,
-`isOk`, and `request` for the logs) when the status was expected, and `null`
-otherwise. By then the failure is already reported to `NetworkSubject`, so the
-caller shows no error of its own — it just returns its own "no result":
+`sendBase` never throws. When the status was expected it returns a
+`ResponseEntity` (`body`, `statusCode`, `isOk`, and `request` for the logs),
+otherwise `null`. By then the failure is already reported to `NetworkSubject`,
+so the caller shows no error of its own and just returns its "no result":
 
 | What happened | Event |
 | --- | --- |
@@ -628,22 +633,24 @@ caller shows no error of its own — it just returns its own "no result":
 | any other status | `NetworkUnexpectedResponse` |
 | any other exception | `NetworkUnexpectedError` |
 
-Two parameters of `sendBase` widen a single call without touching the request:
+Two parameters of `sendBase` extend one particular call without touching the
+request:
 
-* `extraExpectedStatusList` — accept more statuses this once: a `401` the
-  service wants to answer with a token refresh instead of the unified path. It
-  only ever adds.
-* `extraExpectedErrorMap` — a handler every request of the service gets
-  without each call site declaring it (an outdated-client status, say). It wins
-  over the request's own entry for the same status.
+* `extraExpectedStatusList` — accept additional statuses this once. For
+  instance a `401` the service wants to answer with a token refresh instead of
+  the unified handling. It adds to the request's list, never replaces it.
+* `extraExpectedErrorMap` — a status handler for every request of the
+  service, so that no call site has to declare it. An outdated-client status,
+  for instance. When the same status is described both here and in the
+  request, the entry here wins.
 
-`catchRedirect(uri:, headers:)` returns the `Location` of a redirect without
-following it — `null` when there is no redirect or the call failed.
+`catchRedirect(uri:, headers:)` returns the `Location` header of a redirect
+without following it. `null` means there is no redirect or the call failed.
 
 ### Parsing
 
-`SafeService` turns a body into entities without letting a malformed payload
-escape as an exception:
+`SafeService` turns a response body into entities. An exception over a
+malformed payload never escapes:
 
 ```dart
 static ProjectEntity? parse(ResponseEntity data) =>
@@ -654,25 +661,26 @@ static List<ProjectEntity> parseList(ResponseEntity data) =>
 ```
 
 `parse` returns `null` on an empty or malformed body. `parseList` returns an
-empty list when the body is not a list, and skips a single element that fails
-to parse — one bad record costs itself, not the whole page. Every failure is
+empty list when the body is not a list, and skips an element that fails to
+parse: one bad record does not take the whole page down. Every failure is
 logged.
 
-Every request and response is logged as well: the method and path, the
-status, and the bodies only while `canLogSensitiveData` is on (by default — in
-debug builds only).
+Every request and response is logged as well: the method, the path and the
+status. Bodies are logged only while `canLogSensitiveData` is on (by default
+in debug builds only).
 
-## Online / offline state change checker
+## Online and offline
 
 Whether the application is online is decided from two sources: the network
 interface (`connectivity_plus`) and the backend itself. A link the system
-reports proves nothing — Wi-Fi without Internet, a captive portal, a backend
-that is down — so the last word is the backend's: the offline mode turns on
-when requests stop reaching it and off when one gets through again.
+reports guarantees nothing yet: there is Wi-Fi without Internet, a captive
+portal, a backend that is down. So the last word is the backend's: the offline
+mode turns on when requests stop reaching it and off when a request gets
+through again.
 
 ### Network service
 
-The application extends `NetworkServiceBase` once, telling it how to ping the
+The application extends `NetworkServiceBase` once and tells it how to ping the
 backend. The same class is the one place that reacts to the events of every
 request:
 
@@ -707,25 +715,30 @@ final class NetworkService extends NetworkServiceBase {
 }
 ```
 
-Call `prepare()` once on start, when the request service is ready: it
+Call `prepare()` once on start, when the request service is ready. It
 subscribes to `NetworkSubject`, starts watching the interface and pings the
-backend once. From then on:
+backend once. From then on the service lives like this:
 
-* **Offline** comes with `NetworkConnectionLost`: the interface reports no link
-  (a link that disappears is re-checked after 3 s — right after a reconnect iOS
-  briefly reports none), a request failed to reach the backend (a timeout, no
-  socket, SSL, a `504`), or the ping on start failed.
-* **While offline** the service pings every `pingPeriod` (30 s by default;
-  override the getter), and at once when the interface reports a link again.
+* **Offline** turns on with a `NetworkConnectionLost` event. Its sources: the
+  interface reported no link; a request failed to reach the backend (a timeout,
+  no socket, an SSL error, a `504`); the ping on start failed. A link lost on
+  the interface is re-checked after 3 s: right after a reconnect iOS briefly
+  reports no link.
+* **While offline** the service pings the backend every `pingPeriod` (30 s by
+  default, override the getter), and at once when the interface reports a link
+  again.
 * **Online** returns with the first successful ping or with any request that
-  gets an expected response; `NetworkRestore` then goes out to every listener.
-  A silent request reports nothing, so it does not count.
+  gets an expected response. `NetworkRestore` then goes out to every listener.
+  A silent request (`silence`) reports nothing, so it does not count.
 
-`isOnlineNotifier` (`ValueNotifier<bool>`) carries the state to the UI — an
-offline banner, disabled actions — next to `isOnline` / `isOffline`, and
-`isWiFi` serves a choice like "download over Wi-Fi only". `LifecycleService`
-re-reads the interface every time the application returns to the foreground:
-since Android 8.0 a background app receives no connectivity changes.
+The state for the UI (an offline banner, disabled actions) comes from
+`isOnlineNotifier` (`ValueNotifier<bool>`), with the `isOnline` and
+`isOffline` getters next to it. `isWiFi` serves a setting like "download over
+Wi-Fi only".
+
+`LifecycleService` re-reads the interface every time the application returns
+to the foreground: since Android 8.0 a background app receives no connectivity
+changes.
 
 ### Reloading on restore
 
@@ -743,14 +756,15 @@ final class ProjectListVM with ConnectionRestoreMixin {
 }
 ```
 
-Both calls are safe to repeat: `prepareConnection` keeps the subscription it
-already has, and `disposeConnection` works even when `prepareConnection` never
-ran. Anything else can listen to `NetworkSubject` directly — `listen` for every
-event, `listenConnectionRestore` for the restore alone.
+Both calls are safe to repeat: `prepareConnection` does not create a second
+subscription, and `disposeConnection` works even when `prepareConnection`
+never ran. Where the mixin does not fit, listen to `NetworkSubject` directly:
+`listen` for every event, `listenConnectionRestore` for the restore alone.
 
-## Application lifecycle state change checker
+## Application lifecycle
 
-Implemented via `LifecycleService` singleton.
+The `LifecycleService` singleton hands out the changes of `AppLifecycleState`.
+Subscribe to them:
 
 ```dart
   /// Create onUpdate function
@@ -764,13 +778,13 @@ Implemented via `LifecycleService` singleton.
 
 ## Local storage service
 
-Registered via getIt singleton based on 
-[flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) 
-and [hive_ce](https://pub.dev/packages/hive_ce)
+A singleton registered in getIt, based on
+[flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage)
+and [hive_ce](https://pub.dev/packages/hive_ce).
 
-Set dependency in `pubspec.yaml`
+Add the dependencies to `pubspec.yaml`:
 
-```
+```yaml
 dependencies:
   ...
   hive_ce: 2.19.3
@@ -784,12 +798,13 @@ dev_dependencies:
 
 `hive_ce_generator` 1.11.2 still caps `analyzer` at `^12.0.0`, while this
 package requires `^13.0.0`. Until the generator catches up, the application
-resolves the pair with a `dependency_overrides` entry for `analyzer` — the
-generators run at build time only, so check the regenerated code once.
+resolves the pair with a `dependency_overrides` entry for `analyzer`. The
+generators run at build time only, so checking the regenerated code once is
+enough.
 
-Generate all adapters (more information 
-[here](https://pub.dev/packages/hive_ce#store-objects))
-and prepare **StorageService**
+Generate all adapters (more information
+[here](https://pub.dev/packages/hive_ce#store-objects)) and prepare
+**StorageService**:
 
 ```dart
 await getIt<StorageService>().prepare(
@@ -798,11 +813,10 @@ await getIt<StorageService>().prepare(
 );
 ```
 
-## Url Launcher 
+## Url Launcher
 
-Static helpers to try to launch a link and send an email based on 
-[url_launcher](https://pub.dev/packages/url_launcher); each returns whether it
-succeeded:
+Static helpers based on [url_launcher](https://pub.dev/packages/url_launcher):
+open a link, send an email. Each returns whether it succeeded:
 
 ```dart
 final bool linkResult = await UrlLauncher.launchLink('https://link');
@@ -813,14 +827,14 @@ final bool emailResult = await UrlLauncher.sendEmail(
     );
 ```
 
-`makeCall` and `sendSms` open the phone and messaging apps; on the web
+`makeCall` and `sendSms` open the phone and messaging apps. On the web
 `launchLinkInSameTab` and `launchLinkViaLocation` open a link in the current
 browser tab instead of a new one.
 
 For testable link opening from view models use the `UrlLauncherPro` contract
 (`open` / `sendEmail` / `call` / `sendSms`) with its `UrlLauncherRouter`
 implementation instead of the static `UrlLauncher`. The package module
-registers it — take it from getIt or through the constructor, as with
+registers it: take it from getIt or through the constructor, as with
 [NavigationServicePro](#navigationservicepro-injectable-facade).
 
 ## Share
@@ -833,10 +847,10 @@ await ShareService.share(text: text);
 
 ## Haptics
 
-**HapticService** — tactile feedback over Flutter's own `HapticFeedback`, with
-a small semantic vocabulary instead of raw impact strengths: the caller says
-what happened, and the feel of «a choice moved», «a thing landed» or «that
-failed» stays the same across the whole application.
+**HapticService** — tactile feedback over Flutter's `HapticFeedback`. Instead
+of raw impact strengths it has a small vocabulary of meanings: the caller says
+what happened, and the feel of "a choice moved", "an action landed" or "that
+failed" is the same across the whole application.
 
 ```dart
 final HapticService _haptic;      // constructor-injected into a view model
@@ -849,25 +863,30 @@ unawaited(_haptic.success());     // a job coming good  — two rising beats
 unawaited(_haptic.failure());     // something refused  — three flat beats
 ```
 
-A cue is feedback on something the user is already seeing, never a signal of
-its own; pair it with the visible change rather than with the code path that
-caused it. Restoring saved state on open is not a gesture — leave it silent.
-Whether anything is felt at all is the system's call: both mobile platforms
-honour their own haptics switch, so an app needs no setting of its own.
+`HapticService` is a contract, and callers take it through the constructor. So
+a test can hand a view model a fake and assert the cues it asked for.
 
-`longPress()` is iOS-only on purpose: Material's ink already fires the
-platform long-press haptic on Android, and a second one on top of it doubles
-up.
+How to use it:
 
-The contract is what callers take, so a test can hand a view model a fake and
-assert the cues it asked for. A platform with no haptics channel (desktop, the
-web) is remembered after its first refusal and never asked again — a cue as
-frequent as `selection()` would otherwise write a log line per tick of a drag.
+* A cue is feedback on something the user is already seeing, never a signal
+  of its own. Pair it with the visible change, not with the code path that
+  caused it. Restoring saved state when a screen opens is not a gesture, so
+  leave it silent.
+* An application needs no haptics setting of its own: both mobile platforms
+  honour their own haptics switch.
+* `longPress()` works on iOS only, and on purpose. On Android Material's ink
+  already fires the platform long-press haptic, and a second one on top of it
+  doubles up.
+
+A platform with no haptics channel (desktop, the web) is remembered after its
+first refusal and never asked again. Otherwise a cue as frequent as
+`selection()` would write a log line per tick of a drag.
 
 ## Clipboard
 
-**ClipboardService** — the system clipboard with a haptic cue on every copy:
-copied text gives no visual feedback of its own, so the tap has to be felt.
+**ClipboardService** — the system clipboard. Every copy comes with a haptic
+cue: copied text gives no visual feedback of its own, so the tap has at least
+to be felt.
 
 ```dart
 await ClipboardService.set('text to copy');
@@ -876,10 +895,10 @@ final String text = await ClipboardService.get();
 
 ## Store listing
 
-**StoreService** — opens the store page of the application. One place for
-every reason to send the user there — rating the app, taking an update the
-backend now demands — because it is one and the same page. The store identity
-is handed over once on start-up, so a tap carries nothing but itself:
+**StoreService** — opens the store page of the application. It is the one
+place for every reason to send the user there: rating the app, taking an
+update the backend now demands. The page is one and the same. The App Store
+identifier is set once on start-up, so the tap itself has nothing to pass:
 
 ```dart
 getIt<StoreService>().appStoreId = '1234567890'; // Apple platforms only
@@ -890,35 +909,35 @@ if (getIt<StoreService>().isAvailable) ...
 await getIt<StoreService>().openListing();
 ```
 
-Android, iOS and macOS have a store the plugin can open; everywhere else
-`isAvailable` is `false` and `openListing()` does nothing, so an application
-hides the control rather than offering one that leads nowhere. On the Apple
-platforms the listing cannot be found without `appStoreId` — a missing one is
-logged as an error instead of throwing.
+Android, iOS and macOS have a store the plugin can open. Everywhere else
+`isAvailable` is `false` and `openListing()` does nothing: the application
+hides the control rather than showing one that leads nowhere. On the Apple
+platforms the listing cannot be found without `appStoreId`. A missing one is
+logged as an error, no exception is thrown.
 
-The in-app rating sheet is deliberately left out. The system shows it at its
-own discretion and does nothing at all once the user has rated the application
-or the platform quota is spent — while the plugin's `isAvailable()` keeps
-answering true, so an application cannot tell a shown sheet from a swallowed
-one. A tap on an explicit «rate us» control has to land somewhere every time,
-and only the store listing does.
+The in-app review sheet is deliberately not used. The system shows it at its
+own discretion, and once the user has rated the application or the platform
+quota is spent, it does not show it at all. Meanwhile the plugin's
+`isAvailable()` keeps answering `true`, and the application cannot tell a
+shown sheet from a swallowed one. A "rate us" button has to lead somewhere
+every time, and only the store listing guarantees that.
 
 ## Identifiers
 
-**UuidPro** — the random (v4) identifiers an application stores with its
-records:
+**UuidPro** — random (v4) identifiers for the records an application stores
+locally:
 
 ```dart
 final String uid = UuidPro.get();
 ```
 
 One generator for the whole application: `Uuid` carries a random number
-generator of its own, and building a fresh one per identifier is pure waste.
+generator of its own, and building a fresh one per identifier is wasteful.
 
 ## Application locale
 
 **ApplicationLocale** — makes `intl` format dates and numbers in the language
-of the interface. Wire it once, into the root application:
+of the interface. Wire it once into the root application:
 
 ```dart
 MaterialApp.router(
@@ -929,37 +948,40 @@ MaterialApp.router(
 )
 ```
 
-Without it `DateFormat` and `NumberFormat` take the device's locale, not the
-application's: a Russian-only application on an English phone renders its text
-in Russian and its months, weekdays and decimal separators in English. The
-usual patch — a locale pinned into every formatter call,
-`DateFormat('d MMMM', 'ru')` — hides the bug and has to be undone for each
-language added. With the callback wired, a formatter takes no locale argument:
+After that a formatter takes no locale argument:
 
 ```dart
 DateFormat('d MMMM').format(date); // «5 марта» in a Russian application
 NumberFormat.decimalPattern().format(1.5); // «1,5»
 ```
 
-The locale is resolved by Flutter's own algorithm (`basicLocaleListResolution`),
-so the widgets get the same language as before — `intl` simply gets it too. The
-application runs the callback on start-up and whenever the system languages
-change, before anything below it builds, and each change is logged.
+Why it is needed. Without the callback `DateFormat` and `NumberFormat` take
+the device's locale, not the application's. A Russian-only application on an
+English phone renders its text in Russian and its months, weekdays and decimal
+separators in English. The usual patch, a locale in every formatter call like
+`DateFormat('d MMMM', 'ru')`, hides the bug and has to be redone for each
+language added.
+
+The locale is resolved by Flutter's own algorithm
+(`basicLocaleListResolution`), so the widgets get the same language as before.
+Now `intl` simply gets it too. The callback runs on start-up and on every
+change of the system languages, before anything below `MaterialApp` builds,
+and each change is logged.
 
 A few things to know:
 
-* Hand over the tear-off as is, not a closure: the application compares the
+* Hand over the tear-off as is, not a closure: `MaterialApp` compares the
   callback by identity on every rebuild.
 * Do not set `Intl.systemLocale` (`findSystemLocale()`) "for correct
   formatting". It is exactly what makes formatters speak the device's
-  language, and once the callback has run `intl` no longer consults it.
+  language. Once the callback has run, `intl` no longer consults it.
 * `DateFormat` needs the date symbols of the locale. The `flutter_localizations`
   delegates load them, and `AppLocalizations.localizationsDelegates` already
-  includes those; an application without them calls
+  includes those. An application without them calls
   `initializeDateFormatting()` itself.
 * A widget test builds its own `MaterialApp`. One that checks formatted dates
-  or numbers wires the same callback there — or sets `Intl.defaultLocale` in
-  `setUp` — otherwise it formats in `en_US`.
+  or numbers wires the same callback there or sets `Intl.defaultLocale` in
+  `setUp`. Otherwise it formats in `en_US`.
 
 ## Widgets
 
@@ -968,8 +990,8 @@ BannerPro(application: application),
 ```
 
 `BannerPro` marks a non-production build with a corner ribbon carrying the
-flavor [name](#flavor). It wraps the whole application — above every route, so
-no screen can cover it — and on `FlavorProduction` returns the child as is.
+flavor [name](#flavor). It wraps the whole application, above every route, so
+no screen can cover it. On `FlavorProduction` it returns the child as is.
 
 ```dart
 EmptyButton(
@@ -978,14 +1000,16 @@ EmptyButton(
 ),
 ```
 
-`EmptyButton` gives no visual feedback except a focus ring for keyboard-driven
-focus (`FocusHighlightMode.traditional`) — with a transparent overlay a
-keyboard user would otherwise not see where they are. Pass `focusBorderRadius`
-to match the rounding of the child.
+`EmptyButton` is a tap target without visual feedback. The one thing it draws
+is a focus ring for keyboard-driven focus (`FocusHighlightMode.traditional`):
+with a transparent overlay a keyboard user would otherwise not see where they
+are. Pass `focusBorderRadius` to match the rounding of the child.
 
 ```dart
 UnfocusingTap(child: child),
 ```
+
+`UnfocusingTap` drops the focus of a text field on a tap outside it.
 
 ```dart
 OpacityPro(
@@ -995,6 +1019,8 @@ OpacityPro(
 ),
 ```
 
+`OpacityPro` animates `child` between full opacity and `minOpacity`.
+
 ```dart
 EnabledPro(
   isEnabled: isAvailable,
@@ -1002,6 +1028,9 @@ EnabledPro(
   child: child,
 ),
 ```
+
+`EnabledPro`, while `isEnabled` is `false`, fades `child` to
+`disabledOpacity` and lets no taps through to it.
 
 ```dart
 ExpansionTilePro(
@@ -1019,48 +1048,55 @@ ExpansionTilePro(
 
 `ExpansionTilePro` is an expandable row of a list: a title with a chevron
 (`icon`, turned half a turn while expanded) and `child` under it. The expanded
-state stays with the caller (`isExpanded` + `onToggle`): one list keeps a single
-row open, another any number of them. Everything visual is a parameter, so the
-row brings no design system of its own. The hover highlight bleeds past the row
-horizontally by `highlightBleed` (12 by default), so the title keeps the same
-vertical line as the rest of the block: no ancestor may clip those edges (a list
-needs `clipBehavior: Clip.none`), and where there is no room outside — a modal,
-a column flush against the edge — give the row a padding of the same width. The
-tap target is an `EmptyButton`: no ripple, only a keyboard focus ring.
+state is kept by the caller (`isExpanded` + `onToggle`): one list keeps a
+single row open, another any number of them. Everything visual is a parameter,
+the row has no design system of its own. The tap target is an `EmptyButton`:
+no ripple, only a keyboard focus ring.
+
+The hover highlight bleeds past the row horizontally by `highlightBleed` (12
+by default), so that the title keeps the same vertical line as the rest of the
+block. Two requirements follow: no ancestor may clip those edges (a list needs
+`clipBehavior: Clip.none`), and where there is no room outside (a modal, a
+column flush against the edge) give the row a padding of the same width.
 
 ## Web
 
 Flutter on the web is a canvas with a keyboard, a mouse and a URL bar around
-it: several things a browser page does for free have to be wired by hand. This
-section collects what the package provides for that and the rules an app has to
-follow for it to work.
+it. Much of what a browser page gets for free has to be wired by hand. This
+section collects what the package provides for that and the rules an
+application has to follow for it to work.
 
 ### Keyboard scrolling
 
-On the web Flutter maps the arrows, PageUp/PageDown and Space to `ScrollIntent`
-by itself and handles them with the built-in `ScrollAction`. The action scrolls
-the `Scrollable` around the focused widget, and when nothing inside a scrollable
-is focused, it falls back to the route's `PrimaryScrollController`, which then
-must have **exactly one** attached scroll position. That is where the web
-differs from mobile: on desktop platforms (and the web in a desktop browser
-reports the host OS) scroll views do **not** inherit the primary controller
-automatically, so the controller has no clients and the keys do nothing.
+On the web Flutter maps the arrows, PageUp/PageDown and Space to
+`ScrollIntent` by itself and handles them with the built-in `ScrollAction`.
+The action scrolls the `Scrollable` around the focused widget. When nothing
+inside a scrollable is focused, it takes the route's
+`PrimaryScrollController`, which then must have **exactly one** attached
+scroll position.
 
-Rules that make it work:
+That is where the web differs from mobile. On the web `defaultTargetPlatform`
+is the host OS, so in a desktop browser it is a desktop. And on desktop scroll
+views do **not** pick up the primary controller automatically: the controller
+has no clients, and the keys do nothing.
 
-- **Exactly one root scrollable per route gets `primary: true`**: the page
+Rules that make scrolling work:
+
+- **Exactly one root scroll view per route gets `primary: true`**: the page
   list, the sheet list, the dialog list. Nested lists (`shrinkWrap`,
   `NeverScrollableScrollPhysics`) must not be `primary`: a second position on
-  the route controller fails the scroll action and the desktop scrollbar.
+  the route controller breaks both the scroll action and the desktop
+  scrollbar.
 - A scroll view that **owns** the route controller (passes it as `controller`
   and reads `offset` from it) wraps its content in
-  `PrimaryScrollController.none`: on mobile nested vertical lists inherit the
+  `PrimaryScrollController.none`. On mobile nested vertical lists inherit the
   primary controller and would attach to it as well.
-- **Tabs (`IndexedStack`)**: Flutter excludes a hidden tab from focus, but the
-  focus lands on the scope above the tabs, where there is nothing to scroll.
-  When a tab becomes active, focus the top route of its navigator with
-  `focusTopRoute(Navigator.of(context))`, and do it after the frame: until the
-  stack rebuilds the tab is still excluded and the request is silently dropped.
+- **Tabs (`IndexedStack`)**. Flutter excludes a hidden tab from focus, but the
+  focus then lands on the scope above the tabs, where there is nothing to
+  scroll. When a tab becomes active, focus the top route of its navigator with
+  `focusTopRoute(Navigator.of(context))`. Do it after the frame: until the
+  stack rebuilds the tab is still excluded and the request is silently
+  dropped.
 
   ```dart
   WidgetsBinding.instance.addPostFrameCallback(
@@ -1069,38 +1105,15 @@ Rules that make it work:
   ```
 
 - `unfocus()` (and `UnfocusingTap` with it) leaves the focus alone when it
-  already sits on a scope: unfocusing a scope moves the focus one scope up,
-  and a tap on the page background would otherwise kill keyboard scrolling.
+  already sits on a scope. Unfocusing a scope moves the focus one scope up,
+  and a tap on the page background would otherwise break keyboard scrolling.
 - A focused `TextField` keeps the keys, as it does in a browser.
 
-`KeyboardShortcutsPro` adds what Flutter does not map: Home/End (also with
-Ctrl), Shift+Space, and — on the Apple platforms alone — the keys a browser on
-macOS scrolls a page with: Cmd+Up/Down to the ends of the page, Option+Up/Down
-by a screen, Option+Left/Right the same horizontally. The last of those needs
-the binding the most: `defaultShortcuts` answers with the web map whatever the
-host OS is, so Flutter's own Apple map never reaches a browser, and where it
-does apply it moves Cmd+arrow by a single line instead. They are bound on the
-Apple platforms alone because the same combinations are Alt+arrow elsewhere,
-where Alt+Left/Right is the browser's own back/forward; Cmd+Left/Right is left
-unbound everywhere, since every browser walks its history with it and a key
-the application does not handle goes to the browser.
-
-Its actions also replace the framework's own `ScrollAction` with
-`ScrollActionPro`, which is what makes a **held** key usable. The framework
-animates every press to the offset the page holds at that moment, and an
-animation is a ticker of its own that reports zero elapsed time on its first
-tick: with the OS repeating a held key every two or three frames, every other
-frame left the page standing still and the next one made the distance up in a
-jerk. Here a press moves an *aim* instead, and a single ticker — started with
-the first press, stopped once the page has arrived — draws the page after it
-with a critically damped pull tuned to the pace of the repeats. Held down, the
-page trails the aim by a fixed distance and holds exactly the speed the repeats
-ask for; released, it closes that distance and stops, and the distance covered
-is always the sum of the presses. Home/End go the same way, aiming at a target
-that does not move. The action is enabled only when it has a scrollable of the
-intent's axis to move, so a key it cannot use is left to whoever is next.
-
-Pass both maps to the app; they extend the defaults, so the text-editing
+`KeyboardShortcutsPro` adds the keys Flutter does not map: Home/End (also with
+Ctrl), Shift+Space and, on the Apple platforms alone, the combinations a
+browser on macOS scrolls a page with: Cmd+Up/Down to the ends of the page,
+Option+Up/Down by a screen, Option+Left/Right the same horizontally. Pass both
+maps to the application. They extend the defaults, so the text-editing
 shortcuts still win inside a field:
 
 ```dart
@@ -1110,6 +1123,29 @@ MaterialApp.router(
   ...
 )
 ```
+
+Why it is so:
+
+* Flutter's own Apple map never reaches a browser: on the web
+  `defaultShortcuts` returns the web map whatever the host OS is. And where
+  the Apple map does apply, Cmd+arrow moves by a single line.
+* The Option combinations are bound on the Apple platforms alone: elsewhere
+  they are Alt+arrow, and Alt+Left/Right there is the browser's own
+  back/forward.
+* Cmd+Left/Right is bound nowhere: every browser walks its history with it,
+  and a key the application does not handle goes to the browser.
+* `actions` replace the framework's `ScrollAction` with `ScrollActionPro`,
+  and that is what makes a **held** key usable. The framework animates every
+  press with a ticker of its own, and a ticker reports zero elapsed time on
+  its first tick: with the key auto-repeating, every other frame left the page
+  standing still and the next one caught up in a jerk. `ScrollActionPro`
+  moves a target on every press, and one shared ticker draws the page after
+  it: held down, the page holds exactly the speed the repeats set, and the
+  distance covered is always the sum of the presses. Home/End work the same
+  way, aiming at a fixed point. The action is enabled only when it has
+  something to scroll along the intent's axis, otherwise the key goes to the
+  next in the chain. The mechanics of the pull are described in the doc
+  comment of `ScrollActionPro`.
 
 ### Links
 
@@ -1126,30 +1162,34 @@ RouteLink(
 )
 ```
 
-A plain click goes to `onClick`, the same in-app navigation as before, with
-whatever data the view model already holds. Only a click with a modifier key is
-handed to the link: the browser opens the new tab itself, and without a
-`followLink` signal from the app the plugin cancels the in-tab navigation.
-Build the path from the same route object the click pushes (auto_route's
-`RouteMatcher.matchByRoute` + `UrlState.fromSegments`), so the URL on hover
-matches the one the click produces. Pass the encoded form (`uri.toString()`),
-not the decoded `UrlState.url`, and keep the query in the path string: the
-widget parses it, a `Uri(path:)` would percent-encode the `?`.
+A plain click goes to `onClick`: the same in-app navigation as before, with
+whatever data the view model already holds. Only a click with a modifier key
+reaches the link: the browser opens the new tab itself, and the plugin cancels
+the in-tab navigation until the application calls `followLink`.
+
+How to build `path`:
+
+* From the same route object the click pushes (auto_route's
+  `RouteMatcher.matchByRoute` + `UrlState.fromSegments`). Then the URL on
+  hover matches where the click leads.
+* In the encoded form (`uri.toString()`), not the decoded `UrlState.url`.
+* Keep the query in the path string: the widget parses it itself, while
+  `Uri(path:)` would percent-encode the `?`.
 
 An external URL (`https://…`) works the same way and gets `target="_blank"`:
 the browser context menu recognises it as a link, and a modifier-click opens
-it in a new tab; a plain click still goes to `onClick`, so the app keeps its
-own way of opening such links.
+it in a new tab. A plain click still goes to `onClick`, so the application
+keeps its own way of opening such links.
 
 ### Middle-button autoscroll
 
-A browser scrolls a page from a middle click: the press anchors it, the mouse
-then sets the direction and the speed, and a click ends the mode. On the web
-the browser cannot do it here — Flutter draws into a canvas, the document
-holds no scrollable element of its own — so `AutoScrollPro` rebuilds the mode
-over the application. Wrap the whole of it, above the navigator, and the
-anchor mark and the pointer block cover the pages, the sheets and the dialogs
-alike:
+A browser scrolls a page from a middle click: the press sets an anchor, the
+mouse then sets the direction and the speed, and a click ends the mode. With
+a Flutter application the browser cannot do it: Flutter draws into a canvas,
+and the document holds no scrollable element of its own. `AutoScrollPro`
+rebuilds the mode over the application. Wrap the whole of it, above the
+navigator, and the anchor mark and the pointer block cover the pages, the
+sheets and the dialogs alike:
 
 ```dart
 MaterialApp.router(
@@ -1158,62 +1198,56 @@ MaterialApp.router(
 )
 ```
 
-The step goes out the way the wheel does — a synthesized `PointerScrollEvent`
-aimed at the anchor — rather than as a write into a scroll position: the
-framework then picks the scrollable itself, the one the user aimed at, keeps
-its physics, and hands the movement to the parent when a nested list has
-nowhere left to go. Only when nothing under the anchor scrolls at all (a fixed
-header, a side menu) does the route's primary position take the step directly
-— the same position the keyboard scrolls, so the *one root scrollable per
-route* rule above serves this mode as well.
+How the mode works:
 
-While the mode is on, the application stands behind a pointer block: the click
-that ends the mode presses nothing and hovers nothing, as in a browser. The
-block opens for the mode's own wheel events alone. The browser is held off as
-well — the default of the middle button is prevented while the mode is on, or
-the click that ends it would also open the link under the cursor in a new tab,
-since a `RouteLink` is a real `<a>` element the browser acts on by itself. The
-hold outlives the press that ends the mode: the mode ends inside the
-`pointerdown`, and the `mousedown` and `auxclick` whose defaults matter come
-after it, so a press that begins under the mode is held to its own `auxclick`.
-Nothing but the user ends the mode: the wheel, Escape, a click, or the release
-of a button that was dragged rather than clicked. The cursor leaving the window
-and the window losing the focus leave it on — the aim simply stops being
-updated, and the page keeps going the way it was last aimed, as the browser's
-own mode does.
+* The step goes out the way the wheel does: as a synthesized
+  `PointerScrollEvent` aimed at the anchor, not as a write into a scroll
+  position. The framework then picks the scroll view the user aimed at by
+  itself, keeps its physics, and hands the movement to the parent when a
+  nested list has nowhere left to go. Only when nothing under the anchor
+  scrolls at all (a fixed header, a side menu) does the route's primary
+  position take the step directly. It is the same position the keyboard
+  scrolls, so the *one root scroll view per route* rule above holds here as
+  well.
+* While the mode is on, the pointer is blocked: the click that ends the mode
+  presses nothing and hovers nothing, as in a browser. The block lets through
+  only the mode's own wheel events.
+* The browser's own middle-button defaults are suppressed as well while the
+  mode is on. Otherwise the click that ends the mode would also open the link
+  under the cursor in a new tab, since a `RouteLink` is a real `<a>` element.
+  The suppression lasts to the end of a click that began under the mode; the
+  order of the browser events is described in the comments of
+  `middle_button_default_web.dart`.
+* Nothing but the user ends the mode: the wheel, Escape, a click, or the
+  release of a button that was dragged rather than clicked. The cursor leaving
+  the window and the window losing the focus leave the mode on: the aim simply
+  stops updating, and the page keeps going the way it was last aimed. The
+  browser's own mode behaves the same.
+* Over a `RouteLink` the middle button belongs to the browser (it opens the
+  link in a new tab), so the link takes that click from the mode through
+  `AutoScrollScope`. Anything else that answers the middle button itself
+  should do the same.
 
-Over a `RouteLink` the middle button belongs to the browser — it opens the
-link in a new tab — so the link takes that click from the mode through
-`AutoScrollScope`. Anything else that answers the middle button itself should
-do the same.
-
-Nothing is gated on the web: a platform without a middle button never starts
-the mode, and on Windows the same gesture is a desktop convention.
+The mode is not limited to the web: a platform without a middle button simply
+never starts it, and on Windows the same gesture is a desktop convention.
 
 ### Browser context menu
 
-Over the canvas the browser menu only offers "Back" and "Reload", but on a
-`RouteLink` it is the native link menu — "Open in new tab", "Copy link
-address" — so it is worth keeping. `BrowserContextMenu.disableContextMenu()`
-(after the binding is initialised) removes it everywhere at once; text fields
-then show Flutter's own menu instead.
+Over the canvas the browser menu only offers "Back" and "Reload", but over a
+`RouteLink` it is the native link menu: "Open in new tab", "Copy link
+address". So it is worth keeping. If it still gets in the way,
+`BrowserContextMenu.disableContextMenu()` (after the binding is initialised)
+removes it everywhere at once, and text fields show Flutter's own menu
+instead.
 
 ### Keyboard focus
 
 `EmptyButton` draws a focus ring for keyboard-driven focus so a keyboard user
-can see where they are; Material buttons show their own focus overlay.
+can see where they are. Material buttons show their own focus overlay.
 
-A `RouteLink` is a real `<a>` element, and the browser leaves its focus on the
-element a click landed on. When that element then goes — the card was on the
-page the click navigated away from, or a lazy list recycled it — the browser
-drops the focus onto the body of the document, outside the Flutter view, and
-Flutter parks its own focus on the root scope, where no widget can take a
-key: page scrolling, Escape and every other shortcut go dead until the next
-click anywhere. `PageFocusKeeper` puts the focus back: it tells this case
-from the user leaving for the address bar or another tab (the document still
-holds the focus, its body has it) and walks the focus down the chain of
-last-focused children onto the top route, the way the next click would have.
-Wrap the application in it above everything else, next to `AutoScrollPro`:
+`PageFocusKeeper` gives the application back the focus the browser left on
+the document body. Wrap the application in it above everything else, next to
+`AutoScrollPro`:
 
 ```dart
 MaterialApp.router(
@@ -1221,3 +1255,16 @@ MaterialApp.router(
   ...
 )
 ```
+
+Where the problem comes from. A `RouteLink` is a real `<a>` element, and the
+browser leaves its focus on the element that was clicked. Then that element
+goes: the card stayed on the page the click navigated away from, or a lazy
+list recycled it. The browser drops the focus onto the body of the document,
+outside the Flutter view, and Flutter parks its own focus on the root scope,
+where no widget takes a key. Page scrolling, Escape and every other shortcut
+stop working until the next click.
+
+`PageFocusKeeper` tells this case from the user leaving for the address bar or
+another tab (the document still holds the focus, but its body has it) and
+walks the focus down the chain of last-focused nodes onto the top route. That
+is exactly what the next click would have done.
