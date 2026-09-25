@@ -1326,6 +1326,49 @@ address". So it is worth keeping. If it still gets in the way,
 removes it everywhere at once, and text fields show Flutter's own menu
 instead.
 
+When only some elements need a menu of their own (a chat in a list, a
+message in a feed), wrap each of them in `ContextMenuRegion`. A right click
+inside the region opens the application's menu. The browser menu is
+suppressed only while the cursor is over the region. Everywhere else text
+fields, text selection and links keep the browser menu.
+
+```dart
+ContextMenuRegion(
+  onMenu: viewModel.isMenuAvailable ? openMenu : null, // null — the browser keeps the right button
+  child: row,
+)
+```
+
+A menu shown over a barrier takes the cursor out of the region, and the
+region lets its suppression go. Show such a menu through
+`BrowserContextMenuService.hold`, so that a right click on the menu itself
+does not bring up the browser's:
+
+```dart
+await BrowserContextMenuService.hold(
+  () => showGeneralDialog<void>(context: context, pageBuilder: ...),
+);
+```
+
+Outside the web the region only adds the right-button call of the menu, and
+the service does nothing.
+
+Why it is so:
+
+* The browser menu cannot be turned off per element: the engine keeps one
+  flag for the whole application. The region raises it on hover and lowers it
+  on exit. The call reaches the engine in the same tick as the hover.
+* The flag has several owners: the region under the cursor and an open menu.
+  So the service counts them, and only the last one gives the menu back.
+  `suppress` / `release` are public for an owner of another kind. Every
+  `suppress` needs its `release`, and an extra `release` is logged.
+* The region also releases when it is disposed or loses its menu. The
+  framework sends no `onExit` for a widget that vanished from under the
+  cursor, and the browser menu would otherwise stay off until a reload.
+* The middle button and a modifier click do not go through the context menu,
+  so a `RouteLink` inside a region still opens in a new tab. Only the
+  browser's "Open in new tab" item is lost there.
+
 ### Keyboard focus
 
 `EmptyButton` draws a focus ring for keyboard-driven focus so a keyboard user

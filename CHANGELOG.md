@@ -1,3 +1,24 @@
+## 0.4.6
+
+* **`ContextMenuRegion`** (`presentation/view/context_menu_region.dart`) and
+  **`BrowserContextMenuService`**
+  (`presentation/service/browser_context_menu_service.dart`) give the right
+  mouse button to the application in chosen places only, moved in from
+  Medita. A right click inside the region opens the application's menu, and
+  on the web the browser menu is suppressed only while the cursor is over the
+  region; text fields, text selection and links elsewhere keep it. The
+  engine has one flag for the whole application, so the service counts its
+  owners (the region under the cursor and an open menu), and only the last
+  one gives the browser menu back; an unbalanced release is logged.
+  `BrowserContextMenuService.hold` keeps the suppression for the lifetime of
+  a menu shown over a barrier, which takes the cursor out of the region. The
+  region releases on dispose as well: the framework sends no `onExit` for a
+  widget that vanished from under the cursor. Outside the web the region
+  only adds the right-button call of the menu.
+
+  In Medita it serves the chat list and the message feed. The code is moved
+  as is; the package test covers the non-web branch only.
+
 ## 0.4.5
 
 * **`HeifConverter`** (`presentation/utility/heif_converter.dart`) turns a
