@@ -1,7 +1,7 @@
 # Last full audit of the SDK and dependencies: 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.4.4
+version: 0.4.5
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -50,6 +50,14 @@ dependencies:
 
   # All platform supported
   http: ^1.6.0
+
+  # All platform supported
+  #
+  # JPEG encoding for HeifConverter outside the web: dart:ui encodes PNG only.
+  # Pure Dart. The lower bound is kept low on purpose: every application on
+  # this stack already has `image` through flutter_launcher_icons, some pin an
+  # older 4.x, and a higher bound would break their resolution.
+  image: ^4.5.4
 
   # Not supported: Linux | Web | Windows
   #
@@ -111,3 +119,9 @@ executables:
   getit_check:
 
 flutter:
+  assets:
+    # heic-to, the HEIC decoder HeifConverter loads in browsers that cannot
+    # decode HEIC themselves. Web only: other platforms decode HEIC with the
+    # system codecs, and the three megabytes stay out of their bundles.
+    - path: assets/heic_to/
+      platforms: [web]

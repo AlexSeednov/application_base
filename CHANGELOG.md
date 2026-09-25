@@ -1,3 +1,38 @@
+## 0.4.5
+
+* **`HeifConverter`** (`presentation/utility/heif_converter.dart`) turns a
+  HEIC / HEIF photo into a JPEG right after it is picked, so the preview and
+  the upload get the same JPEG. HEIC is the default camera format on iPhone.
+  Browsers other than Safari cannot draw it, and many backends accept JPEG
+  and PNG only. A file that is not HEIF comes back untouched, and a photo
+  that cannot be converted answers `null` with the reason logged. The format
+  is told by the first bytes, not by the name. The longest side is capped at
+  4096 px, the largest frame a canvas of iOS Safari holds. Requested by
+  Medita, where chat images, avatars and quiz attachments go to a backend
+  that takes JPEG and PNG only.
+
+  Android, iOS and macOS decode with the system codecs through the engine,
+  and the JPEG is encoded on a background isolate: `dart:ui` encodes PNG
+  only. The web tries the browser's own decoder first (Safari, and so every
+  browser on iOS) and falls back to heic-to 1.5.2 (libheif 1.22.2,
+  LGPL-3.0), loaded from the package assets on the first photo that needs
+  it. Its CSP build runs without `unsafe-eval` and `wasm-unsafe-eval`, and a
+  page under a policy has to allow `blob:` in `worker-src`. The three
+  megabytes are declared for the web only and stay out of mobile and desktop
+  bundles.
+
+  Brings `image` in as a dependency, for the JPEG encoder outside the web.
+  The bound is `^4.5.4`: every application on this stack already has it
+  through flutter_launcher_icons, and some pin an older 4.x.
+
+  Verified on the macOS host (`test/heif_converter_test.dart`: size, colours
+  and their sides, the bound) and in Chrome through a release build under a
+  policy without `unsafe-eval`: frames from 64 × 48 to 4032 × 3024, including
+  odd sizes, convert through heic-to. A 12-megapixel photo takes about 0.5 s
+  on a desktop, 0.7 s with the first load of the library. heic-to rejects
+  frames narrower than 64 px. Safari's own decoder, Android and iOS devices
+  are not checked yet.
+
 ## 0.4.4
 
 * **`UrlLauncher.downloadLink`** — downloads the file behind a link instead of
