@@ -22,6 +22,7 @@
 * [Страница в магазине приложений](#страница-в-магазине-приложений)
 * [Идентификаторы](#идентификаторы)
 * [Локаль приложения](#локаль-приложения)
+* [Фото в HEIC](#фото-в-heic)
 * [Виджеты](#виджеты)
 * [Веб](#веб)
 
@@ -68,7 +69,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.4.4
+    version: 0.4.5
 ```
 
 Пакет регистрирует свои сервисы через модуль микропакета injectable.
@@ -999,6 +1000,68 @@ NumberFormat.decimalPattern().format(1.5); // «1,5»
 * Виджет-тест строит собственный `MaterialApp`. Тест, который проверяет
   отформатированные даты или числа, подключает туда тот же колбэк или задаёт
   `Intl.defaultLocale` в `setUp`. Иначе он форматирует в `en_US`.
+
+## Фото в HEIC
+
+**HeifConverter** превращает фото в HEIC / HEIF в JPEG. Вызывайте его сразу
+после того, как выбор файла вернул результат, до превью и загрузки:
+
+```dart
+final XFile? picked = await ImagePicker().pickImage(
+  source: ImageSource.gallery,
+);
+if (picked == null) return;
+
+final XFile? file = await HeifConverter.convertIfHeif(picked);
+if (file == null) {
+  // A HEIF photo this device cannot convert: show "format not supported"
+  return;
+}
+
+// The same file goes to the preview and to the upload
+```
+
+Что возвращается:
+
+* сам выбранный файл, если это не HEIF: JPEG, PNG, видео, PDF;
+* JPEG с именем исходного файла (`IMG_0042.HEIC` → `IMG_0042.jpg`), если HEIF;
+* `null`, если фото в HEIF преобразовать не удалось. Причина пишется в лог.
+
+Длинная сторона преобразованного фото ограничена 4096 px (`maxDimension`),
+качество JPEG — 90 (`quality`).
+
+Зачем это нужно. HEIC — формат камеры iPhone по умолчанию. Браузеры, кроме
+Safari, его не показывают, и выбранное фото остаётся пустым местом в превью.
+Многие бэкенды принимают только JPEG и PNG. Преобразованное фото везде одно и
+то же: в превью, на сервере и на экране получателя.
+
+Как это устроено:
+
+* Формат определяется по первым байтам файла, а не по имени.
+* На Android, iOS и macOS фото декодируют системные кодеки, а JPEG кодируется
+  в фоновом изоляте. На Android 8 и более ранних, а также на Linux декодера
+  HEIF нет, и ответ там — `null`.
+* В вебе фото сначала декодирует браузер. Safari это умеет, а на iOS все
+  браузеры работают на движке Safari. Chrome и Firefox не умеют, и тогда пакет
+  загружает из своих ассетов heic-to — libheif, собранную в JavaScript. Канвас
+  уменьшает кадр и кодирует JPEG.
+
+В вебе:
+
+* heic-to весит 3 МБ. Страница загружает её один раз, на первом фото, которое
+  браузер не декодировал сам. Страница, которой она не понадобилась, её не
+  загружает. На другие платформы она не попадает: ассет объявлен с
+  `platforms: [web]`.
+* Странице с Content Security Policy нужно разрешить модуль со своего домена
+  (`script-src 'self'`) и воркер с адреса `blob:` (`worker-src blob:`):
+  heic-to декодирует в воркере. Ни `unsafe-eval`, ни `wasm-unsafe-eval` не
+  нужны.
+* heic-to и libheif распространяются под LGPL-3.0. Текст лицензии лежит рядом
+  со скриптом, в `assets/heic_to/LICENSE`.
+
+Чтобы обновить heic-to, возьмите `dist/csp/heic-to.js` и `LICENSE` из
+npm-пакета `heic-to`, положите их в `assets/heic_to/` и поменяйте версию в
+комментарии `heif_to_jpeg_web.dart`.
 
 ## Виджеты
 
