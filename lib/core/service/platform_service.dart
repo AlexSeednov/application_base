@@ -1,12 +1,14 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:application_base/core/utility/touch_input.dart'
+    if (dart.library.js_interop) 'package:application_base/core/utility/touch_input_web.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 
 /// `isTouchInput` belongs with the other platform questions, and re-exporting
 /// it here spares every caller the conditional clause the bridge needs.
 export 'package:application_base/core/utility/touch_input.dart'
-    if (dart.library.js_interop)
-        'package:application_base/core/utility/touch_input_web.dart';
+    if (dart.library.js_interop) 'package:application_base/core/utility/touch_input_web.dart';
 
 // `Platform` throws on the web, so every getter below rules the web out
 // before touching it.
@@ -69,6 +71,23 @@ bool get isDesktopBased => !isWeb && (isMacOS || isWindows || isLinux);
 
 ///
 bool get isWebBased => isWeb;
+
+/// A phone or a tablet, as an application or in a browser.
+///
+/// A question about the device, not about the window: a tablet in landscape
+/// may well get a desktop layout, and a narrow browser window on a computer a
+/// mobile one. Safari on iPadOS reports itself as macOS, so there a tablet is
+/// told from a desktop Mac by touch input alone — [isTouchInput] explains
+/// what a wrong guess means.
+bool get isHandheld {
+  if (!isWeb) return isMobileBased;
+
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.iOS || TargetPlatform.android => true,
+    TargetPlatform.macOS => isTouchInput,
+    _ => false,
+  };
+}
 
 ///
 String get currentPlatformString {

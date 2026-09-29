@@ -1397,3 +1397,42 @@ stop working until the next click.
 another tab (the document still holds the focus, but its body has it) and
 walks the focus down the chain of last-focused nodes onto the top route. That
 is exactly what the next click would have done.
+
+### Browser tab
+
+`BrowserTab` covers the tab a web build runs in. Outside the web it does
+nothing, so its calls need no platform check.
+
+`BrowserTab.reload()` reloads the page, as the browser button does. Use it to
+rebuild what the application cannot replace in place: screens built for a
+session another tab has replaced, or data that failed to load while the
+network was down.
+
+A marker is a short string shared by every tab of the site. One tab writes
+it, and the others learn about the change:
+
+```dart
+BrowserTab.watchMarker('app.session', () {
+  final String? marker = BrowserTab.readMarker('app.session');
+  if (marker == knownMarker) return;
+  ... // another tab has signed in or out
+});
+
+BrowserTab.writeMarker('app.session', '$userId:$signInTime');
+```
+
+Why it is so:
+
+* The marker lives in `localStorage`: the browser announces a change there to
+  the other tabs of the site. IndexedDB, where Hive keeps its boxes, sends no
+  such event.
+* The tab that wrote the marker does not hear its own write.
+* The callback also fires when the tab becomes visible again. A tab frozen in
+  the background may miss the event, and a check on its return closes that
+  gap. So the callback is a reason to re-read the marker, not a proof that it
+  changed.
+* When the browser forbids the site to store data, there is no marker:
+  `readMarker` answers `null`, and every tab lives on its own. The error is
+  logged.
+* Freeze a key once it is in use. During a rollout tabs of the old and the
+  new version run side by side, and they must see the same marker.
