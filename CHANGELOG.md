@@ -1,28 +1,25 @@
 ## 0.4.7
 
 * **`BrowserTab`** (`core/utility/browser_tab.dart`) covers the tab a web
-  build runs in, moved in from Medita. `reload` reloads the page, as the
-  browser button does. `readMarker` / `writeMarker` / `watchMarker` share a
-  short string between the tabs of the site through `localStorage`: the
-  browser announces a change there to the other tabs, unlike IndexedDB, where
-  Hive keeps its boxes. The watch callback also fires when the tab becomes
-  visible again, since a tab frozen in the background may miss the event.
-  When the browser forbids the site to store data, there is no marker and
-  the error is logged. Outside the web there is no tab: `isAvailable` is
-  `false`, a marker reads as `null`, and the rest does nothing.
+  build runs in. `reload` reloads the page, as the browser button does.
+  `readMarker` / `writeMarker` / `watchMarker` share a short string between
+  the tabs of the site through `localStorage`: the browser announces a change
+  there to the other tabs, unlike IndexedDB, where Hive keeps its boxes. The
+  watch callback also fires when the tab becomes visible again, since a tab
+  frozen in the background may miss the event. When the browser forbids the
+  site to store data, there is no marker and the error is logged. Outside the
+  web there is no tab: `isAvailable` is `false`, a marker reads as `null`, and
+  the rest does nothing.
 
-  In Medita it keeps the session in step across tabs (a sign-out in one tab
-  signs the others out, a sign-in reloads them) and reloads the page once
-  the network is back. Medita's bridge was on raw `dart:js_interop` and is
-  rewritten on `package:web`, like the rest of the package; the behaviour is
-  the same. The web branch is tested in Chrome, with the other tab's
-  `storage` events dispatched by hand.
+  A typical use is keeping a session in step across tabs: a sign-out in one
+  tab signs the others out, a sign-in reloads them. The web branch is tested
+  in Chrome, with the other tab's `storage` events dispatched by hand.
 
 * **`isHandheld`** (`core/service/platform_service.dart`) — a phone or a
-  tablet, as an application or in a browser, moved in from Medita. A
-  question about the device, not the window: a tablet in landscape may get a
-  desktop layout. Safari on iPadOS reports itself as macOS, so there it
-  leans on `isTouchInput`. In Medita it decides whether a photo picker offers
+  tablet, as an application or in a browser. A question about the device,
+  not the window: a tablet in landscape may get a desktop layout. Safari on
+  iPadOS reports itself as macOS, so there it leans on `isTouchInput`. It
+  fits decisions a layout cannot make, such as whether a photo picker offers
   the camera, the gallery and files separately or goes straight to the file
   dialog.
 
@@ -31,21 +28,20 @@
 * **`ContextMenuRegion`** (`presentation/view/context_menu_region.dart`) and
   **`BrowserContextMenuService`**
   (`presentation/service/browser_context_menu_service.dart`) give the right
-  mouse button to the application in chosen places only, moved in from
-  Medita. A right click inside the region opens the application's menu, and
-  on the web the browser menu is suppressed only while the cursor is over the
-  region; text fields, text selection and links elsewhere keep it. The
-  engine has one flag for the whole application, so the service counts its
-  owners (the region under the cursor and an open menu), and only the last
-  one gives the browser menu back; an unbalanced release is logged.
+  mouse button to the application in chosen places only. A right click
+  inside the region opens the application's menu, and on the web the browser
+  menu is suppressed only while the cursor is over the region; text fields,
+  text selection and links elsewhere keep it. The engine has one flag for the
+  whole application, so the service counts its owners (the region under the
+  cursor and an open menu), and only the last one gives the browser menu
+  back; an unbalanced release is logged.
   `BrowserContextMenuService.hold` keeps the suppression for the lifetime of
   a menu shown over a barrier, which takes the cursor out of the region. The
   region releases on dispose as well: the framework sends no `onExit` for a
   widget that vanished from under the cursor. Outside the web the region
   only adds the right-button call of the menu.
 
-  In Medita it serves the chat list and the message feed. The code is moved
-  as is; the package test covers the non-web branch only.
+  The package test covers the non-web branch only.
 
 ## 0.4.5
 
@@ -56,9 +52,7 @@
   and PNG only. A file that is not HEIF comes back untouched, and a photo
   that cannot be converted answers `null` with the reason logged. The format
   is told by the first bytes, not by the name. The longest side is capped at
-  4096 px, the largest frame a canvas of iOS Safari holds. Requested by
-  Medita, where chat images, avatars and quiz attachments go to a backend
-  that takes JPEG and PNG only.
+  4096 px, the largest frame a canvas of iOS Safari holds.
 
   Android, iOS and macOS decode with the system codecs through the engine,
   and the JPEG is encoded on a background isolate: `dart:ui` encodes PNG
@@ -90,14 +84,13 @@
   page. Browsers ignore the attribute for other origins and open such a link;
   the anchor targets a new tab, so the page with the application stays in
   place either way. Outside the web, and on the web if the anchor fails, the
-  link goes to `launchLink`. Moved in from Medita, where it lived as a
-  project-level bridge behind the "Download" action of chat images.
+  link goes to `launchLink`.
 
 ## 0.4.3
 
 * **`ApplicationLocale`** (`presentation/utility/application_locale.dart`) —
-  the locale callback for `MaterialApp.localeListResolutionCallback`, moved in
-  from Medita. It resolves the locale by Flutter's own algorithm and makes it
+  the locale callback for `MaterialApp.localeListResolutionCallback`. It
+  resolves the locale by Flutter's own algorithm and makes it
   the default locale of `intl`, so `DateFormat` and `NumberFormat` format in
   the language of the interface rather than the device's. Left to themselves
   they take the device locale: a Russian-only application on an English phone
@@ -247,8 +240,7 @@
 
 * **`ExpansionTilePro`** (`presentation/view/expansion_tile_pro.dart`) — an
   expandable row of a list: a title with a chevron, a body under it, and a
-  hover highlight, moved in from Medita where two lists had grown their own
-  copy of it.
+  hover highlight.
 
   The expanded state stays with the caller (`isExpanded` + `onToggle`): one
   list keeps a single row open at a time, another opens any number, and the
@@ -275,7 +267,7 @@
 
 * **`isTouchInput`** (`core/utility/touch_input.dart`, re-exported from
   `core/service/platform_service.dart`) — whether the device the browser runs
-  on accepts touch, moved in from Medita. The one signal that tells an iPad
+  on accepts touch. The one signal that tells an iPad
   from a desktop Mac in a browser: Safari on iPadOS reports itself as macOS,
   so `defaultTargetPlatform` alone sends a tablet down the desktop branch —
   and an application already installed on that very device is then offered as
@@ -294,11 +286,10 @@
 ## 0.4.0
 
 * **`StoreService`** (`presentation/service/store_service.dart`) — the store
-  page of the application, moved in from `alex_base`'s `ReviewService` so
-  every project on the stack opens it the same way. Named after the action
-  rather than one reason for it: rating the app and taking a demanded update
-  lead to the same page, and the applications had a service each for the two.
-  The in-app rating sheet is left out: the system shows it at its own
+  page of the application, so every application on the stack opens it the
+  same way. Named after the action rather than one reason for it: rating the
+  app and taking a demanded update lead to the same page, so one service
+  covers both. The in-app rating sheet is left out: the system shows it at its own
   discretion and does nothing once the user has rated the app or the quota is
   spent, while `isAvailable()` keeps answering true — a tap on an explicit
   «rate us» control has to land somewhere every time. `isAvailable` now covers
@@ -307,8 +298,8 @@
   call.
 
 * **`UuidPro`** (`domain/utility/uuid_pro.dart`) — the random identifiers an
-  application stores with its records, also from `alex_base`. One `Uuid`
-  instance for the whole application.
+  application stores with its records. One `Uuid` instance for the whole
+  application.
 
 * **`KeyboardShortcutsPro`: the keys a browser on macOS scrolls a page with.**
   Cmd+Up/Down goes to the ends of the page, Option+Up/Down moves by a screen
