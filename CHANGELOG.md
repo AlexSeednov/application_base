@@ -1,3 +1,31 @@
+## 0.4.7
+
+* **`BrowserTab`** (`core/utility/browser_tab.dart`) covers the tab a web
+  build runs in, moved in from Medita. `reload` reloads the page, as the
+  browser button does. `readMarker` / `writeMarker` / `watchMarker` share a
+  short string between the tabs of the site through `localStorage`: the
+  browser announces a change there to the other tabs, unlike IndexedDB, where
+  Hive keeps its boxes. The watch callback also fires when the tab becomes
+  visible again, since a tab frozen in the background may miss the event.
+  When the browser forbids the site to store data, there is no marker and
+  the error is logged. Outside the web there is no tab: `isAvailable` is
+  `false`, a marker reads as `null`, and the rest does nothing.
+
+  In Medita it keeps the session in step across tabs (a sign-out in one tab
+  signs the others out, a sign-in reloads them) and reloads the page once
+  the network is back. Medita's bridge was on raw `dart:js_interop` and is
+  rewritten on `package:web`, like the rest of the package; the behaviour is
+  the same. The web branch is tested in Chrome, with the other tab's
+  `storage` events dispatched by hand.
+
+* **`isHandheld`** (`core/service/platform_service.dart`) — a phone or a
+  tablet, as an application or in a browser, moved in from Medita. A
+  question about the device, not the window: a tablet in landscape may get a
+  desktop layout. Safari on iPadOS reports itself as macOS, so there it
+  leans on `isTouchInput`. In Medita it decides whether a photo picker offers
+  the camera, the gallery and files separately or goes straight to the file
+  dialog.
+
 ## 0.4.6
 
 * **`ContextMenuRegion`** (`presentation/view/context_menu_region.dart`) and
