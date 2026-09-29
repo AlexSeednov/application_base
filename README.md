@@ -37,6 +37,7 @@ For now includes:
 * [Application locale](#application-locale)
 * [HEIC photos](#heic-photos)
 * [Widgets](#widgets)
+* [Bottom sheets](#bottom-sheets)
 * [Web](#web)
 
 ## Supported platforms
@@ -1144,6 +1145,65 @@ by default), so that the title keeps the same vertical line as the rest of the
 block. Two requirements follow: no ancestor may clip those edges (a list needs
 `clipBehavior: Clip.none`), and where there is no room outside (a modal, a
 column flush against the edge) give the row a padding of the same width.
+
+## Bottom sheets
+
+A scrollable sheet closes the way a short one does: once its list is at the
+top, a swipe down drags the sheet itself instead of overscrolling the list. A
+list scrolled away from the top reaches it first, and the rest of the same
+swipe moves the sheet. A swipe back up returns the sheet, then scrolls the
+list.
+
+A modal sheet takes a transition for its route and a wrapper for its content:
+
+```dart
+final transition = SheetOverdragTransition(Navigator.of(context));
+
+showModalBottomSheet<T>(
+  context: context,
+  isScrollControlled: true,
+  transitionAnimationController: transition.controller,
+  sheetAnimationStyle: transition.style,
+  builder: (context) => ModalSheetOverdrag(
+    transition: transition,
+    enabled: enableDrag,
+    child: builder(context),
+  ),
+);
+```
+
+The finger drives the route transition, the same one a drag by the header
+drives: the barrier fades with the sheet, the sheet closes below half its
+height or on a fling, and a sheet let go early goes back.
+`ModalSheetOverdrag` disposes of the transition when the sheet leaves the
+screen: the route does not dispose of a controller it was given.
+
+A list with no physics of its own needs nothing more. A list that sets its
+physics wraps them:
+
+```dart
+ListView(
+  physics: SheetOverdrag.physicsOf(context, const BouncingScrollPhysics()),
+  children: children,
+),
+```
+
+Outside a sheet `physicsOf` returns the physics as is, so a shared list
+widget may call it always.
+
+A sheet that is not a modal route, such as a full-screen player dragged down
+to minimize, implements `SheetOverdragTarget` (where the sheet is, move it,
+let it go) and wraps its content with `SheetOverdrag(target: this, child: …)`.
+
+Why so:
+
+* A sheet's own drag never starts on its content: the list wins the gesture.
+  So the part of the swipe past the top edge is taken in the physics of the
+  list.
+* `SheetOverdrag` puts those physics into a `ScrollConfiguration`, but the
+  physics a list sets come first, and `BouncingScrollPhysics` never hands a
+  user offset on. Hence `physicsOf`. A list wrapped with it keeps the second
+  link from the configuration, and that link skips what the first has taken.
 
 ## Web
 

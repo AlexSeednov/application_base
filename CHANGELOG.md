@@ -1,3 +1,22 @@
+## 0.4.8
+
+* **`SheetOverdrag`** (`presentation/view/sheet_overdrag.dart`) and
+  **`ModalSheetOverdrag`** (`presentation/view/modal_sheet_overdrag.dart`)
+  let a scrollable sheet be dragged by its content. Once the list is at its
+  top, a swipe down moves the sheet and closes it instead of overscrolling
+  the list; a scrolled list first reaches its top within the same swipe, and
+  a swipe back up returns the sheet before it scrolls the list. A modal sheet
+  moves through its own route transition (`SheetOverdragTransition`), so the
+  barrier fades and the sheet closes by the same thresholds as after a drag
+  by its header. A sheet of another kind, such as a full-screen player
+  dragged down to minimize, implements `SheetOverdragTarget`.
+
+  A list with no physics of its own gets the interception from a
+  `ScrollConfiguration`. A list that sets its physics wraps them with
+  `SheetOverdrag.physicsOf`: its physics come first, and
+  `BouncingScrollPhysics` never hands the offset on. The two links of such a
+  list take the sheet's share once. Tested with iOS and Android physics.
+
 ## 0.4.7
 
 * **`BrowserTab`** (`core/utility/browser_tab.dart`) covers the tab a web
