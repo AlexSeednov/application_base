@@ -673,6 +673,22 @@ static List<ProjectEntity> parseList(ResponseEntity data) =>
 пропускает: одна плохая запись не роняет всю страницу. Каждый сбой пишется
 в лог.
 
+Репозиторий читает тело только у ответа, который пришёл и успешен. Эту
+проверку делает `ResponseEntityParsing` на `ResponseEntity?`:
+
+```dart
+Future<ProjectEntity?> project(int id) async {
+  final ResponseEntity? response = await getIt<RequestService>().send(
+    RequestGet(path: 'projects/$id'),
+  );
+  return response.parsedOrNull(ProjectEntity.parse);
+}
+```
+
+`parsedOrNull` возвращает `null` и ничего не разбирает, если ответа нет или
+его статус не 2xx. `isOkOrFalse` подходит для запроса, тело которого никто не
+читает: отправка кода, выход из аккаунта.
+
 В лог попадают и все запросы с ответами: метод, путь и статус. Тела пишутся
 только пока включён `canLogSensitiveData` (по умолчанию только в
 debug-сборках).
@@ -742,6 +758,16 @@ final class NetworkService extends NetworkServiceBase {
 Состояние для UI (плашка офлайна, недоступные действия) даёт
 `isOnlineNotifier` (`ValueNotifier<bool>`), рядом с ним геттеры `isOnline` и
 `isOffline`. `isWiFi` нужен для настроек вроде «скачивать только по Wi-Fi».
+
+Владелец, который держит подписки, а не слушателей (например, view model,
+отменяющая всё в `dispose`), подписывается через `listen`. Он вызывается по
+разу на каждое переключение:
+
+```dart
+_subscription = networkService.listen(
+  ({required isOnline}) => isOnline ? resume() : pause(),
+);
+```
 
 `LifecycleService` перечитывает интерфейс каждый раз, когда приложение
 возвращается на передний план: начиная с Android 8.0 фоновое приложение не
@@ -1150,23 +1176,22 @@ ExpansionTilePro(
 двигает шторку. Свайп обратно вверх сначала возвращает шторку, потом
 прокручивает список.
 
-Модальной шторке нужны переход для маршрута и обёртка над содержимым:
+Модальная шторка показывается через `ModalSheetOverdrag.show`, параметры —
+как у `showModalBottomSheet`:
 
 ```dart
-final transition = SheetOverdragTransition(Navigator.of(context));
-
-showModalBottomSheet<T>(
+ModalSheetOverdrag.show<T>(
   context: context,
   isScrollControlled: true,
-  transitionAnimationController: transition.controller,
-  sheetAnimationStyle: transition.style,
-  builder: (context) => ModalSheetOverdrag(
-    transition: transition,
-    enabled: enableDrag,
-    child: builder(context),
-  ),
+  builder: builder,
 );
 ```
+
+Маршрут, собранный вручную, берёт те же две части: `SheetOverdragTransition`
+отдаёт маршруту `transitionAnimationController` и `sheetAnimationStyle`, а
+`ModalSheetOverdrag` оборачивает содержимое. Ручки для перетаскивания нет:
+с ней шторка была бы выше своего содержимого, и при свайпе за содержимое
+обгоняла бы палец.
 
 Палец ведёт тот же переход маршрута, что и свайп за шапку: вместе со шторкой
 светлеет фон, шторка закрывается ниже половины своей высоты или броском, а

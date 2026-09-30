@@ -679,6 +679,22 @@ empty list when the body is not a list, and skips an element that fails to
 parse: one bad record does not take the whole page down. Every failure is
 logged.
 
+A repository reads a body only from a response that exists and is a success.
+`ResponseEntityParsing` on `ResponseEntity?` makes that check:
+
+```dart
+Future<ProjectEntity?> project(int id) async {
+  final ResponseEntity? response = await getIt<RequestService>().send(
+    RequestGet(path: 'projects/$id'),
+  );
+  return response.parsedOrNull(ProjectEntity.parse);
+}
+```
+
+`parsedOrNull` returns `null` without parsing when there is no response or its
+status is not 2xx. `isOkOrFalse` suits a request whose body nobody reads:
+sending a code, signing out.
+
 Every request and response is logged as well: the method, the path and the
 status. Bodies are logged only while `canLogSensitiveData` is on (by default
 in debug builds only).
@@ -749,6 +765,16 @@ The state for the UI (an offline banner, disabled actions) comes from
 `isOnlineNotifier` (`ValueNotifier<bool>`), with the `isOnline` and
 `isOffline` getters next to it. `isWiFi` serves a setting like "download over
 Wi-Fi only".
+
+An owner that keeps subscriptions rather than listeners, such as a view model
+cancelling everything in `dispose`, subscribes with `listen`. It is called
+once per switch:
+
+```dart
+_subscription = networkService.listen(
+  ({required isOnline}) => isOnline ? resume() : pause(),
+);
+```
 
 `LifecycleService` re-reads the interface every time the application returns
 to the foreground: since Android 8.0 a background app receives no connectivity
@@ -1154,23 +1180,22 @@ list scrolled away from the top reaches it first, and the rest of the same
 swipe moves the sheet. A swipe back up returns the sheet, then scrolls the
 list.
 
-A modal sheet takes a transition for its route and a wrapper for its content:
+A modal sheet is shown with `ModalSheetOverdrag.show`, which takes the
+parameters of `showModalBottomSheet`:
 
 ```dart
-final transition = SheetOverdragTransition(Navigator.of(context));
-
-showModalBottomSheet<T>(
+ModalSheetOverdrag.show<T>(
   context: context,
   isScrollControlled: true,
-  transitionAnimationController: transition.controller,
-  sheetAnimationStyle: transition.style,
-  builder: (context) => ModalSheetOverdrag(
-    transition: transition,
-    enabled: enableDrag,
-    child: builder(context),
-  ),
+  builder: builder,
 );
 ```
+
+A route set up by hand takes the same two pieces: `SheetOverdragTransition`
+gives the route its `transitionAnimationController` and `sheetAnimationStyle`,
+and `ModalSheetOverdrag` wraps the content. There is no drag handle: the sheet
+would be taller than its content by the handle, and a drag by the content
+would outrun the finger.
 
 The finger drives the route transition, the same one a drag by the header
 drives: the barrier fades with the sheet, the sheet closes below half its

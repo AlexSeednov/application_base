@@ -17,6 +17,23 @@
   `BouncingScrollPhysics` never hands the offset on. The two links of such a
   list take the sheet's share once. Tested with iOS and Android physics.
 
+* **`ModalSheetOverdrag.show`** is `showModalBottomSheet` with such a sheet:
+  it creates the transition and wraps the content, so the application no
+  longer wires the two by hand. It takes the parameters of
+  `showModalBottomSheet` except the drag handle: the sheet would be taller
+  than its content by the handle, and a drag by the content would outrun the
+  finger.
+
+* **`ResponseEntityParsing`** on `ResponseEntity?`
+  (`data/remote/entity/response_entity.dart`) is the check a repository makes
+  before it reads a response. `parsedOrNull(parse)` parses the body of a
+  success and returns `null` otherwise, without parsing; `isOkOrFalse` tells
+  whether a response exists and is a success.
+
+* **`NetworkServiceBase.listen`** subscribes to the switches between online
+  and offline, one call per switch. It suits an owner that keeps
+  subscriptions to cancel rather than listeners on `isOnlineNotifier`.
+
 ## 0.4.7
 
 * **`BrowserTab`** (`core/utility/browser_tab.dart`) covers the tab a web

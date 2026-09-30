@@ -81,26 +81,20 @@ void main() {
       MaterialApp(navigatorKey: navigatorKey, home: const Scaffold()),
     );
 
-    final transition = SheetOverdragTransition(navigatorKey.currentState!);
     var closed = false;
     unawaited(
-      showModalBottomSheet<void>(
+      ModalSheetOverdrag.show<void>(
         context: navigatorKey.currentContext!,
         isScrollControlled: true,
-        transitionAnimationController: transition.controller,
-        sheetAnimationStyle: transition.style,
-        builder: (_) => ModalSheetOverdrag(
-          transition: transition,
-          child: SizedBox(
-            key: sheetKey,
-            height: sheetHeight,
-            child: Column(
-              children: [
-                // Not scrollable: the sheet's own drag moves it by this.
-                const SizedBox(height: rowHeight, child: Text('header')),
-                Expanded(child: list(controller, physics: physics)),
-              ],
-            ),
+        builder: (_) => SizedBox(
+          key: sheetKey,
+          height: sheetHeight,
+          child: Column(
+            children: [
+              // Not scrollable: the sheet's own drag moves it by this.
+              const SizedBox(height: rowHeight, child: Text('header')),
+              Expanded(child: list(controller, physics: physics)),
+            ],
           ),
         ),
       ).whenComplete(() => closed = true),

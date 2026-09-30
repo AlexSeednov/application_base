@@ -15,6 +15,11 @@ import 'package:meta/meta.dart';
 /// [NetworkSubject] and runs a ping timer of its own, so a second one would
 /// announce every restore twice.
 abstract base class NetworkServiceBase {
+  ///
+  NetworkServiceBase() {
+    isOnlineNotifier.addListener(_announceChange);
+  }
+
   /// Default of [pingPeriod].
   static const defaultPingPeriod = Duration(seconds: 30);
 
@@ -44,6 +49,24 @@ abstract base class NetworkServiceBase {
   ///
   bool get isOffline => !isOnline;
 
+  /// The switches of [isOnline] for [listen]. Never closed: the service may be
+  /// prepared again after [dispose], and a broadcast controller with no
+  /// listeners holds nothing.
+  final _changes = StreamController<bool>.broadcast();
+
+  /// Subscribes to the switches between online and offline, one call per
+  /// switch, delivered asynchronously.
+  ///
+  /// A subscription rather than a listener on [isOnlineNotifier]: its owner
+  /// cancels it along with the rest of its subscriptions.
+  StreamSubscription<bool> listen(
+    void Function({required bool isOnline}) onData,
+  ) => _changes.stream.listen((isOnline) => onData(isOnline: isOnline));
+
+  /// Fed from the notifier, so that a switch reaches [listen] whatever made
+  /// it.
+  void _announceChange() => _changes.add(isOnlineNotifier.value);
+
   /// Runs [ping] every [pingPeriod] while offline; `null` otherwise.
   Timer? _timer;
 
@@ -63,6 +86,7 @@ abstract base class NetworkServiceBase {
   Future<void> prepare() async {
     if (_subscription != null) return;
     _isDisposed = false;
+
     /// Subscribed before the interface is read: its first reading goes out
     /// on the subject, which replays nothing to a late listener.
     _subscription = _networkSubject.listen(onUpdate);

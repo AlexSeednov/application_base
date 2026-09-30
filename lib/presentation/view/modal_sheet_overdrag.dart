@@ -29,6 +29,58 @@ final class ModalSheetOverdrag extends StatefulWidget {
   ///
   final Widget child;
 
+  /// [showModalBottomSheet] with a sheet that can be dragged by its content:
+  /// creates the transition and wraps what [builder] returns. The parameters
+  /// are those of [showModalBottomSheet]; [enableDrag] switches off the drag
+  /// by the content as well.
+  ///
+  /// There is no drag handle: the sheet would be taller than its content by
+  /// the handle, and dragging by the content would outrun the finger.
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    Color? backgroundColor,
+    Color? barrierColor,
+    double? elevation,
+    ShapeBorder? shape,
+    Clip? clipBehavior,
+    BoxConstraints? constraints,
+    bool isScrollControlled = false,
+    bool useRootNavigator = false,
+    bool isDismissible = true,
+    bool enableDrag = true,
+    bool useSafeArea = false,
+    RouteSettings? routeSettings,
+  }) {
+    // The sheet disposes of the transition when it leaves the screen.
+    final transition = SheetOverdragTransition(
+      Navigator.of(context, rootNavigator: useRootNavigator),
+    );
+
+    return showModalBottomSheet<T>(
+      context: context,
+      backgroundColor: backgroundColor,
+      barrierColor: barrierColor,
+      elevation: elevation,
+      shape: shape,
+      clipBehavior: clipBehavior,
+      constraints: constraints,
+      isScrollControlled: isScrollControlled,
+      useRootNavigator: useRootNavigator,
+      isDismissible: isDismissible,
+      enableDrag: enableDrag,
+      useSafeArea: useSafeArea,
+      routeSettings: routeSettings,
+      transitionAnimationController: transition.controller,
+      sheetAnimationStyle: transition.style,
+      builder: (sheetContext) => ModalSheetOverdrag(
+        transition: transition,
+        enabled: enableDrag,
+        child: builder(sheetContext),
+      ),
+    );
+  }
+
   ///
   @override
   State<ModalSheetOverdrag> createState() => _ModalSheetOverdragState();
