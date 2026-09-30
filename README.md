@@ -37,6 +37,7 @@ For now includes:
 * [Application locale](#application-locale)
 * [HEIC photos](#heic-photos)
 * [Widgets](#widgets)
+* [Bottom sheets](#bottom-sheets)
 * [Web](#web)
 
 ## Supported platforms
@@ -678,6 +679,22 @@ empty list when the body is not a list, and skips an element that fails to
 parse: one bad record does not take the whole page down. Every failure is
 logged.
 
+A repository reads a body only from a response that exists and is a success.
+`ResponseEntityParsing` on `ResponseEntity?` makes that check:
+
+```dart
+Future<ProjectEntity?> project(int id) async {
+  final ResponseEntity? response = await getIt<RequestService>().send(
+    RequestGet(path: 'projects/$id'),
+  );
+  return response.parsedOrNull(ProjectEntity.parse);
+}
+```
+
+`parsedOrNull` returns `null` without parsing when there is no response or its
+status is not 2xx. `isOkOrFalse` suits a request whose body nobody reads:
+sending a code, signing out.
+
 Every request and response is logged as well: the method, the path and the
 status. Bodies are logged only while `canLogSensitiveData` is on (by default
 in debug builds only).
@@ -748,6 +765,16 @@ The state for the UI (an offline banner, disabled actions) comes from
 `isOnlineNotifier` (`ValueNotifier<bool>`), with the `isOnline` and
 `isOffline` getters next to it. `isWiFi` serves a setting like "download over
 Wi-Fi only".
+
+An owner that keeps subscriptions rather than listeners, such as a view model
+cancelling everything in `dispose`, subscribes with `listen`. It is called
+once per switch:
+
+```dart
+_subscription = networkService.listen(
+  ({required isOnline}) => isOnline ? resume() : pause(),
+);
+```
 
 `LifecycleService` re-reads the interface every time the application returns
 to the foreground: since Android 8.0 a background app receives no connectivity
@@ -1144,6 +1171,64 @@ by default), so that the title keeps the same vertical line as the rest of the
 block. Two requirements follow: no ancestor may clip those edges (a list needs
 `clipBehavior: Clip.none`), and where there is no room outside (a modal, a
 column flush against the edge) give the row a padding of the same width.
+
+## Bottom sheets
+
+A scrollable sheet closes the way a short one does: once its list is at the
+top, a swipe down drags the sheet itself instead of overscrolling the list. A
+list scrolled away from the top reaches it first, and the rest of the same
+swipe moves the sheet. A swipe back up returns the sheet, then scrolls the
+list.
+
+A modal sheet is shown with `ModalSheetOverdrag.show`, which takes the
+parameters of `showModalBottomSheet`:
+
+```dart
+ModalSheetOverdrag.show<T>(
+  context: context,
+  isScrollControlled: true,
+  builder: builder,
+);
+```
+
+A route set up by hand takes the same two pieces: `SheetOverdragTransition`
+gives the route its `transitionAnimationController` and `sheetAnimationStyle`,
+and `ModalSheetOverdrag` wraps the content. There is no drag handle: the sheet
+would be taller than its content by the handle, and a drag by the content
+would outrun the finger.
+
+The finger drives the route transition, the same one a drag by the header
+drives: the barrier fades with the sheet, the sheet closes below half its
+height or on a fling, and a sheet let go early goes back.
+`ModalSheetOverdrag` disposes of the transition when the sheet leaves the
+screen: the route does not dispose of a controller it was given.
+
+A list with no physics of its own needs nothing more. A list that sets its
+physics wraps them:
+
+```dart
+ListView(
+  physics: SheetOverdrag.physicsOf(context, const BouncingScrollPhysics()),
+  children: children,
+),
+```
+
+Outside a sheet `physicsOf` returns the physics as is, so a shared list
+widget may call it always.
+
+A sheet that is not a modal route, such as a full-screen player dragged down
+to minimize, implements `SheetOverdragTarget` (where the sheet is, move it,
+let it go) and wraps its content with `SheetOverdrag(target: this, child: …)`.
+
+Why so:
+
+* A sheet's own drag never starts on its content: the list wins the gesture.
+  So the part of the swipe past the top edge is taken in the physics of the
+  list.
+* `SheetOverdrag` puts those physics into a `ScrollConfiguration`, but the
+  physics a list sets come first, and `BouncingScrollPhysics` never hands a
+  user offset on. Hence `physicsOf`. A list wrapped with it keeps the second
+  link from the configuration, and that link skips what the first has taken.
 
 ## Web
 

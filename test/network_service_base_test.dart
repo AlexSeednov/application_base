@@ -65,6 +65,34 @@ void main() {
     expect(events.whereType<NetworkRestore>(), hasLength(1));
   });
 
+  test('listen reports each switch once', () async {
+    final switches = <bool>[];
+    final subscription = service.listen(
+      ({required isOnline}) => switches.add(isOnline),
+    );
+    addTearDown(subscription.cancel);
+
+    service
+      ..onUpdate(NetworkConnectionLost())
+      ..onUpdate(NetworkConnectionLost())
+      ..onUpdate(NetworkSuccess());
+    await delivered();
+
+    expect(switches, [false, true]);
+  });
+
+  test('a cancelled subscription hears nothing', () async {
+    final switches = <bool>[];
+    await service
+        .listen(({required isOnline}) => switches.add(isOnline))
+        .cancel();
+
+    service.onUpdate(NetworkConnectionLost());
+    await delivered();
+
+    expect(switches, isEmpty);
+  });
+
   test('a disposed service stays where it was', () {
     service
       ..dispose()

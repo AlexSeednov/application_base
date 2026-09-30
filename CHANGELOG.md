@@ -1,3 +1,39 @@
+## 0.4.8
+
+* **`SheetOverdrag`** (`presentation/view/sheet_overdrag.dart`) and
+  **`ModalSheetOverdrag`** (`presentation/view/modal_sheet_overdrag.dart`)
+  let a scrollable sheet be dragged by its content. Once the list is at its
+  top, a swipe down moves the sheet and closes it instead of overscrolling
+  the list; a scrolled list first reaches its top within the same swipe, and
+  a swipe back up returns the sheet before it scrolls the list. A modal sheet
+  moves through its own route transition (`SheetOverdragTransition`), so the
+  barrier fades and the sheet closes by the same thresholds as after a drag
+  by its header. A sheet of another kind, such as a full-screen player
+  dragged down to minimize, implements `SheetOverdragTarget`.
+
+  A list with no physics of its own gets the interception from a
+  `ScrollConfiguration`. A list that sets its physics wraps them with
+  `SheetOverdrag.physicsOf`: its physics come first, and
+  `BouncingScrollPhysics` never hands the offset on. The two links of such a
+  list take the sheet's share once. Tested with iOS and Android physics.
+
+* **`ModalSheetOverdrag.show`** is `showModalBottomSheet` with such a sheet:
+  it creates the transition and wraps the content, so the application no
+  longer wires the two by hand. It takes the parameters of
+  `showModalBottomSheet` except the drag handle: the sheet would be taller
+  than its content by the handle, and a drag by the content would outrun the
+  finger.
+
+* **`ResponseEntityParsing`** on `ResponseEntity?`
+  (`data/remote/entity/response_entity.dart`) is the check a repository makes
+  before it reads a response. `parsedOrNull(parse)` parses the body of a
+  success and returns `null` otherwise, without parsing; `isOkOrFalse` tells
+  whether a response exists and is a success.
+
+* **`NetworkServiceBase.listen`** subscribes to the switches between online
+  and offline, one call per switch. It suits an owner that keeps
+  subscriptions to cancel rather than listeners on `isOnlineNotifier`.
+
 ## 0.4.7
 
 * **`BrowserTab`** (`core/utility/browser_tab.dart`) covers the tab a web
