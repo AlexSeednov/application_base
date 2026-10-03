@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.0
+    version: 0.5.1
 ```
 
 The package registers its services through an injectable micro-package module.

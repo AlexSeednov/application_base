@@ -70,7 +70,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.0
+    version: 0.5.1
 ```
 
 Пакет регистрирует свои сервисы через модуль микропакета injectable.
