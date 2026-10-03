@@ -1,3 +1,11 @@
+## 0.4.9
+
+* **`RequestServiceBase`** logs the cause of a failed connection. For a failed
+  TLS handshake the log used to carry only the generic "Handshake error in
+  client", and for a socket error only its message; both now include the
+  operating system's error — a rejected certificate, a connection reset, an
+  unreachable network — so one log line tells them apart.
+
 ## 0.4.8
 
 * **`SheetOverdrag`** (`presentation/view/sheet_overdrag.dart`) and

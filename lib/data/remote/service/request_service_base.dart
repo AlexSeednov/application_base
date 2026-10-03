@@ -199,16 +199,17 @@ abstract base class RequestServiceBase {
       /// No socket at all: DNS failure, unreachable route, refused connection.
       /// The typical case is Wi-Fi reported as available while the router
       /// blocks the Internet or DNS. Never silenced, not even for a ping —
-      /// connection state is global.
-      logRequestInfo(
-        request: request,
-        info: 'No connection (${error.message})',
-      );
+      /// connection state is global. `toString` rather than the message: the
+      /// cause — an unreachable network, a refused connection — is in
+      /// `osError`.
+      logRequestInfo(request: request, info: 'No connection ($error)');
       notify(NetworkConnectionLost());
     } on HandshakeException catch (error) {
       /// An SSL problem on the backend side leaves it just as unreachable, so
-      /// the app goes offline.
-      logRequestError(request: request, error: error.message);
+      /// the app goes offline. The message alone is a generic "Handshake error
+      /// in client": the cause — a rejected certificate, a reset connection —
+      /// is in `osError`, which only `toString` includes.
+      logRequestError(request: request, error: error.toString());
       notify(NetworkConnectionLost());
     } on ClientException catch (error) {
       /// The web build never sees a [SocketException]: there `package:http`
@@ -343,11 +344,13 @@ abstract base class RequestServiceBase {
       notify(NetworkConnectionLost());
       return null;
     } on SocketException catch (error) {
-      logInfo(info: 'Catch redirect $uri\nNo connection (${error.message})');
+      /// `toString` for the cause in `osError`, as in [sendBase]
+      logInfo(info: 'Catch redirect $uri\nNo connection ($error)');
       notify(NetworkConnectionLost());
       return null;
     } on HandshakeException catch (error) {
-      logError(error: 'Catch redirect $uri\n${error.message}');
+      /// `toString` for the cause in `osError`, as in [sendBase]
+      logError(error: 'Catch redirect $uri\n$error');
       notify(NetworkConnectionLost());
       return null;
     } on ClientException catch (error) {
