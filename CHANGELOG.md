@@ -1,3 +1,15 @@
+## 0.5.1
+
+* **`EmptyButton` draws its focus ring for itself only.** It used to take
+  the focus of anything inside it as its own, so a text field in the child,
+  focused while the user typed, got the ring around it as soon as a hardware
+  key switched the highlight mode to keyboard — a stray border on an Android
+  emulator, or with any IME that sends key events. The ring now follows the
+  primary focus of the button's own node. Pinned by
+  `test/empty_button_test.dart`.
+
+* README: the installation example names the current version.
+
 ## 0.5.0
 
 Breaking: `ApplicationLocale.resolve` and `pushNamed` are removed.
