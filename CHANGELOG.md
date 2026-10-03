@@ -1,3 +1,17 @@
+## 0.4.9
+
+* **`RequestServiceBase`** logs the cause of a failed connection. For a failed
+  TLS handshake the log used to carry only the generic "Handshake error in
+  client", and for a socket error only its message; both now include the
+  operating system's error — a rejected certificate, a connection reset, an
+  unreachable network — so one log line tells them apart.
+
+* **`RequestType.logging`** turns off the routine log lines of a request — its
+  sending and a successful response. It is meant for a request repeated on a
+  timer, such as a poll, whose every tick would otherwise add two lines to the
+  log. On by default, so existing requests log as before. A failure — an
+  unexpected status, a timeout, no connection — is logged either way.
+
 ## 0.4.8
 
 * **`SheetOverdrag`** (`presentation/view/sheet_overdrag.dart`) and
