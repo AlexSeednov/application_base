@@ -78,12 +78,6 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route}) =>
 Future<void> pushPath({required String path}) =>
     _withRouterAsync('pushPath', (router) => router.pushPath(path));
 
-/// The former name of [pushPath]: it has always taken a path, never a route
-/// name.
-@Deprecated('Use pushPath(path:) — it takes a path, not a route name')
-Future<void> pushNamed({required String routeName}) =>
-    pushPath(path: routeName);
-
 /// Pops the last screen of the visible stack unless it is the only entry.
 ///
 /// Through the top-most router, the way the system back button goes

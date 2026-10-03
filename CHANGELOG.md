@@ -1,3 +1,35 @@
+## 0.5.0
+
+Breaking: `ApplicationLocale.resolve` and `pushNamed` are removed.
+
+* **`ApplicationLocale` is a widget now, and a language chosen in the
+  application holds against the system.** It used to be a
+  `localeListResolutionCallback`, and Flutter calls that callback for the
+  system languages and for `MaterialApp.locale` alike — the callback could
+  not tell one from the other. An application that sets its language from
+  its own settings got the chosen language on every rebuild, but a change of
+  the system languages in between handed `intl` the system's: when the
+  system's choice stayed the same nothing rebuilt, and the interface went on
+  in one language while dates and numbers came out in another until the next
+  rebuild. Dropping `MaterialApp.locale` to follow the system again was not
+  seen at all: Flutter calls no callback for it.
+
+  The widget reads the locale the interface is actually drawn in from
+  `Localizations`, whatever chose it, and switches together with the text,
+  once the new translations have loaded and before the widgets below
+  rebuild. To move: drop `localeListResolutionCallback:
+  ApplicationLocale.resolve` and wrap the application in `MaterialApp.builder`
+  — `builder: (context, child) => ApplicationLocale(child: child!)`, or
+  around the application's own builder chain. Pinned by
+  `test/application_locale_test.dart`, the case above included; with the old
+  callback that case reproduces.
+
+* **`pushNamed` is removed**, deprecated since 0.4.3 in favour of
+  `pushPath(path:)`: it has always taken a path, never a route name.
+
+* README: the *Application locale* section describes the widget, in both
+  languages; the installation example names the current version.
+
 ## 0.4.9
 
 * **`RequestServiceBase`** logs the cause of a failed connection. For a failed

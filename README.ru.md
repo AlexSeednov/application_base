@@ -70,7 +70,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.4.5
+    version: 0.5.0
 ```
 
 Пакет регистрирует свои сервисы через модуль микропакета injectable.
@@ -378,9 +378,6 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route});
 
 /// Adds a new entry to the screens stack by using path
 Future<void> pushPath({required String path});
-
-/// The former name of pushPath, deprecated
-Future<void> pushNamed({required String routeName});
 
 /// Pops the last screen of the visible stack unless it is the only entry
 Future<void> popScreen({bool? result});
@@ -987,13 +984,13 @@ final String uid = UuidPro.get();
 ## Локаль приложения
 
 **ApplicationLocale** — заставляет `intl` форматировать даты и числа на языке
-интерфейса. Подключите его один раз в корневое приложение:
+интерфейса. Оберните им корневое приложение в `MaterialApp.builder`:
 
 ```dart
 MaterialApp.router(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  localeListResolutionCallback: ApplicationLocale.resolve,
+  builder: (context, child) => ApplicationLocale(child: child!),
   // ...
 )
 ```
@@ -1005,32 +1002,35 @@ DateFormat('d MMMM').format(date); // «5 марта» in a Russian application
 NumberFormat.decimalPattern().format(1.5); // «1,5»
 ```
 
-Зачем это нужно. Без колбэка `DateFormat` и `NumberFormat` берут локаль
+Зачем это нужно. Без него `DateFormat` и `NumberFormat` берут локаль
 устройства, а не приложения. Приложение только на русском на телефоне с
 английским языком показывает текст по-русски, а месяцы, дни недели и
 десятичные разделители по-английски. Обычная заплатка, локаль в каждом вызове
 форматтера вроде `DateFormat('d MMMM', 'ru')`, прячет баг, и её приходится
 переделывать с каждым добавленным языком.
 
-Локаль выбирается собственным алгоритмом Flutter
-(`basicLocaleListResolution`), поэтому виджеты получают тот же язык, что и
-раньше. Просто теперь его получает и `intl`. Колбэк вызывается при старте и
-при каждой смене системных языков, до того как построится всё, что ниже
-`MaterialApp`, и каждая смена логируется.
+Виджет берёт локаль, на которой нарисован интерфейс, из `Localizations`.
+Что бы её ни выбрало — системные языки, `MaterialApp.locale` с языком из
+настроек приложения, колбэк выбора локали, — `intl` получает ту же. Она
+меняется вместе с текстом: когда новые переводы загрузились и до того, как
+перестроятся виджеты ниже, и каждая смена логируется.
 
 Что нужно знать:
 
-* Передавайте tear-off как есть, а не замыкание: `MaterialApp` сравнивает
-  колбэк по идентичности при каждой перестройке.
+* Это больше не `localeListResolutionCallback` (0.5.0). Flutter вызывает этот
+  колбэк и для системных языков, и для `MaterialApp.locale`, поэтому он не
+  может отличить язык, выбранный в приложении, от системного. При заданной
+  `MaterialApp.locale` смена системных языков отдавала `intl` системный язык,
+  хотя интерфейс оставался на выбранном.
 * Не задавайте `Intl.systemLocale` (`findSystemLocale()`) «для правильного
   форматирования». Именно из-за него форматтеры говорят на языке устройства.
-  После того как колбэк отработал, `intl` к нему больше не обращается.
+  После того как виджет отработал, `intl` к нему больше не обращается.
 * `DateFormat` нужны символы дат для локали. Их загружают делегаты
   `flutter_localizations`, и `AppLocalizations.localizationsDelegates` их уже
   включает. Приложение без них вызывает `initializeDateFormatting()` само.
 * Виджет-тест строит собственный `MaterialApp`. Тест, который проверяет
-  отформатированные даты или числа, подключает туда тот же колбэк или задаёт
-  `Intl.defaultLocale` в `setUp`. Иначе он форматирует в `en_US`.
+  отформатированные даты или числа, оборачивает его тем же виджетом или
+  задаёт `Intl.defaultLocale` в `setUp`. Иначе он форматирует в `en_US`.
 
 ## Фото в HEIC
 

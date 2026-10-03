@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.4.5
+    version: 0.5.0
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -385,9 +385,6 @@ Future<void> pushScreen({required PageRouteInfo<dynamic> route});
 
 /// Adds a new entry to the screens stack by using path
 Future<void> pushPath({required String path});
-
-/// The former name of pushPath, deprecated
-Future<void> pushNamed({required String routeName});
 
 /// Pops the last screen of the visible stack unless it is the only entry
 Future<void> popScreen({bool? result});
@@ -991,13 +988,13 @@ generator of its own, and building a fresh one per identifier is wasteful.
 ## Application locale
 
 **ApplicationLocale** — makes `intl` format dates and numbers in the language
-of the interface. Wire it once into the root application:
+of the interface. Wrap the root application in it, in `MaterialApp.builder`:
 
 ```dart
 MaterialApp.router(
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
-  localeListResolutionCallback: ApplicationLocale.resolve,
+  builder: (context, child) => ApplicationLocale(child: child!),
   // ...
 )
 ```
@@ -1009,32 +1006,35 @@ DateFormat('d MMMM').format(date); // «5 марта» in a Russian application
 NumberFormat.decimalPattern().format(1.5); // «1,5»
 ```
 
-Why it is needed. Without the callback `DateFormat` and `NumberFormat` take
-the device's locale, not the application's. A Russian-only application on an
+Why it is needed. Without it `DateFormat` and `NumberFormat` take the
+device's locale, not the application's. A Russian-only application on an
 English phone renders its text in Russian and its months, weekdays and decimal
 separators in English. The usual patch, a locale in every formatter call like
 `DateFormat('d MMMM', 'ru')`, hides the bug and has to be redone for each
 language added.
 
-The locale is resolved by Flutter's own algorithm
-(`basicLocaleListResolution`), so the widgets get the same language as before.
-Now `intl` simply gets it too. The callback runs on start-up and on every
-change of the system languages, before anything below `MaterialApp` builds,
-and each change is logged.
+The widget reads the locale the interface is drawn in from `Localizations`.
+Whatever chose it — the system languages, `MaterialApp.locale` with a language
+picked in the application's settings, a resolution callback — `intl` gets the
+same one. It switches together with the text, once the new translations have
+loaded and before the widgets below rebuild, and each change is logged.
 
 A few things to know:
 
-* Hand over the tear-off as is, not a closure: `MaterialApp` compares the
-  callback by identity on every rebuild.
+* It is not a `localeListResolutionCallback` any more (0.5.0). Flutter calls
+  that callback for the system languages and for `MaterialApp.locale` alike,
+  so it cannot tell a language chosen in the application from the system's.
+  With `MaterialApp.locale` set, a change of the system languages handed
+  `intl` the system language while the interface stayed in the chosen one.
 * Do not set `Intl.systemLocale` (`findSystemLocale()`) "for correct
   formatting". It is exactly what makes formatters speak the device's
-  language. Once the callback has run, `intl` no longer consults it.
+  language. Once the widget has run, `intl` no longer consults it.
 * `DateFormat` needs the date symbols of the locale. The `flutter_localizations`
   delegates load them, and `AppLocalizations.localizationsDelegates` already
   includes those. An application without them calls
   `initializeDateFormatting()` itself.
 * A widget test builds its own `MaterialApp`. One that checks formatted dates
-  or numbers wires the same callback there or sets `Intl.defaultLocale` in
+  or numbers wraps it in the same widget or sets `Intl.defaultLocale` in
   `setUp`. Otherwise it formats in `en_US`.
 
 ## HEIC photos
