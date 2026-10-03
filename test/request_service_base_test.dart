@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:application_base/core/service/service_locator.dart';
@@ -64,6 +65,59 @@ void main() {
     expect(response?.statusCode, 200);
     expect(sent.single, isA<MultipartRequest>());
   });
+
+  /// A request repeated on a timer turns its routine lines off, so the log
+  /// keeps only what tells a story: its failures.
+  group('logging', () {
+    test('a request logs its sending and its response by default', () async {
+      final String log = await _logOf(
+        () => service.sendBase(
+          request: RequestGet(path: 'messages'),
+          headers: const {},
+        ),
+      );
+
+      expect(log, contains('Sending'));
+      expect(log, contains('Response 200'));
+    });
+
+    test('a request with logging off leaves no line on success', () async {
+      final String log = await _logOf(
+        () => service.sendBase(
+          request: RequestGet(path: 'messages', logging: false),
+          headers: const {},
+        ),
+      );
+
+      expect(log, isEmpty);
+    });
+
+    test('a request with logging off still logs its failure', () async {
+      service.client = MockClient((_) async => Response('', 500));
+
+      final String log = await _logOf(
+        () => service.sendBase(
+          request: RequestGet(path: 'messages', logging: false),
+          headers: const {},
+        ),
+      );
+
+      expect(log, isNot(contains('Sending')));
+      expect(log, contains('Response 500'));
+    });
+  });
+}
+
+/// Everything the console logger printed while [body] ran.
+Future<String> _logOf(Future<void> Function() body) async {
+  final lines = <String>[];
+  await runZoned(
+    body,
+    zoneSpecification: ZoneSpecification(
+      print: (self, parent, zone, line) => lines.add(line),
+    ),
+  );
+  return lines.join('\n');
 }
 
 /// Every path under one test host.

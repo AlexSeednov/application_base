@@ -628,6 +628,9 @@ The fields of a request:
   for a background ping or a prefetch whose failure the user should not see.
   Events that concern the whole application (a lost connection, a `401`) still
   go out.
+* `logging` — the request writes its sending and a successful response to the
+  log. On by default. Turn it off for a request repeated on a timer, such as a
+  poll: otherwise every tick adds two lines. A failure is logged anyway.
 * `durationType` — `short` / `normal` / `long`: the timeout the request runs
   with. `normal` by default, `long` for the two file uploads.
 

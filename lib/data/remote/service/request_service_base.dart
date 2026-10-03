@@ -100,11 +100,13 @@ abstract base class RequestServiceBase {
     try {
       final Uri uri = prepareUri(path: request.path);
 
-      logRequestInfo(
-        request: request,
-        body: request.body?.toString(),
-        info: 'Sending',
-      );
+      if (request.logging) {
+        logRequestInfo(
+          request: request,
+          body: request.body?.toString(),
+          info: 'Sending',
+        );
+      }
 
       final Future<Response> futureResponse = switch (request) {
         RequestGet() => _client.get(uri, headers: headers),
@@ -186,7 +188,7 @@ abstract base class RequestServiceBase {
         return null;
       }
 
-      logResponseInfo(response: response);
+      if (request.logging) logResponseInfo(response: response);
       notify(NetworkSuccess(), silence: request.silence);
       return response;
     } on TimeoutException {

@@ -11,6 +11,7 @@ sealed class RequestType {
     this.expectedStatusList = const [],
     this.expectedErrorMap = const {},
     this.silence = false,
+    this.logging = true,
     this.durationType = RequestDurationType.normal,
   });
 
@@ -47,6 +48,13 @@ sealed class RequestType {
   /// A lost connection and a 401 are published anyway: that state is global.
   final bool silence;
 
+  /// Writes this request's routine lines — sending it and a successful
+  /// response — to the log. Turn it off for a request repeated on a timer,
+  /// such as a poll, whose every tick would otherwise flood the log.
+  ///
+  /// A failure is logged anyway: it is what a bug report needs.
+  final bool logging;
+
   /// Picks the request's timeout.
   final RequestDurationType durationType;
 }
@@ -59,6 +67,7 @@ final class RequestGet extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'GET');
 
@@ -76,6 +85,7 @@ final class RequestPost extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'POST');
 
@@ -99,6 +109,7 @@ final class RequestPostFormData extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.long,
   }) : super(type: 'POST form data');
 
@@ -125,6 +136,7 @@ final class RequestPostFile extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.long,
   }) : super(type: 'POST file as binary data');
 
@@ -145,6 +157,7 @@ final class RequestPut extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'PUT');
 
@@ -162,6 +175,7 @@ final class RequestPatch extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'PATCH');
 
@@ -179,6 +193,7 @@ final class RequestDelete extends RequestType {
     super.expectedStatusList = const [],
     super.expectedErrorMap = const {},
     super.silence = false,
+    super.logging = true,
     super.durationType = RequestDurationType.normal,
   }) : super(type: 'DELETE');
 
