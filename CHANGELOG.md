@@ -1,3 +1,45 @@
+## 0.5.2
+
+* **A lost connection is confirmed before the offline mode turns on.** One
+  failed request or one "no link" from the interface used to switch the
+  application offline at once, and it stayed there until the next ping — up
+  to a whole `pingPeriod`. Back from the background such a failure is
+  routine: Android keeps the network blocked for the application for a
+  moment, and the first request may go into a keep-alive connection the
+  server closed long ago. `NetworkServiceBase` now waits
+  `lossConfirmationDelay` (1 s by default, override the getter) and pings the
+  backend; only a failed ping turns the offline mode on. Losses reported
+  meanwhile wait for the same ping, and a request that gets through dismisses
+  them. A real loss reaches the offline mode later by the delay plus the
+  ping. Pinned by `test/network_service_base_test.dart`.
+
+* **`NetworkOffline`, the confirmed loss.** A new `NetworkEvent`, sent once
+  per offline period when the offline mode turns on — the counterpart of
+  `NetworkRestore`. `NetworkConnectionLost` is now a report rather than a
+  verdict: whatever stops on a loss — a poll, a timer — should stop on
+  `NetworkOffline`, or an unconfirmed loss leaves it stopped, since no
+  `NetworkRestore` follows. An exhaustive `switch` over `NetworkEvent` needs
+  the new case.
+
+* **`ConnectivityService` reads the links again before it reports none.** On
+  Android `connectivity_plus` asks `getActiveNetwork()`, which answers "none"
+  for a network that is only blocked for the application, in Doze or App
+  Standby, until the block is lifted on the return to the foreground. The
+  reading on resume used to report that at once. It now gets the same 3 s
+  re-check as a stream update, and the re-check reads the links afresh
+  instead of trusting the last reading: the plugin does not report a lifted
+  block, and a stale "none" delivered from the background stood after the
+  network was back. Pinned by `test/connectivity_service_test.dart`.
+
+* **A GET that hit a broken connection is sent once more.** No socket, a
+  failed handshake or a `ClientException` (the way `package:http` reports a
+  connection closed before the response) gets a second attempt after
+  `retryDelay` (0.5 s, override the getter) on a fresh connection, in
+  `sendBase` and `catchRedirect` alike. Only a second failure is reported.
+  Other methods are never repeated — one that did reach the server would
+  apply twice — and neither is a timeout. Pinned by
+  `test/request_service_base_test.dart`.
+
 ## 0.5.1
 
 * **`EmptyButton` draws its focus ring for itself only.** It used to take

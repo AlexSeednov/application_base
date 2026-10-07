@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:application_base/core/service/service_locator.dart';
@@ -106,6 +107,117 @@ void main() {
       expect(log, contains('Response 500'));
     });
   });
+
+  /// Back from the background, the first request may go into a keep-alive
+  /// connection the server closed long ago. A GET gets one more attempt on a
+  /// fresh one; anything else could apply twice and is never repeated.
+  group('broken connection', () {
+    ///
+    late int attemptCount;
+
+    ///
+    late List<NetworkEvent> events;
+
+    setUp(() {
+      attemptCount = 0;
+      events = [];
+      getIt<NetworkSubject>().listen(events.add);
+    });
+
+    /// Lets the subject deliver what was added.
+    Future<void> delivered() => Future<void>.delayed(Duration.zero);
+
+    test('a GET is sent once more and succeeds', () async {
+      service.client = MockClient((_) async {
+        attemptCount++;
+        if (attemptCount == 1) {
+          throw ClientException(
+            'Connection closed before full header was received',
+          );
+        }
+        return Response('', 200);
+      });
+
+      final ResponseEntity? response = await service.sendBase(
+        request: RequestGet(path: 'messages'),
+        headers: const {},
+      );
+      await delivered();
+
+      expect(response?.statusCode, 200);
+      expect(attemptCount, 2);
+      expect(events.whereType<NetworkConnectionLost>(), isEmpty);
+    });
+
+    test('a GET failing twice reports one lost connection', () async {
+      service.client = MockClient((_) {
+        attemptCount++;
+        throw const SocketException('Connection reset by peer');
+      });
+
+      final ResponseEntity? response = await service.sendBase(
+        request: RequestGet(path: 'messages'),
+        headers: const {},
+      );
+      await delivered();
+
+      expect(response, isNull);
+      expect(attemptCount, 2);
+      expect(events.whereType<NetworkConnectionLost>(), hasLength(1));
+    });
+
+    test('a POST is never repeated', () async {
+      service.client = MockClient((_) {
+        attemptCount++;
+        throw const SocketException('Connection reset by peer');
+      });
+
+      final ResponseEntity? response = await service.sendBase(
+        request: RequestPost(path: 'messages', body: '{}'),
+        headers: const {},
+      );
+
+      expect(response, isNull);
+      expect(attemptCount, 1);
+    });
+
+    test('a failure that is not a connection is not repeated', () async {
+      service.client = MockClient((_) {
+        attemptCount++;
+        throw const FormatException('Malformed');
+      });
+
+      await service.sendBase(
+        request: RequestGet(path: 'messages'),
+        headers: const {},
+      );
+
+      expect(attemptCount, 1);
+    });
+
+    test('a redirect is caught on the second attempt', () async {
+      service.client = MockClient((_) async {
+        attemptCount++;
+        if (attemptCount == 1) {
+          throw const SocketException('Connection reset by peer');
+        }
+        return Response(
+          '',
+          302,
+          headers: const {'location': 'https://cdn.example.com/video'},
+          isRedirect: true,
+        );
+      });
+
+      final String? location = await service.catchRedirect(
+        uri: Uri.parse('https://example.com/video'),
+        headers: const {},
+      );
+
+      expect(location, 'https://cdn.example.com/video');
+      expect(attemptCount, 2);
+    });
+  });
 }
 
 /// Everything the console logger printed while [body] ran.
@@ -120,8 +232,12 @@ Future<String> _logOf(Future<void> Function() body) async {
   return lines.join('\n');
 }
 
-/// Every path under one test host.
+/// Every path under one test host, a retry without the pause.
 final class _RequestService extends RequestServiceBase {
+  ///
+  @override
+  Duration get retryDelay => Duration.zero;
+
   ///
   @override
   Uri prepareUri({required String path}) =>

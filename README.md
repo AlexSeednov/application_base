@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.1
+    version: 0.5.2
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -647,6 +647,14 @@ so the caller shows no error of its own and just returns its "no result":
 | any other status | `NetworkUnexpectedResponse` |
 | any other exception | `NetworkUnexpectedError` |
 
+A GET that fails on a broken connection (no socket, a failed handshake, a
+`ClientException`) is sent once more after `retryDelay` (0.5 s, override the
+getter), and only a second failure is reported. Back from the background, the
+first request may go into a keep-alive connection the server closed long ago.
+Other methods are never repeated: one that did reach the server would apply
+twice. A timeout is not repeated either, it has cost the whole timeout
+already.
+
 Two parameters of `sendBase` extend one particular call without touching the
 request:
 
@@ -659,7 +667,8 @@ request:
   request, the entry here wins.
 
 `catchRedirect(uri:, headers:)` returns the `Location` header of a redirect
-without following it. `null` means there is no redirect or the call failed.
+without following it. `null` means there is no redirect or the call failed. A
+broken connection gets the same second attempt as a GET.
 
 ### Parsing
 
@@ -749,17 +758,28 @@ Call `prepare()` once on start, when the request service is ready. It
 subscribes to `NetworkSubject`, starts watching the interface and pings the
 backend once. From then on the service lives like this:
 
-* **Offline** turns on with a `NetworkConnectionLost` event. Its sources: the
-  interface reported no link; a request failed to reach the backend (a timeout,
-  no socket, an SSL error, a `504`); the ping on start failed. A link lost on
-  the interface is re-checked after 3 s: right after a reconnect iOS briefly
-  reports no link.
+* **Offline** turns on when a ping confirms a lost connection.
+  `NetworkConnectionLost` is only a report. Its sources: the interface reported
+  no link; a request failed to reach the backend (a timeout, no socket, an SSL
+  error, a `504`). The service waits `lossConfirmationDelay` (1 s by default,
+  override the getter) and pings the backend. Only a failed ping turns the
+  offline mode on; every loss reported meanwhile waits for the same ping, and a
+  request that gets through dismisses it. A failed ping on start turns the
+  offline mode on at once. `NetworkOffline` then goes out to every listener.
+* **A link lost on the interface** is read again after 3 s before it is
+  reported. Right after a reconnect iOS briefly reports no link, and back from
+  the background Android reports none for a network it has not unblocked for
+  the application yet.
 * **While offline** the service pings the backend every `pingPeriod` (30 s by
   default, override the getter), and at once when the interface reports a link
   again.
 * **Online** returns with the first successful ping or with any request that
   gets an expected response. `NetworkRestore` then goes out to every listener.
   A silent request (`silence`) reports nothing, so it does not count.
+
+Stop polling and the like on `NetworkOffline`, not on `NetworkConnectionLost`:
+a loss that is not confirmed never ends with a `NetworkRestore`, and whatever
+stopped on it would stay stopped.
 
 The state for the UI (an offline banner, disabled actions) comes from
 `isOnlineNotifier` (`ValueNotifier<bool>`), with the `isOnline` and
