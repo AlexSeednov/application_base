@@ -41,6 +41,10 @@ abstract base class RequestServiceBase {
     RequestDurationType.long => longTimeout,
   };
 
+  /// Pause before a GET that hit a broken connection goes out again. Override
+  /// to customize.
+  Duration get retryDelay => const Duration(milliseconds: 500);
+
   // Optimize(Alex): try `RetryClient` to retry failed requests automatically
   // (https://pub.dev/packages/http#retrying-requests). Tune which failures are
   // retried — a 401 at least must not be.
@@ -108,7 +112,9 @@ abstract base class RequestServiceBase {
         );
       }
 
-      final Future<Response> futureResponse = switch (request) {
+      /// A function: every attempt needs a request object of its own, one can
+      /// be sent only once
+      Future<Response> send() => switch (request) {
         RequestGet() => _client.get(uri, headers: headers),
         RequestPost() => _client.post(
           uri,
@@ -138,8 +144,13 @@ abstract base class RequestServiceBase {
         ),
       };
 
-      final Response httpResponse = await futureResponse.timeout(
-        timeoutFor(request.durationType),
+      final Response httpResponse = await _retryBrokenConnection(
+        canRetry: request is RequestGet,
+        onRetry: (error) => logRequestInfo(
+          request: request,
+          info: 'Connection broken ($error), retrying',
+        ),
+        attempt: () => send().timeout(timeoutFor(request.durationType)),
       );
 
       final response = ResponseEntity(
@@ -230,6 +241,40 @@ abstract base class RequestServiceBase {
     }
     return null;
   }
+
+  /// Runs [attempt] and, when [canRetry] and it failed on a broken
+  /// connection, once more after [retryDelay].
+  ///
+  /// Back from the background, the first request may go into a keep-alive
+  /// connection the server closed long ago, or into the moment Android still
+  /// blocks the network for the app; the second one goes through a fresh
+  /// connection. A GET only: anything else, repeated after the first attempt
+  /// did reach the server, would apply twice — a message sent, a payment
+  /// made. A timeout is not retried: it has cost the whole timeout already.
+  Future<T> _retryBrokenConnection<T>({
+    required bool canRetry,
+    required void Function(Exception error) onRetry,
+    required Future<T> Function() attempt,
+  }) async {
+    try {
+      return await attempt();
+    } on Exception catch (error) {
+      if (!canRetry || !_isBrokenConnection(error)) rethrow;
+
+      onRetry(error);
+      await Future<void>.delayed(retryDelay);
+      return attempt();
+    }
+  }
+
+  /// The failures [sendBase] reports as a lost connection, less a timeout
+  /// and a 504: no socket, a failed handshake, and the web-side
+  /// [ClientException] — which is also how `package:http` reports a
+  /// connection closed before the response.
+  static bool _isBrokenConnection(Exception error) =>
+      error is SocketException ||
+      error is HandshakeException ||
+      error is ClientException;
 
   /// Reports a 401 to [NetworkSubject], never silenced.
   ///
@@ -331,14 +376,20 @@ abstract base class RequestServiceBase {
     required Map<String, String> headers,
   }) async {
     try {
-      final request = Request('GET', uri)
-        ..followRedirects = false
-        ..maxRedirects = 0
-        ..headers.addAll(headers);
+      final StreamedResponse response = await _retryBrokenConnection(
+        canRetry: true,
+        onRetry: (error) => logInfo(
+          info: 'Catch redirect $uri\nConnection broken ($error), retrying',
+        ),
+        attempt: () {
+          final request = Request('GET', uri)
+            ..followRedirects = false
+            ..maxRedirects = 0
+            ..headers.addAll(headers);
 
-      final StreamedResponse response = await _client
-          .send(request)
-          .timeout(normalTimeout);
+          return _client.send(request).timeout(normalTimeout);
+        },
+      );
 
       return response.isRedirect ? response.headers['location'] : null;
     } on TimeoutException {

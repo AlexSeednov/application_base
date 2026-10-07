@@ -20,13 +20,27 @@ final class NetworkRestore extends NetworkEvent {
   NetworkRestore({super.data});
 }
 
+/// The loss of connection is confirmed: the offline mode is on. Sent once per
+/// offline period, the counterpart of [NetworkRestore].
+///
+/// Stop what needs the backend on this one rather than on
+/// [NetworkConnectionLost]: a loss that is not confirmed never ends with a
+/// [NetworkRestore], and whatever stopped on it would stay stopped.
+final class NetworkOffline extends NetworkEvent {
+  ///
+  NetworkOffline({super.data});
+}
+
 /// Network interface is available, but backend availability is not confirmed.
 final class NetworkConnectionAvailable extends NetworkEvent {
   ///
   NetworkConnectionAvailable({super.data});
 }
 
-/// No Internet or the backend is unreachable; turns the offline mode on.
+/// No Internet or the backend is unreachable — as one request or the network
+/// interface saw it. A report, not a verdict: `NetworkServiceBase` turns the
+/// offline mode on only once a ping confirms it, and then announces
+/// [NetworkOffline].
 ///
 /// Also emitted on a timeout, a 504 and an SSL failure: for the user each is
 /// the same temporary loss of connection.

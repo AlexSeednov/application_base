@@ -30,6 +30,18 @@ abstract base class NetworkServiceBase {
   /// mode starts, so a change applies from the next one.
   Duration get pingPeriod => defaultPingPeriod;
 
+  /// Default of [lossConfirmationDelay].
+  static const defaultLossConfirmationDelay = Duration(seconds: 1);
+
+  /// How long a reported loss waits before a ping confirms it.
+  ///
+  /// The wait is what makes a short failure pass unnoticed: back from the
+  /// background, Android keeps the network blocked for the app for a moment,
+  /// and the first request may go into a keep-alive connection the server
+  /// closed long ago. A real loss reaches the offline mode later by this much
+  /// plus the ping itself.
+  Duration get lossConfirmationDelay => defaultLossConfirmationDelay;
+
   ///
   final ConnectivityService _connectivityService = getIt<ConnectivityService>();
 
@@ -39,8 +51,8 @@ abstract base class NetworkServiceBase {
   ///
   StreamSubscription<NetworkEvent>? _subscription;
 
-  /// Starts `true`: the application counts as online until a lost connection
-  /// or a failed ping says otherwise.
+  /// Starts `true`: the application counts as online until a failed ping
+  /// says otherwise — on its own or confirming a reported loss.
   final isOnlineNotifier = ValueNotifier<bool>(true);
 
   ///
@@ -70,6 +82,11 @@ abstract base class NetworkServiceBase {
   /// Runs [ping] every [pingPeriod] while offline; `null` otherwise.
   Timer? _timer;
 
+  /// Waits [lossConfirmationDelay] and then pings; set from a reported loss
+  /// until the ping answers, `null` otherwise. Every loss reported meanwhile
+  /// is left to the one check.
+  Timer? _lossConfirmationTimer;
+
   ///
   bool _isPingInProgress = false;
 
@@ -93,8 +110,8 @@ abstract base class NetworkServiceBase {
 
     await _connectivityService.prepare();
 
-    /// No link: the interface's own `NetworkConnectionLost` turns the
-    /// offline mode on, and a ping would have nothing to go through.
+    /// No link: the interface reports the loss itself, once it is re-checked,
+    /// and the confirming ping goes after that.
     if (!_connectivityService.isConnectivityAvailable) return;
 
     /// A link proves nothing: the offline mode starts if the backend does not
@@ -111,12 +128,16 @@ abstract base class NetworkServiceBase {
 
     _timer?.cancel();
     _timer = null;
+
+    _lossConfirmationTimer?.cancel();
+    _lossConfirmationTimer = null;
   }
 
   /// Starts the ping timer first, whatever the state: a service prepared
   /// again after [dispose] may still count itself offline and needs the timer
   /// back. The rest is a no-op while offline — every failed request reports a
-  /// lost connection, and one offline mode needs one log line.
+  /// lost connection, and one offline mode needs one log line and one
+  /// [NetworkOffline].
   void _activateOfflineMode() {
     if (_isDisposed) return;
 
@@ -126,6 +147,57 @@ abstract base class NetworkServiceBase {
     isOnlineNotifier.value = false;
 
     logInfo(info: 'Offline mode activated');
+    _networkSubject.add(NetworkOffline());
+  }
+
+  /// A reported loss turns the offline mode on only when a ping, sent after
+  /// [lossConfirmationDelay], fails too. While offline there is nothing to
+  /// confirm: the ping timer runs already.
+  void _confirmConnectionLoss() {
+    if (isOffline) {
+      _activateOfflineMode();
+      return;
+    }
+    if (_isDisposed || _lossConfirmationTimer != null) return;
+
+    logInfo(
+      info:
+          'Connection loss reported, confirming in '
+          '${lossConfirmationDelay.inMilliseconds} ms',
+    );
+    _lossConfirmationTimer = Timer(
+      lossConfirmationDelay,
+      () => unawaited(_runLossConfirmation()),
+    );
+  }
+
+  /// The timer stays set through the ping: a failed ping reports a lost
+  /// connection of its own, and it must not start a second check.
+  Future<void> _runLossConfirmation() async {
+    final bool? result = await _checkBackendAvailability();
+    _lossConfirmationTimer = null;
+
+    switch (result) {
+      case false:
+        _activateOfflineMode();
+      case true:
+        logInfo(info: 'Connection loss not confirmed: the backend answers');
+      case null:
+        logInfo(info: 'Connection loss left to the ping in progress');
+    }
+  }
+
+  /// Any request that got an expected response proves the backend reachable:
+  /// a loss still waiting for its ping is dismissed, and the offline mode, if
+  /// on, ends.
+  void _onSuccess() {
+    if (_lossConfirmationTimer?.isActive ?? false) {
+      _lossConfirmationTimer!.cancel();
+      _lossConfirmationTimer = null;
+      logInfo(info: 'Connection loss dismissed: a request got through');
+    }
+
+    _restore();
   }
 
   /// Cancels the ping timer even when already online, so a timer cannot
@@ -216,14 +288,13 @@ abstract base class NetworkServiceBase {
   @mustBeOverridden
   @mustCallSuper
   void onUpdate(NetworkEvent event) => switch (event) {
-    /// Any request that got an expected response proves the backend
-    /// reachable.
-    NetworkSuccess() => _restore(),
+    NetworkSuccess() => _onSuccess(),
 
     NetworkConnectionAvailable() when isOffline => _confirmConnectionRestore(),
 
     NetworkRestore() => _deactivateOfflineMode(),
-    NetworkConnectionLost() => _activateOfflineMode(),
+    NetworkOffline() => _activateOfflineMode(),
+    NetworkConnectionLost() => _confirmConnectionLoss(),
 
     /// The rest belongs to the subclass.
     _ => {},
