@@ -1,7 +1,7 @@
 # Last full audit of the SDK and dependencies: 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.5.2
+version: 0.5.3
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -43,7 +43,10 @@ dependencies:
   get_it: ^9.2.1
 
   # All platform supported
-  hive_ce: ^2.19.3
+  #
+  # 2.20.1 is the floor: below it a box opened with the wrong cipher is
+  # truncated to nothing, and StorageService has nothing left to set aside.
+  hive_ce: ^2.20.2
 
   # All platform supported
   hive_ce_flutter: ^2.3.4
@@ -81,6 +84,12 @@ dependencies:
 
   # All platform supported
   meta: ^1.18.0
+
+  # Not supported: Web
+  #
+  # The directory of the Hive boxes, where StorageService sets aside a box
+  # it cannot read. Already in the tree through hive_ce_flutter.
+  path_provider: ^2.1.5
 
   # All platform supported
   rxdart: ^0.28.0
