@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.2
+    version: 0.5.3
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -847,8 +847,8 @@ Add the dependencies to `pubspec.yaml`:
 ```yaml
 dependencies:
   ...
-  hive_ce: 2.19.3
-  hive_ce_flutter: 2.3.4
+  hive_ce: 2.20.2
+  hive_ce_flutter: 2.4.0
   ...
 dev_dependencies:
   ...
@@ -877,6 +877,18 @@ When the key cannot be stored — a locked keychain, an unavailable Android
 Keystore — the boxes of that session live in memory. Written to disk under a
 key the next launch does not have, they would be unreadable there. The
 failure is logged, and the next launch tries to store a key again.
+
+A box the stored key cannot read is set aside, and an empty one opens in its
+place. That happens when the key that wrote the box is gone: the keychain or
+the Keystore lost it, a backup was restored without it, an iOS app moved to
+another team. A new key is generated, and the old box will not open again —
+without this step `open` throws and the launch stops. The file is renamed to
+`<box>.hive.unreadable-<milliseconds>` next to the boxes rather than deleted,
+so the data is still there should the old key come back. The step is logged
+as an error. Any other failure of `open` propagates: an adapter missing from
+the build is a bug, and it must not cost the user the box. It needs hive_ce
+2.20.1 or later — below it Hive truncates such a box to nothing on its own.
+On the web there are no files to rename, and the error propagates.
 
 ## Url Launcher
 

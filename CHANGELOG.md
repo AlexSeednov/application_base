@@ -1,3 +1,28 @@
+## 0.5.3
+
+* **A box the stored key cannot read no longer stops the launch.** When the
+  key that wrote a box is gone — the keychain or the Keystore lost it, a
+  backup was restored without it, an iOS app moved to another team — a new
+  key is generated and `Hive.openBox` throws `HiveError` for the old box.
+  Uncaught, that error stopped the launch every time: the application never
+  started again until it was reinstalled. `StorageService.open` now renames
+  the files of such a box to `<box>.hive.unreadable-<milliseconds>` and opens
+  an empty one in its place; the step is logged as an error, and the data is
+  still on the disk should the old key come back. Only Hive's "could not read
+  the box" verdict is treated so: any other failure propagates, an adapter
+  missing from the build among them. On the web the error propagates as
+  before. Pinned by `test/storage_service_test.dart`.
+
+* **hive_ce 2.20.2 or later is required.** Below 2.20.1 Hive's crash
+  recovery truncated a box opened with the wrong cipher to nothing, silently;
+  2.20.1 throws instead, and that is what `StorageService` now relies on.
+  `path_provider`, already in the tree through `hive_ce_flutter`, is a direct
+  dependency now.
+
+* README: the *Local storage service* section describes the step and names
+  the current Hive versions; the installation example names the current
+  version.
+
 ## 0.5.2
 
 * **A lost connection is confirmed before the offline mode turns on.** One
