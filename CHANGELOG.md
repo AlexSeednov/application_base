@@ -1,3 +1,13 @@
+## 0.5.4
+
+* **`RouteLink` keeps delayed Ctrl/Cmd+clicks in a separate tab.** When
+  accessibility semantics delays the tap until after the DOM click was
+  cancelled, the link plugin used to push an internal route into the current
+  tab. In-app paths now reach the plugin as full browser URLs, including the
+  URL strategy and base path, so its delayed fallback opens a separate tab.
+  Plain clicks and nested button actions keep their existing behavior.
+  Pinned by `test/route_link_web_test.dart`.
+
 ## 0.5.3
 
 * **A box the stored key cannot read no longer stops the launch.** When the

@@ -1,7 +1,7 @@
 # Last full audit of the SDK and dependencies: 05.07.2026
 name: application_base
 description: "Unified base for Flutter applications"
-version: 0.5.3
+version: 0.5.4
 homepage: https://github.com/AlexSeednov/application_base
 
 environment:
@@ -125,8 +125,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Tests only: verify browser links with the SDK's path URL strategy
+  flutter_web_plugins:
+    sdk: flutter
+
   # dart run build_runner build
   injectable_generator: ^3.1.0
+
+  # Tests only: record whether RouteLink hands activation to the browser
+  url_launcher_platform_interface: ^2.3.2
+
+  # Tests only: replay delayed DOM clicks through the real link controller
+  url_launcher_web: ^2.4.3
 
 # Run from a consumer's root: dart run application_base:<name>
 executables:

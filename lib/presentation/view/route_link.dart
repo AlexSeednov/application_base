@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:application_base/core/service/platform_service.dart';
+import 'package:application_base/presentation/utility/browser_link_uri.dart'
+    if (dart.library.js_interop) 'package:application_base/presentation/utility/browser_link_uri_web.dart';
 import 'package:application_base/presentation/view/auto_scroll_pro.dart';
 import 'package:application_base/presentation/view/empty_button.dart';
 import 'package:flutter/gestures.dart';
@@ -23,6 +25,10 @@ import 'package:url_launcher/link.dart';
 /// call from the app the plugin cancels the in-tab navigation on its own
 /// (`url_launcher_web`, `LinkTriggerSignals`), so a plain click never reloads
 /// the page.
+///
+/// In-app routes reach the plugin as full browser URLs. If semantics delays
+/// the tap until after the DOM click was cancelled, the plugin opens that URL
+/// separately instead of pushing a route into the current tab.
 ///
 /// Outside the web, or without a [path] or an [onClick], it is a plain
 /// [EmptyButton].
@@ -61,7 +67,7 @@ final class RouteLink extends StatelessWidget {
     return Listener(
       onPointerDown: (event) => _claimMiddleButton(context, event),
       child: Link(
-        uri: uri,
+        uri: browserLinkUri(uri),
         target: uri.hasScheme ? LinkTarget.blank : LinkTarget.defaultTarget,
         builder: (_, followLink) => _button(() => _onTap(followLink)),
       ),

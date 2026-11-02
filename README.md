@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.3
+    version: 0.5.4
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -1372,6 +1372,11 @@ A plain click goes to `onClick`: the same in-app navigation as before, with
 whatever data the view model already holds. Only a click with a modifier key
 reaches the link: the browser opens the new tab itself, and the plugin cancels
 the in-tab navigation until the application calls `followLink`.
+
+In-app routes reach the link plugin as full browser URLs, with the current
+URL strategy and base path. This keeps Ctrl/Cmd+click in a separate tab even
+when accessibility semantics delays Flutter's tap until after the browser
+has cancelled the original click.
 
 How to build `path`:
 
