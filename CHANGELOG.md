@@ -1,3 +1,12 @@
+## 0.5.5
+
+* **Browser marker listeners are replaced after a web hot restart.** DOM
+  callbacks from the previous Dart runtime used to survive the restart and
+  call stale session objects on `storage` or `visibilitychange`. The bridge
+  now stores JavaScript listener handles on the page and removes the previous
+  runtime's listeners before the first new subscription. Multiple watchers
+  within the current runtime continue to work independently.
+
 ## 0.5.4
 
 * **`RouteLink` keeps delayed Ctrl/Cmd+clicks in a separate tab.** When

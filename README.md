@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.4
+    version: 0.5.5
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -1561,3 +1561,6 @@ Why it is so:
   logged.
 * Freeze a key once it is in use. During a rollout tabs of the old and the
   new version run side by side, and they must see the same marker.
+* A web hot restart replaces the previous Dart runtime's marker listeners.
+  DOM events cannot call its stale session objects; watchers registered
+  within the current runtime remain independent.
