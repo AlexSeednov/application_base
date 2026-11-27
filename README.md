@@ -84,7 +84,7 @@ dependencies:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: 0.5.5
+    version: 0.5.6
 ```
 
 The package registers its services through an injectable micro-package module.
@@ -1207,6 +1207,27 @@ block. Two requirements follow: no ancestor may clip those edges (a list needs
 `clipBehavior: Clip.none`), and where there is no room outside (a modal, a
 column flush against the edge) give the row a padding of the same width.
 
+### Adaptive layouts and scrolling
+
+`LayoutClassScope<T>` shares a layout class between widgets. Calculate the
+class from the window and platform in the application, then publish it from
+the app builder. `LayoutSwitcher` evaluates an application-supplied `isWide`
+rule and builds the corresponding body. Place the switcher below the owner
+of the screen's state so resizing can preserve loaded data.
+
+`SlottedScrollView` applies padding to the main sliver and gives the header
+and footer their full width. `SliverFooter` can also be used in a custom scroll
+view. Set `primary: false` on a nested view and pass application-specific
+physics when needed.
+
+`PullToRefresh` takes a refresh callback, drag distance and indicator builder.
+It supports a custom scroll notification predicate and a moving edge offset.
+Supply `onArmed` if the application needs haptic feedback at the threshold.
+
+`RouteLeaveListener` observes a mounted `auto_route` page, for example to
+save an edit on tab switch or when another page covers it. A dialog above
+the page leaves the route hierarchy in place.
+
 ## Bottom sheets
 
 A scrollable sheet closes the way a short one does: once its list is at the
@@ -1392,6 +1413,28 @@ the browser context menu recognises it as a link, and a modifier-click opens
 it in a new tab. A plain click still goes to `onClick`, so the application
 keeps its own way of opening such links.
 
+Use `InlineText` for a paragraph with links or actions in its text. Each item
+wraps within the paragraph, takes one Tab stop and exposes its full name to
+assistive technology. `InlineTextPart.address` also wraps at URL separators.
+`InlineTextPart.action` provides the semantics of a button for an action
+without a destination URL.
+
+```dart
+InlineText(
+  builder: (span) => Text.rich(span, style: bodyStyle),
+  parts: [
+    const InlineTextPart.text('Read our '),
+    InlineTextPart.link(
+      'privacy policy',
+      url: privacyPolicyUrl,
+      style: bodyStyle,
+      onClick: openPrivacyPolicy,
+    ),
+    const InlineTextPart.text('.'),
+  ],
+)
+```
+
 ### Middle-button autoscroll
 
 A browser scrolls a page from a middle click: the press sets an anchor, the
@@ -1527,6 +1570,15 @@ is exactly what the next click would have done.
 
 `BrowserTab` covers the tab a web build runs in. Outside the web it does
 nothing, so its calls need no platform check.
+
+Use `BrowserActivity.isVisible`, `BrowserActivity.hasFocus` and
+`BrowserActivity.changes` to react to visibility and focus. A document can
+be visible before it regains focus. Read the getter you need in the stream
+callback and cancel the subscription with its owner.
+
+`WebTextFocusRestorer` wraps the navigator and resumes editing when the
+browser document regains focus. It can sit inside `PageFocusKeeper` in the
+app builder so both the page and the active field keep their keyboard behavior.
 
 `BrowserTab.reload()` reloads the page, as the browser button does. Use it to
 rebuild what the application cannot replace in place: screens built for a

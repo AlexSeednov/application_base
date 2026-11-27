@@ -20,6 +20,7 @@ final class EmptyButton extends StatefulWidget {
     required this.onClick,
     required this.child,
     this.focusBorderRadius,
+    this.showFocusRing = true,
     super.key,
   });
 
@@ -31,6 +32,9 @@ final class EmptyButton extends StatefulWidget {
 
   /// Rounding of the focus ring; `null` — [defaultFocusBorderRadius].
   final BorderRadius? focusBorderRadius;
+
+  /// Whether this button paints its own keyboard focus indicator.
+  final bool showFocusRing;
 
   /// Stroke width of the focus ring.
   static const double focusRingWidth = 2;
@@ -114,7 +118,7 @@ final class _EmptyButtonState extends State<EmptyButton> {
         decoration: BoxDecoration(
           borderRadius:
               widget.focusBorderRadius ?? EmptyButton.defaultFocusBorderRadius,
-          border: _showsRing
+          border: widget.showFocusRing && _showsRing
               ? Border.all(
                   color: Theme.of(context).colorScheme.primary,
                   width: EmptyButton.focusRingWidth,

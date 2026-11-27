@@ -1,3 +1,21 @@
+## 0.5.6
+
+* **Links and actions in a paragraph have one Tab stop.** `InlineText` keeps
+  word and URL wrapping, highlights the full label on keyboard focus and
+  exposes one accessible name. Web links retain the browser's pointer actions.
+* **`BrowserActivity`** exposes document visibility, focus and a subscribable
+  stream of changes. Hot restart replaces the previous DOM listener.
+* **`RouteLeaveListener`** reports when a mounted `auto_route` page leaves the
+  active route hierarchy.
+* **`SlottedScrollView` and `SliverFooter`** give scrollable pages full-width
+  header and footer slots and align short pages' footers to the viewport.
+* **`PullToRefresh`** handles the drag, indicator placement and scroll motion.
+  The application supplies indicator content and optional arming feedback.
+* **`LayoutClassScope` and `LayoutSwitcher`** share and select adaptive layouts
+  using the application's window classification.
+* **`WebTextFocusRestorer`** restores input to an eligible field when the
+  browser document regains focus.
+
 ## 0.5.5
 
 * **Browser marker listeners are replaced after a web hot restart.** DOM

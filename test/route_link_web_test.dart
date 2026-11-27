@@ -4,6 +4,7 @@ library;
 import 'dart:ui_web' as ui_web;
 
 import 'package:application_base/presentation/utility/browser_link_uri_web.dart';
+import 'package:application_base/presentation/view/inline_text.dart';
 import 'package:application_base/presentation/view/route_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -57,6 +58,7 @@ void main() {
     WidgetTester tester, {
     bool meta = false,
     bool control = false,
+    Finder? surface,
   }) {
     final web.MouseEvent event = web.MouseEvent(
       'click',
@@ -66,7 +68,9 @@ void main() {
       event: event,
       target: browser.linkViewFactory(
         tester
-            .widget<PlatformViewSurface>(find.byType(PlatformViewSurface))
+            .widget<PlatformViewSurface>(
+              surface ?? find.byType(PlatformViewSurface),
+            )
             .controller
             .viewId,
       ),
@@ -175,6 +179,94 @@ void main() {
     expect(clicks, 1);
     await finish(tester);
   });
+
+  testWidgets(
+    'a wrapped link has one Tab stop and keeps native link gestures',
+    (tester) async {
+      const String label = 'first document';
+      const String url = 'https://example.test/document';
+      const TextStyle style = TextStyle(fontSize: 10, color: Colors.black);
+      int actions = 0;
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 100,
+              child: InlineText(
+                builder: (span) => Text.rich(span, style: style),
+                parts: [
+                  const InlineTextPart.text('Open '),
+                  InlineTextPart.link(
+                    label,
+                    url: url,
+                    style: style,
+                    onClick: () => clicks++,
+                  ),
+                  const InlineTextPart.text(' or '),
+                  InlineTextPart.action(
+                    'get help',
+                    style: style,
+                    onClick: () => actions++,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.bySemanticsLabel(label), findsOneWidget);
+      expect(find.bySemanticsLabel('document'), findsNothing);
+      semantics.dispose();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final Finder continuation = find.text('document');
+      expect(
+        tester.widget<Text>(continuation).style?.backgroundColor,
+        isNotNull,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(clicks, 1);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(tester.widget<Text>(continuation).style?.backgroundColor, isNull);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(actions, 1);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(
+        tester.widget<Text>(continuation).style?.backgroundColor,
+        isNotNull,
+      );
+
+      final Finder surface = find.descendant(
+        of: find.ancestor(of: continuation, matching: find.byType(RouteLink)),
+        matching: find.byType(PlatformViewSurface),
+      );
+      final viewId = tester
+          .widget<PlatformViewSurface>(surface)
+          .controller
+          .viewId;
+      final anchor = browser.linkViewFactory(viewId);
+      expect(anchor.getAttribute('href'), url);
+      expect(anchor.getAttribute('target'), '_blank');
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.tap(continuation);
+      final event = domClick(tester, meta: true, surface: surface);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      expect(event.defaultPrevented, isFalse);
+      expect(clicks, 1);
+      await finish(tester);
+    },
+  );
 
   testWidgets('a nested button keeps its action on a modified click', (
     tester,

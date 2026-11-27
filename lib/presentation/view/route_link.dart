@@ -39,6 +39,7 @@ final class RouteLink extends StatelessWidget {
     required this.onClick,
     required this.child,
     this.focusBorderRadius,
+    this.showFocusRing = true,
     super.key,
   });
 
@@ -54,6 +55,9 @@ final class RouteLink extends StatelessWidget {
 
   /// Rounding of the focus ring, see [EmptyButton.focusBorderRadius].
   final BorderRadius? focusBorderRadius;
+
+  /// Whether the tap target paints its own keyboard focus indicator.
+  final bool showFocusRing;
 
   ///
   @override
@@ -86,6 +90,7 @@ final class RouteLink extends StatelessWidget {
   Widget _button(VoidCallback? onTap) => EmptyButton(
     onClick: onTap,
     focusBorderRadius: focusBorderRadius,
+    showFocusRing: showFocusRing,
     child: child,
   );
 
